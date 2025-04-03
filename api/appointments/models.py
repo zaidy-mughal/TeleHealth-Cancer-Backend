@@ -3,7 +3,7 @@ from api.users.models import User #adding the custom user
 from api.base_models import TimeStampMixin
 from django.db import models
 from django.utils import timezone
-from patients.models import Patient
+from api.patients.models import Patient
 import uuid
 
 def default_time():

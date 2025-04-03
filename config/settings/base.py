@@ -44,7 +44,9 @@ THIRD_PARTY_APPS = [
 ]
 
 PROJECT_APPS = [
-    'api.users'
+    'api.users',
+    'api.appointments',
+    'api.patients',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
