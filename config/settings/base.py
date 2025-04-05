@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import environ
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -32,6 +33,7 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 DJANGO_APPS = [
     'django.contrib.admin',
+    'django.contrib.sites', # for django-allauth
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -41,14 +43,25 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     'rest_framework',
+    'rest_framework.authtoken',
+    'rest_framework_simplejwt',
+
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
 ]
 
 PROJECT_APPS = [
     'api.users',
-    'api.appointments',
     'api.patients',
-    'api.sign_in',
+    'api.authentication',
 ]
+
+# dj-rest-auth
+SITE_ID = 1
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
@@ -60,6 +73,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # auth middleware
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -82,8 +97,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# AUTH USER 
-
+# CUSTOM AUTH USER MODEL
 AUTH_USER_MODEL = 'users.User'
 
 # Password validation
@@ -128,3 +142,45 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+# Rest framework settings
+REST_FRAMEWORK = {
+    
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+# Django Allauth settings
+REST_AUTH = {
+    "USE_JWT": True,
+    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_COOKIE": "core-app-auth",
+    "JWT_AUTH_REFRESH_COOKIE": "core-app-refresh",
+}
+
+# Django JWT settings
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
+
+REST_AUTH_SERIALIZERS = {
+    "LOGIN_SERIALIZER": "api.authentication.serializers.CustomLoginSerializer",
+    "REGISTER_SERIALIZER": "api.authentication.serializers.CustomRegisterSerializer",
+}
+
+# this is used to neglect username field in the of Custom model
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+# this is used to remove email verification
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_EMAIL_REQUIRED = True
+
