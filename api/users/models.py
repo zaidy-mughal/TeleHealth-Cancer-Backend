@@ -17,6 +17,12 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 
     Email, uuid and password are required. Other fields are optional.
     """
+    GENDER_CHOICES = [
+        ('male', _('Male')),
+        ('female', _('Female')),
+        ('other', _('Other')),
+    ]
+
     username_validator = UnicodeUsernameValidator()
 
     uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
@@ -32,7 +38,16 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
         },
     )
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
+    middle_name = models.CharField(_('middle name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
+    date_of_birth = models.DateField(_('date of birth'))
+    phone_number = models.IntegerField(
+        _('phone number'),
+        max_length=15,
+    )
+    address = models.CharField(_('address'), max_length=255)
+    gender = models.CharField(_('gender'), max_length=10, choices=GENDER_CHOICES)
+
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,

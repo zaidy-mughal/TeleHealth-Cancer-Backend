@@ -58,6 +58,8 @@ PROJECT_APPS = [
     'api.users',
     'api.patients',
     'api.authentication',
+    'api.doctors',
+    'api.appointments',
 ]
 
 # dj-rest-auth
