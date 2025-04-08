@@ -38,14 +38,16 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
         },
     )
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
-    middle_name = models.CharField(_('middle name'), max_length=30, blank=True)
+    middle_name = models.CharField(_('middle name'), max_length=30, blank=True, null=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
     date_of_birth = models.DateField(_('date of birth'))
-    phone_number = models.IntegerField(
+    phone_number = models.CharField(
         _('phone number'),
         max_length=15,
+        null=True,
+        blank=True,
     )
-    address = models.CharField(_('address'), max_length=255)
+    address = models.CharField(_('address'), max_length=255, null=True, blank=True)
     gender = models.CharField(_('gender'), max_length=10, choices=GENDER_CHOICES)
 
     is_staff = models.BooleanField(

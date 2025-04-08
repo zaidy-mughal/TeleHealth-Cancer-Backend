@@ -105,6 +105,7 @@ class CancerType(models.Model):
     """
     Cancer Type model to use it in Cancer History.
     """
+
     name = models.CharField(max_length=100)
     icd_code = models.CharField(max_length=10, unique=True)
     description = models.TextField()
@@ -127,7 +128,9 @@ class CancerHistory(models.Model):
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="cancer_history"
     )
-    cancer_type = models.CharField(max_length=100, choices=CancerType.choices)
+    cancer_type = models.ForeignKey(
+        CancerType, on_delete=models.CASCADE, related_name="cancer_history"
+    )
     year_of_diagnosis = models.IntegerField()
     treatment_received = models.CharField(
         max_length=100, choices=TreatmentReceived.choices
@@ -157,7 +160,7 @@ class Addiction(models.Model):
         return f"{self.addiction_type}"
 
 
-class PrimaryPhysician(models.model):
+class PrimaryPhysician(models.Model):
     """
     Primary Physician model to store patient's primary physician information.
     """
@@ -172,7 +175,7 @@ class PrimaryPhysician(models.model):
         return f"{self.name}"
 
 
-class Pharmacist(models.model):
+class Pharmacist(models.Model):
     """
     Pharmacist model to store patient's pharmacist information.
     """
