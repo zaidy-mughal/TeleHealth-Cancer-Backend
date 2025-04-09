@@ -22,7 +22,7 @@ class Doctor(TimeStampMixin):
     specific to the doctor.
     """
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
 
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="doctor"

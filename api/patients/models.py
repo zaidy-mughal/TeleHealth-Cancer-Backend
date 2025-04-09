@@ -27,7 +27,7 @@ class Patient(TimeStampMixin):
         SEPARATED = "SEPARATED", "Separated"
         OTHER = "OTHER", "Other"
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
@@ -107,8 +107,6 @@ class CancerType(models.Model):
     """
 
     name = models.CharField(max_length=100)
-    icd_code = models.CharField(max_length=10, unique=True)
-    description = models.TextField()
 
     def __str__(self):
         return self.name
