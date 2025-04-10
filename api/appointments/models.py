@@ -16,7 +16,7 @@ class Appointments(TimeStampMixin):
         CONFIRMED = "CONFIRMED", "Confirmed"
         CANCELLED = "CANCELLED", "Cancelled"
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
 
     doctor = models.ForeignKey(
         Doctor, on_delete=models.CASCADE, related_name="appointments"

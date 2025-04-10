@@ -11,27 +11,8 @@ from .models import (
     PrimaryPhysician,
     Addiction,
 )
-from users.serializers import UserSerializer
-from users.models import User
-
-
-class PatientSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-
-    class Meta:
-        model = Patient
-        fields = [
-            "uuid",
-            "user",
-            "visit_type",
-            "marital_status",
-            "sex_assign_at_birth",
-            "state",
-            "city",
-            "zip_code",
-            "is_iodine_contrast_allergic",
-        ]
-        read_only_fields = ["uuid"]
+from api.users.serializers import UserSerializer
+from api.users.models import User
 
 
 class AllergySerializer(serializers.ModelSerializer):
@@ -139,3 +120,49 @@ class AddictionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Addiction
         fields = "__all__"
+
+
+class PatientSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    
+    allergies = AllergySerializer(many=True, write_only=True, required=False)
+    medications = MedicationSerializer(many=True, write_only=True, required=False)
+    medical_history = MedicalHistorySerializer(many=True, write_only=True, required=False)
+    surgical_history = SurgicalHistorySerializer(many=True, write_only=True, required=False)
+    cancer_history = CancerHistorySerializer(many=True, write_only=True, required=False)
+    addiction_history = AddictionSerializer(many=True, write_only=True, required=False)
+    primary_physician = PrimaryPhysicianSerializer(many=True, write_only=True, required=False)
+    pharmacist = PharmacistSerializer(many=True, write_only=True, required=False)
+
+    class Meta:
+        model = Patient
+        fields = [
+            "uuid", "user", "visit_type", "marital_status", "sex_assign_at_birth",
+            "state", "city", "zip_code", "is_iodine_contrast_allergic",
+            "allergies", "medications", "medical_history", "surgical_history",
+            "cancer_history", "addiction_history", "primary_physician", "pharmacist"
+        ]
+        read_only_fields = ["uuid"]
+
+    def create(self, validated_data):
+        # Pop out nested fields and create objects after patient creation
+        nested_data = {
+            "allergies": validated_data.pop("allergies", []),
+            "medications": validated_data.pop("medications", []),
+            "medical_history": validated_data.pop("medical_history", []),
+            "surgical_history": validated_data.pop("surgical_history", []),
+            "cancer_history": validated_data.pop("cancer_history", []),
+            "addiction_history": validated_data.pop("addiction_history", []),
+            "primary_physician": validated_data.pop("primary_physician", []),
+            "pharmacist": validated_data.pop("pharmacist", []),
+        }
+
+        patient = Patient.objects.create(**validated_data)
+
+        # Create nested objects
+        for model_name, entries in nested_data.items():
+            model_class = self.fields[model_name].child.Meta.model      #used to get the model class
+            for item in entries:
+                model_class.objects.create(patient=patient, **item)
+
+        return patient

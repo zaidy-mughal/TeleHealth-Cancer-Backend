@@ -42,7 +42,7 @@ class Patient(TimeStampMixin):
     is_iodine_contrast_allergic = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"{self.user.get_full_name()} - {self.gender}"
+        return f"{self.user.get_full_name()}"
 
 
 class Allergy(models.Model):
