@@ -10,6 +10,7 @@ from api.base_models import TimeStampMixin
 from api.users.managers import UserManager
 
 
+
 class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     """
     An abstract base class implementing a fully featured User model with
