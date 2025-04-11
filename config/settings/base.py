@@ -50,6 +50,8 @@ THIRD_PARTY_APPS = [
 
     'dj_rest_auth',
     'dj_rest_auth.registration',
+
+    'drf_spectacular',
 ]
 
 PROJECT_APPS = [
@@ -145,6 +147,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Rest framework settings
 REST_FRAMEWORK = {
+    # used for creating api schema
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
@@ -153,6 +158,14 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 }
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Telehealth APIs',
+    'DESCRIPTION': 'API documentation for your TeleHealth Cancer',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
 
 # Django Allauth settings
 # JWT cookies will store in cookies in the browser.
