@@ -1,3 +1,5 @@
+from typing import override
+
 from rest_framework import serializers
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
@@ -8,25 +10,23 @@ from api.patients.models import Patient
 class CustomRegisterSerializer(RegisterSerializer):
     fullname = serializers.CharField(required=True)
     date_of_birth = serializers.DateField(required=True)
-    gender = serializers.ChoiceField(choices=[("Male", "Male"), ("Female", "Female")])
-    visit_type = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
     username = None  # Remove username field
 
     def get_cleaned_data(self):
         data = super().get_cleaned_data()
         data["fullname"] = self.validated_data.get("fullname", "")
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
-        data["gender"] = self.validated_data.get("gender", "")
-        data["visit_type"] = self.validated_data.get("visit_type", "")
+        data["phone_number"] = self.validated_data.get("phone_number", "")
         return data
 
+    @override
     def custom_signup(self, request, user):
         # Split fullname into first and last names
         fullname = self.validated_data.get("fullname", "")
-        if fullname:
-            names = fullname.split(" ", 1)
-            user.first_name = names[0]
-            user.last_name = names[1] if len(names) > 1 else ""
+        names = fullname.split(" ", 1)
+        user.first_name = names[0]
+        user.last_name = names[1] if len(names) > 1 else ""
 
         try:
             user.save()
@@ -34,8 +34,7 @@ class CustomRegisterSerializer(RegisterSerializer):
             Patient.objects.create(
                 user=user,
                 date_of_birth=self.validated_data.get("date_of_birth"),
-                gender=self.validated_data.get("gender"),
-                visit_type=self.validated_data.get("visit_type"),
+                phone_number=self.validated_data.get("phone_number"),
             )
         except Exception as e:
             user.delete()
@@ -49,4 +48,9 @@ class CustomLoginSerializer(LoginSerializer):
     email = serializers.EmailField(required=True)
 
     def validate(self, attrs):
-        return super().validate(attrs)
+        data = super().validate(attrs)
+
+        # added user role into the response
+        data['role'] = self.user.role
+
+        return data

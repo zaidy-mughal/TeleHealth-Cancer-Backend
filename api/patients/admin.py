@@ -4,7 +4,7 @@ from .models import Patient
 
 @admin.register(Patient)
 class PatientAdmin(admin.ModelAdmin):
-    list_display = ['id', 'get_name', 'get_email', 'phone_number']
+    list_display = ['uuid', 'get_name', 'get_email', 'phone_number']
     readonly_fields = ['created_at', 'updated_at']
 
     def get_name(self, obj):

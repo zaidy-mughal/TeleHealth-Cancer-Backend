@@ -30,10 +30,8 @@ SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 
 # Application definition
-
 DJANGO_APPS = [
     'django.contrib.admin',
-    'django.contrib.sites', # for django-allauth
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
@@ -73,7 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    # auth middleware
+    # dj-rest-auth middleware
     'allauth.account.middleware.AccountMiddleware',
 ]
 
@@ -147,7 +145,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Rest framework settings
 REST_FRAMEWORK = {
-    
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
@@ -158,6 +155,7 @@ REST_FRAMEWORK = {
 }
 
 # Django Allauth settings
+# JWT cookies will store in cookies in the browser.
 REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_HTTPONLY": False,
@@ -167,8 +165,8 @@ REST_AUTH = {
 
 # Django JWT settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
 REST_AUTH_SERIALIZERS = {
@@ -183,4 +181,6 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # this is used to remove email verification
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_REQUIRED = True
+# Disable social login
+SOCIALACCOUNT_ENABLED = False
 
