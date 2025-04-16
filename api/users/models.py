@@ -6,8 +6,9 @@ from django.core.validators import validate_email
 from django.utils import timezone
 from django.contrib.auth.models import UnicodeUsernameValidator
 
-from apps.base_models import TimeStampMixin
-from apps.users.managers import UserManager
+from api.base_models import TimeStampMixin
+from api.users.managers import UserManager
+
 
 
 class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
@@ -17,9 +18,15 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 
     Email, uuid and password are required. Other fields are optional.
     """
+
+    class Role(models.TextChoices):
+        ADMIN = 'ADMIN', 'Admin'
+        DOCTOR = 'DOCTOR', 'Doctor'
+        PATIENT = 'PATIENT', 'Patient'
+
     username_validator = UnicodeUsernameValidator()
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
     email = models.CharField(
         _('email'),
         max_length=150,
@@ -33,6 +40,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     )
     first_name = models.CharField(_('first name'), max_length=30, blank=True)
     last_name = models.CharField(_('last name'), max_length=150, blank=True)
+    role = models.CharField(_('role'), max_length=20, choices=Role.choices, default=Role.PATIENT)
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
