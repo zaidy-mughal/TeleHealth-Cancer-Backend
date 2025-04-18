@@ -1,0 +1,36 @@
+name: telehealth-cancer-backend
+services:
+  web:
+    build: .
+    ports:
+      - 8000:8000
+    environment:
+      - DJANGO_SECRET_KEY=*(-=m!vqvd5f^jhv3duatz9(((qwpd=eah(7%i&1u)5w%4yj_$
+      - APP_ENVIRONMENT=production
+      - DJANGO_SETTINGS_MODULE=config.settings.production
+      - DATABASE_URL=postgres://postgres:telehealth_prod_password123!@db:5432/telehealth
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: postgres:15
+    environment:
+      - POSTGRES_DB=telehealth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=telehealth_prod_password123!
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data: 

@@ -1,5 +1,3 @@
-from typing import override
-
 from rest_framework import serializers
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
@@ -20,7 +18,6 @@ class CustomRegisterSerializer(RegisterSerializer):
         data["phone_number"] = self.validated_data.get("phone_number", "")
         return data
 
-    @override
     def custom_signup(self, request, user):
         # Split fullname into first and last names
         fullname = self.validated_data.get("fullname", "")
