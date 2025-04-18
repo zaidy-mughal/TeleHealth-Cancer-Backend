@@ -49,8 +49,6 @@ class CustomLoginSerializer(LoginSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-
-        # added user role into the response
-        data['role'] = self.user.role
-
+        # Access instance variables or methods using self
+        data['role'] = data.get('user').role
         return data

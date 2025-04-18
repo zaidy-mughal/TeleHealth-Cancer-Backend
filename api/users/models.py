@@ -26,7 +26,7 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 
     username_validator = UnicodeUsernameValidator()
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
+    id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
     email = models.CharField(
         _('email'),
         max_length=150,
