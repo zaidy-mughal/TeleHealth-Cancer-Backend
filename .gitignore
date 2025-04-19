@@ -1,5 +1,14 @@
-# Byte-compiled / optimized / DLL files
 __pycache__/
+.env
+venv/
+*.sqlite3
+*.db
+*.log
+# Ignore all migration files except __init__.py
+[0-9][0-9][0-9][0-9]_*.py
+!__init__.py
+
+# Byte-compiled / optimized / DLL files
 *.py[cod]
 *$py.class
 
@@ -172,3 +181,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Editor related files.
+.idea/
+*.iml
+*.xml
+*.pyc
+*.pyo
+*.swp
+*.swo
