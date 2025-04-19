@@ -23,3 +23,4 @@ sqlparse==0.4.2
 typing_extensions==4.13.2
 uritemplate==4.1.1
 urllib3==2.3.0
+gunicorn==21.2.0
