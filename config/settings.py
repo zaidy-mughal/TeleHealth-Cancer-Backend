@@ -100,13 +100,39 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
+
+# Print the DATABASE_URL for debugging (without credentials)
+db_url = env('DATABASE_URL', default='')
+print(f"Using database URL (masked): {db_url[:15]}...{db_url[-15:]}")
+
 DATABASES = {
     'default': dj_database_url.parse(
-        env('DATABASE_URL'),
+        db_url,
         conn_max_age=600,
         conn_health_checks=True,
         ssl_require=True
     )
+}
+
+# Enable database logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+        },
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
 }
 
 # CUSTOM AUTH USER MODEL
