@@ -1,6 +1,6 @@
 from django.db import models
+from django.conf import settings
 from api.base_models import TimeStampMixin
-import config.settings.base as settings
 import uuid
 
 class Patient(TimeStampMixin):
