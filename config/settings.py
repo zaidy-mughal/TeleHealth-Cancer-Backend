@@ -101,17 +101,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-# Print the DATABASE_URL for debugging (without credentials)
-db_url = env('DATABASE_URL', default='')
-print(f"Using database URL (masked): {db_url[:15]}...{db_url[-15:]}")
+# Debug database connection info
+print("=== Database Configuration Debug ===")
+print(f"PGHOST: {os.getenv('PGHOST')}")
+print(f"PGPORT: {os.getenv('PGPORT')}")
+print(f"PGDATABASE: {os.getenv('PGDATABASE')}")
+print(f"PGUSER: {os.getenv('PGUSER')}")
+print("DATABASE_URL (masked):", os.getenv('DATABASE_URL', '')[:15] + "..." + os.getenv('DATABASE_URL', '')[-15:] if os.getenv('DATABASE_URL') else 'Not set')
+print("================================")
 
 DATABASES = {
-    'default': dj_database_url.parse(
-        db_url,
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('PGDATABASE'),
+        'USER': os.getenv('PGUSER'),
+        'PASSWORD': os.getenv('PGPASSWORD'),
+        'HOST': os.getenv('PGHOST'),
+        'PORT': os.getenv('PGPORT', '5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
+    }
 }
 
 # Enable database logging
