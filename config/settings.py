@@ -103,25 +103,21 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Debug database connection info
 print("=== Database Configuration Debug ===")
-print(f"PGHOST: {os.getenv('PGHOST')}")
-print(f"PGPORT: {os.getenv('PGPORT')}")
-print(f"PGDATABASE: {os.getenv('PGDATABASE')}")
-print(f"PGUSER: {os.getenv('PGUSER')}")
-print("DATABASE_URL (masked):", os.getenv('DATABASE_URL', '')[:15] + "..." + os.getenv('DATABASE_URL', '')[-15:] if os.getenv('DATABASE_URL') else 'Not set')
+db_config = dj_database_url.parse(os.getenv('DATABASE_URL'))
+print(f"Parsed DATABASE_URL:")
+print(f"NAME: {db_config.get('NAME')}")
+print(f"USER: {db_config.get('USER')}")
+print(f"HOST: {db_config.get('HOST')}")
+print(f"PORT: {db_config.get('PORT')}")
 print("================================")
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('PGDATABASE'),
-        'USER': os.getenv('PGUSER'),
-        'PASSWORD': os.getenv('PGPASSWORD'),
-        'HOST': os.getenv('PGHOST'),
-        'PORT': os.getenv('PGPORT', '5432'),
-        'OPTIONS': {
-            'sslmode': 'require',
-        }
-    }
+    'default': dj_database_url.config(
+        default=os.getenv('DATABASE_URL'),
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True
+    )
 }
 
 # Enable database logging
