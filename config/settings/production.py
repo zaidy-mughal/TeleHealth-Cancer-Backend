@@ -11,15 +11,19 @@ ALLOWED_HOSTS = ['.railway.app', '*']
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
-if not os.getenv('DATABASE_URL'):
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if not DATABASE_URL:
     raise Exception('DATABASE_URL environment variable is required in production!')
 
 DATABASES = {
-    'default': dj_database_url.config(
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('PGDATABASE', 'railway'),
+        'USER': os.environ.get('PGUSER', 'postgres'),
+        'PASSWORD': os.environ.get('PGPASSWORD'),
+        'HOST': os.environ.get('PGHOST'),
+        'PORT': os.environ.get('PGPORT', '5432'),
+    }
 }
 
 # Security Settings
