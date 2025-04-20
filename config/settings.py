@@ -170,23 +170,27 @@ REST_AUTH = {
     "JWT_AUTH_HTTPONLY": False,
     "JWT_AUTH_COOKIE": "core-app-auth",
     "JWT_AUTH_REFRESH_COOKIE": "core-app-refresh",
+    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
-# Django JWT settings
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+REST_AUTH_REGISTER_SERIALIZERS = {
+    'REGISTER_SERIALIZER': 'api.authentication.serializers.CustomRegisterSerializer',
 }
 
 REST_AUTH_SERIALIZERS = {
     "LOGIN_SERIALIZER": "api.authentication.serializers.CustomLoginSerializer",
-    "REGISTER_SERIALIZER": "api.authentication.serializers.CustomRegisterSerializer",
+    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
 # Authentication settings
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_ENABLED = False
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
