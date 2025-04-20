@@ -103,7 +103,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': dj_database_url.parse(
         env('DATABASE_URL', default='postgresql://postgres:admin_123@localhost:5432/telehealth_db'),
-        conn_max_age=600
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True
     )
 }
 
