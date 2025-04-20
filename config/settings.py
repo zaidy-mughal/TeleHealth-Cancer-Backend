@@ -246,12 +246,6 @@ REST_AUTH_SERIALIZERS = {
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
-# Remove all deprecated settings
-# ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Removed
-# ACCOUNT_USERNAME_REQUIRED = False  # Removed
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Removed
-# ACCOUNT_EMAIL_REQUIRED = True  # Removed
-
 # Debug settings
 DEBUG = env('DEBUG', default=False)
 ALLOWED_HOSTS = ['*']
