@@ -68,6 +68,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -99,23 +100,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-DATABASE_URL = os.getenv('DATABASE_URL')
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': env('PGDATABASE', default='telehealth_db'),
-            'USER': env('PGUSER', default='postgres'),
-            'PASSWORD': env('PGPASSWORD', default='admin_123'),
-            'HOST': env('PGHOST', default='localhost'),
-            'PORT': env('PGPORT', default='5432'),
-        }
-    }
+DATABASES = {
+    'default': dj_database_url.parse(
+        env('DATABASE_URL', default='postgresql://postgres:admin_123@localhost:5432/telehealth_db'),
+        conn_max_age=600
+    )
+}
 
 # CUSTOM AUTH USER MODEL
 AUTH_USER_MODEL = 'users.User'
