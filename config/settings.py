@@ -101,9 +101,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 
+# Parse database URL
+db_config = dj_database_url.parse(os.getenv('DATABASE_URL'))
+
 # Debug database connection info
 print("=== Database Configuration Debug ===")
-db_config = dj_database_url.parse(os.getenv('DATABASE_URL'))
 print(f"Parsed DATABASE_URL:")
 print(f"NAME: {db_config.get('NAME')}")
 print(f"USER: {db_config.get('USER')}")
@@ -112,12 +114,17 @@ print(f"PORT: {db_config.get('PORT')}")
 print("================================")
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': db_config.get('NAME'),
+        'USER': db_config.get('USER'),
+        'PASSWORD': db_config.get('PASSWORD'),
+        'HOST': db_config.get('HOST'),
+        'PORT': db_config.get('PORT', '5432'),
+        'OPTIONS': {
+            'sslmode': 'require',
+        }
+    }
 }
 
 # Enable database logging
