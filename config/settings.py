@@ -36,6 +36,25 @@ ALLOWED_HOSTS = ['*']  # Be careful with this in production
 # Configure CORS
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Application definition
 DJANGO_APPS = [
@@ -79,11 +98,20 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    'api.middleware.csrf.CustomCsrfMiddleware',  # Replace default CSRF middleware
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
+]
+
+# API CSRF Settings
+API_CSRF_EXEMPT_PATHS = [
+    '/api/auth/',
+    '/api/users/',
+    '/api/patients/',
+    '/api/doctors/',
+    '/api/appointments/',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -246,20 +274,68 @@ REST_AUTH_SERIALIZERS = {
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
-# Debug settings
-DEBUG = env('DEBUG', default=False)
-ALLOWED_HOSTS = ['*']
+# CSRF settings
+CSRF_TRUSTED_ORIGINS = [
+    'https://telehealth-cancer-backend-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8000',
+]
+
+CSRF_COOKIE_NAME = 'csrftoken'
+CSRF_HEADER_NAME = 'HTTP_X_CSRFTOKEN'
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'None'
+CSRF_FAILURE_VIEW = 'django.views.csrf.csrf_failure'
+
+# Disable CSRF for API endpoints
+CSRF_EXEMPT_PATHS = [
+    '/api/auth/',
+    '/api/users/',
+    '/api/patients/',
+    '/api/doctors/',
+    '/api/appointments/',
+]
 
 # Security settings
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = False  # Set to True in production if you have SSL configured
-SESSION_COOKIE_SECURE = False  # Set to True in production if you have SSL configured
-CSRF_COOKIE_SECURE = False  # Set to True in production if you have SSL configured
+SECURE_SSL_REDIRECT = False
+SESSION_COOKIE_SECURE = False
 
 # Static files configuration
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'https://telehealth-cancer-backend-production.up.railway.app',
+    'http://localhost:3000',
+    'http://localhost:8000',
+]
+CORS_ALLOWED_ORIGIN_REGEXES = []
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 # Rest framework settings
 REST_FRAMEWORK = {
