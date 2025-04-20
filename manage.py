@@ -7,14 +7,7 @@ from config.setup_environment import setup_environment
 def main():
     """Run administrative tasks."""
     setup_environment()
-    
-    # Force production settings in Railway
-    if os.getenv('RAILWAY_ENVIRONMENT_NAME'):
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
-        os.environ['APP_ENVIRONMENT'] = 'production'
-    else:
-        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
-        
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
