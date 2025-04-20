@@ -3,11 +3,18 @@
 import os
 import sys
 from config.setup_environment import setup_environment
+
 def main():
     """Run administrative tasks."""
     setup_environment()
-    # :hammer_and_wrench: Add this line to point Django to your settings
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    
+    # Force production settings in Railway
+    if os.getenv('RAILWAY_ENVIRONMENT_NAME'):
+        os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
+        os.environ['APP_ENVIRONMENT'] = 'production'
+    else:
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.local')
+        
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
@@ -17,5 +24,6 @@ def main():
             "forget to activate a virtual environment?"
         ) from exc
     execute_from_command_line(sys.argv)
+
 if __name__ == '__main__':
     main()
