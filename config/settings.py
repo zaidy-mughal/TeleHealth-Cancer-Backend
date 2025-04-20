@@ -213,7 +213,22 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
 }
 
-# Django Allauth settings
+# Authentication settings
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_EMAIL_VERIFICATION = 'none'
+SOCIALACCOUNT_ENABLED = False
+
+# JWT Settings
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+}
+
+# Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_HTTPONLY": False,
@@ -231,23 +246,11 @@ REST_AUTH_SERIALIZERS = {
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
-# Authentication settings
-ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_VERIFICATION = 'none'
-ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-SOCIALACCOUNT_ENABLED = False
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Remove deprecated settings
-# ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Deprecated
-# ACCOUNT_USERNAME_REQUIRED = False  # Deprecated
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Deprecated
-# ACCOUNT_EMAIL_REQUIRED = True  # Deprecated 
+# Remove all deprecated settings
+# ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Removed
+# ACCOUNT_USERNAME_REQUIRED = False  # Removed
+# ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Removed
+# ACCOUNT_EMAIL_REQUIRED = True  # Removed
 
 # Debug settings
 DEBUG = env('DEBUG', default=False)
