@@ -61,7 +61,7 @@ THIRD_PARTY_APPS = [
 ]
 
 PROJECT_APPS = [
-    'api.users',
+    'api.users.apps.UsersConfig',
     'api.patients',
     'api.authentication',
     'api.doctors',
