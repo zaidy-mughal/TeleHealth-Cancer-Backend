@@ -101,7 +101,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://postgres:ZuLNVYsXBdbJxxPsDzCalVwhiERETkHD@postgres.railway.internal:5432/railway',
+        default=env('DATABASE_URL'),
         conn_max_age=600,
         conn_health_checks=True,
     )
@@ -186,6 +186,7 @@ ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = "none"
 SOCIALACCOUNT_ENABLED = False
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Remove deprecated settings
 # ACCOUNT_AUTHENTICATION_METHOD = 'email'  # Deprecated
