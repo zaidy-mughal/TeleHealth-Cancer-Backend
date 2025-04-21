@@ -36,7 +36,7 @@ class Patient(TimeStampMixin):
         return f"{self.user.get_full_name()} - {self.gender}"
 
 
-class IodineAllergy(models.Model):
+class IodineAllergy(TimeStampMixin):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="iodine_allergy"
     )

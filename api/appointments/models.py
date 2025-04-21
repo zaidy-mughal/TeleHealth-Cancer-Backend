@@ -2,7 +2,7 @@ from django.db import models
 from api.base_models import TimeStampMixin
 from api.doctors.models import Doctor
 from api.patients.models import Patient
-import uuid
+from api.appointments.choices import Status
 
 
 class Appointments(TimeStampMixin):
@@ -10,12 +10,6 @@ class Appointments(TimeStampMixin):
     Appointments model to store appointment information.
     This model includes the doctor and patient associated with the appointment.
     """
-    class Status(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        CONFIRMED = "CONFIRMED", "Confirmed"
-        CANCELLED = "CANCELLED", "Cancelled"
-
-    id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
 
     doctor = models.ForeignKey(
         Doctor, on_delete=models.CASCADE, related_name="appointments"
