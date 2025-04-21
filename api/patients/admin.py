@@ -14,5 +14,3 @@ class PatientAdmin(admin.ModelAdmin):
     def get_email(self, obj):
         return obj.user.email
     get_email.short_description = 'Email'
-
-
