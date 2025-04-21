@@ -1,5 +1,5 @@
 from django.urls import path, include
-from api.authentication.views import CustomRegisterView, CustomLoginView
+from api.authentication.views import TeleHealthRegisterView, TeleHealthLoginView
 from dj_rest_auth.views import (
     PasswordResetView, PasswordResetConfirmView, LogoutView, PasswordChangeView
 )
@@ -7,8 +7,8 @@ from rest_framework_simplejwt.views import (TokenRefreshView, TokenVerifyView)
 
 
 urlpatterns = [
-    path('register/', CustomRegisterView.as_view(), name='register'),
-    path('login/', CustomLoginView.as_view(), name='login'),
+    path('register/', TeleHealthRegisterView.as_view(), name='register'),
+    path('login/', TeleHealthLoginView.as_view(), name='login'),
     path('logout/', LogoutView.as_view(), name='logout'),
 
     path('password/reset/', PasswordResetView.as_view(), name='password_reset'),

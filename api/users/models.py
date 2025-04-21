@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.core.validators import validate_email
 from django.utils import timezone
 from django.contrib.auth.models import UnicodeUsernameValidator
+from api.users.choices import Role
 
 from api.base_models import TimeStampMixin
 from api.users.managers import UserManager
@@ -19,14 +20,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     Email, uuid and password are required. Other fields are optional.
     """
 
-    class Role(models.TextChoices):
-        ADMIN = 'ADMIN', 'Admin'
-        DOCTOR = 'DOCTOR', 'Doctor'
-        PATIENT = 'PATIENT', 'Patient'
-
     username_validator = UnicodeUsernameValidator()
 
-    id = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
     email = models.CharField(
         _('email'),
         max_length=150,
