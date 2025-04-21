@@ -3,7 +3,6 @@ from typing import override
 from rest_framework import serializers
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
-from api.users.models import User
 from api.patients.models import Patient
 
 

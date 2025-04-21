@@ -1,4 +1,7 @@
 from django.contrib import admin
-from .models import Doctor
+from api.doctors.models import Doctor, Specialization, TimeSlot, LicenseInfo
 
 admin.site.register(Doctor)
+admin.site.register(Specialization)
+admin.site.register(TimeSlot)
+admin.site.register(LicenseInfo)
