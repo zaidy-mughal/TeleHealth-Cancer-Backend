@@ -1,9 +1,11 @@
 from django.db import models
 from api.base_models import TimeStampMixin
 import config.settings.base as settings
+import uuid
 from api.patients.choices import Gender, VisitType, MaritalStatus
 
 from phonenumber_field.modelfields import PhoneNumberField
+
 
 class Patient(TimeStampMixin):
 
@@ -31,6 +33,20 @@ class Patient(TimeStampMixin):
     primary_physician = models.ForeignKey(
         "PrimaryPhysician", on_delete=models.SET_NULL, related_name="patients", null=True, blank=True
     )
+    gender = models.CharField(
+        max_length=10, choices=Gender.choices, null=True, blank=True
+    )
+    phone_number = PhoneNumberField()
+    visit_type = models.CharField(
+        max_length=20, choices=VisitType.choices, null=True, blank=True
+    )
+    marital_status = models.CharField(
+        max_length=20, choices=MaritalStatus.choices, null=True, blank=True
+    )
+    sex_assign_at_birth = models.CharField(max_length=20, null=True, blank=True)
+    state = models.CharField(max_length=20, null=True, blank=True)
+    city = models.CharField(max_length=20, null=True, blank=True)
+    zip_code = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.gender}"
@@ -159,4 +175,5 @@ class Pharmacist(TimeStampMixin):
 
     def __str__(self):
         return f"{self.name}"
+
 

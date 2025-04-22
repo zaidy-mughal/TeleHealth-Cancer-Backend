@@ -52,6 +52,7 @@ THIRD_PARTY_APPS = [
     'dj_rest_auth.registration',
 
     'drf_spectacular',
+
     'phonenumber_field',
 ]
 
@@ -197,6 +198,8 @@ ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 # this is used to remove email verification
 ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_REQUIRED = True
+# this is used to make email field unique in the database.
+ACCOUNT_UNIQUE_EMAIL = True
 # Disable social login
 SOCIALACCOUNT_ENABLED = False
 

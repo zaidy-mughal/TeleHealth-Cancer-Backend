@@ -8,17 +8,23 @@ from api.authentication.serializers import (
 
 @extend_schema(
     request=TeleHealthRegisterSerializer,
+    request=TeleHealthRegisterSerializer,
     tags=["Auth"],
     summary="Register a new user",
 )
+class TeleHealthRegisterView(RegisterView):
+    serializer_class = TeleHealthRegisterSerializer
 class TeleHealthRegisterView(RegisterView):
     serializer_class = TeleHealthRegisterSerializer
 
 
 @extend_schema(
     request=TeleHealthLoginSerializer,
+    request=TeleHealthLoginSerializer,
     tags=["Auth"],
     summary="Log in user and return JWT tokens",
 )
+class TeleHealthLoginView(LoginView):
+    serializer_class = TeleHealthLoginSerializer
 class TeleHealthLoginView(LoginView):
     serializer_class = TeleHealthLoginSerializer

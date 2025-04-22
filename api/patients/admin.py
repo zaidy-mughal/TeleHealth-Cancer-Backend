@@ -20,6 +20,7 @@ class PatientAdmin(admin.ModelAdmin):
         return obj.user.email
     get_email.short_description = 'Email'
 
+
 admin.site.register(IodineAllergy)
 admin.site.register(Allergy)
 admin.site.register(Medication)
@@ -31,3 +32,4 @@ admin.site.register(CancerType)
 admin.site.register(Pharmacist)
 admin.site.register(PrimaryPhysician)
 admin.site.register(MaritalStatus)
+

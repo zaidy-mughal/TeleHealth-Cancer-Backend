@@ -4,6 +4,10 @@ from rest_framework import serializers
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
 from api.patients.models import Patient
+from api.authentication.validators import (
+    validate_email_not_exits,
+    validate_dob_not_in_future,
+)
 
 
 class TeleHealthRegisterSerializer(RegisterSerializer):
@@ -12,6 +16,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
     username = None  # Remove username field
+
+    def validate_email(self, email):
+        return validate_email_not_exits(self,email)
+
+    def validate_date_of_birth(self, dob):
+        return validate_dob_not_in_future(self,dob)
 
     def get_cleaned_data(self):
         data = super().get_cleaned_data()
@@ -22,8 +32,8 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         return data
 
     @override
-    def custom_signup(self, request, user):
-
+    def custom_signup(self, request, user):        
+        
         user.first_name = self.validated_data.get("first_name", "")
         user.last_name = self.validated_data.get("last_name", "")
         role = self.validated_data.get("role", None)
