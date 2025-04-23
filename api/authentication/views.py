@@ -1,30 +1,56 @@
 from dj_rest_auth.registration.views import RegisterView
 from dj_rest_auth.views import LoginView
-from drf_spectacular.utils import extend_schema
+from dj_rest_auth.views import PasswordResetView
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+
 from api.authentication.serializers import (
     TeleHealthLoginSerializer,
     TeleHealthRegisterSerializer,
+    TeleHealthLoginSerializer,
+    OTPPasswordResetSerializer,
+    OTPVerificationSerializer,
 )
 
-@extend_schema(
-    request=TeleHealthRegisterSerializer,
-    request=TeleHealthRegisterSerializer,
-    tags=["Auth"],
-    summary="Register a new user",
-)
+
 class TeleHealthRegisterView(RegisterView):
-    serializer_class = TeleHealthRegisterSerializer
-class TeleHealthRegisterView(RegisterView):
+    """
+    Custom registration view for TeleHealth
+    """
+
     serializer_class = TeleHealthRegisterSerializer
 
 
-@extend_schema(
-    request=TeleHealthLoginSerializer,
-    request=TeleHealthLoginSerializer,
-    tags=["Auth"],
-    summary="Log in user and return JWT tokens",
-)
 class TeleHealthLoginView(LoginView):
+    """
+    Custom login view for TeleHealth
+    """
+
     serializer_class = TeleHealthLoginSerializer
-class TeleHealthLoginView(LoginView):
-    serializer_class = TeleHealthLoginSerializer
+
+
+class TeleHealthPasswordResetView(PasswordResetView):
+    """
+    Custom password reset view that sends OTP instead of reset link
+    """
+
+    serializer_class = OTPPasswordResetSerializer
+
+
+class OTPVerificationView(APIView):
+    """
+    Custom OTP verification view
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = OTPVerificationSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+
+        if serializer.is_valid():
+            return Response({"detail": "OTP verified successfully"})
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
