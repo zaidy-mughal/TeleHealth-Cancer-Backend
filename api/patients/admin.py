@@ -31,5 +31,4 @@ admin.site.register(CancerHistory)
 admin.site.register(CancerType)
 admin.site.register(Pharmacist)
 admin.site.register(PrimaryPhysician)
-admin.site.register(MaritalStatus)
 
