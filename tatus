@@ -1,0 +1,35 @@
+                        Table "public.users_user"
+    Column    |           Type           | Collation | Nullable | Default 
+--------------+--------------------------+-----------+----------+---------
+ password     | character varying(128)   |           | not null | 
+ last_login   | timestamp with time zone |           |          | 
+ is_superuser | boolean                  |           | not null | 
+ created_at   | timestamp with time zone |           | not null | 
+ updated_at   | timestamp with time zone |           | not null | 
+ id           | uuid                     |           | not null | 
+ email        | character varying(150)   |           | not null | 
+ first_name   | character varying(30)    |           | not null | 
+ last_name    | character varying(150)   |           | not null | 
+ role         | character varying(20)    |           | not null | 
+ is_staff     | boolean                  |           | not null | 
+ is_active    | boolean                  |           | not null | 
+ last_active  | timestamp with time zone |           |          | 
+ date_joined  | timestamp with time zone |           | not null | 
+ username     | character varying(150)   |           |          | 
+Indexes:
+    "users_user_pkey" PRIMARY KEY, btree (id)
+    "users_user_email_243f6e77_like" btree (email varchar_pattern_ops)
+    "users_user_email_key" UNIQUE CONSTRAINT, btree (email)
+    "users_user_username_06e46fe6_like" btree (username varchar_pattern_ops)
+    "users_user_username_key" UNIQUE CONSTRAINT, btree (username)
+Referenced by:
+    TABLE "account_emailaddress" CONSTRAINT "account_emailaddress_user_id_2c513194_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "authentication_passwordresetotp" CONSTRAINT "authentication_passw_user_id_bd0bd5ef_fk_users_use" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "authtoken_token" CONSTRAINT "authtoken_token_user_id_35299eff_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "django_admin_log" CONSTRAINT "django_admin_log_user_id_c564eba6_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "doctors_doctor" CONSTRAINT "doctors_doctor_user_id_c371de6c_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "patients_patient" CONSTRAINT "patients_patient_user_id_b53513b7_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "socialaccount_socialaccount" CONSTRAINT "socialaccount_socialaccount_user_id_8146e70c_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "users_user_groups" CONSTRAINT "users_user_groups_user_id_5f6f5a90_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+    TABLE "users_user_user_permissions" CONSTRAINT "users_user_user_permissions_user_id_20aca447_fk_users_user_id" FOREIGN KEY (user_id) REFERENCES users_user(id) DEFERRABLE INITIALLY DEFERRED
+
