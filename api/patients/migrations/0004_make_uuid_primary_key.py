@@ -8,46 +8,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='patient',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='allergy',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='medication',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='medicalhistory',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='surgicalhistory',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='cancertype',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='cancerhistory',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='addictionhistory',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='primaryphysician',
-            name='id',
-        ),
-        migrations.RemoveField(
-            model_name='pharmacist',
-            name='id',
-        ),
         migrations.AlterField(
             model_name='patient',
             name='uuid',
