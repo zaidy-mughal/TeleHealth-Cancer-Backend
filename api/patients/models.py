@@ -41,6 +41,10 @@ class Patient(models.Model):
 
 
 class IodineAllergy(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="iodine_allergy"
     )
@@ -54,6 +58,10 @@ class Allergy(models.Model):
     """
     Allergy model to store patient's allergy information.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     name = models.CharField(max_length=100)
 
     def __str__(self):
@@ -64,6 +72,10 @@ class Medication(models.Model):
     """
     Medication model to store patient's medication history.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     name = models.CharField(max_length=100)
 
     def __str__(self):
@@ -74,6 +86,10 @@ class MedicalHistory(models.Model):
     """
     Medical History model to store patient's medical history.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     medical_condition = models.CharField(max_length=100)
 
     def __str__(self):
@@ -84,6 +100,10 @@ class SurgicalHistory(models.Model):
     """
     Surgical History model to store patient's surgical history.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     surgical_condition = models.CharField(max_length=100)
 
     def __str__(self):
@@ -94,6 +114,10 @@ class CancerType(models.Model):
     """
     Cancer Type model to use it in Cancer History.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     name = models.CharField(max_length=100)
 
     def __str__(self):
@@ -104,6 +128,10 @@ class CancerHistory(models.Model):
     """
     Cancer History model to store patient's cancer history.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     class TreatmentReceived(models.TextChoices):
         CHEMOTHERAPY = "CHEMOTHERAPY", "Chemotherapy"
         RADIATION = "RADIATION", "Radiation Therapy"
@@ -127,6 +155,10 @@ class AddictionHistory(models.Model):
     """
     Smoking and Alcohol History model to store patient's smoking history.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     class AddictionType(models.TextChoices):
         SMOKING = "SMOKING", "Smoking"
         ALCOHOL = "ALCOHOL", "Alcohol"
@@ -147,6 +179,10 @@ class PrimaryPhysician(models.Model):
     """
     Primary Physician model to store patient's primary physician information.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     name = models.CharField(max_length=100)
     contact_number = models.CharField(max_length=15)
 
@@ -158,6 +194,10 @@ class Pharmacist(models.Model):
     """
     Pharmacist model to store patient's pharmacist information.
     """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     name = models.CharField(max_length=100)
     contact_number = models.CharField(max_length=15)
 
