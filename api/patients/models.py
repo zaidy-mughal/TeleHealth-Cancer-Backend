@@ -1,13 +1,15 @@
 from django.db import models
 from django.conf import settings
-from api.base_models import TimeStampMixin
 import uuid
 from api.patients.choices import Gender, VisitType, MaritalStatus
 
 from phonenumber_field.modelfields import PhoneNumberField
 
 
-class Patient(TimeStampMixin):
+class Patient(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
@@ -33,20 +35,6 @@ class Patient(TimeStampMixin):
     primary_physician = models.ForeignKey(
         "PrimaryPhysician", on_delete=models.SET_NULL, related_name="patients", null=True, blank=True
     )
-    gender = models.CharField(
-        max_length=10, choices=Gender.choices, null=True, blank=True
-    )
-    phone_number = PhoneNumberField()
-    visit_type = models.CharField(
-        max_length=20, choices=VisitType.choices, null=True, blank=True
-    )
-    marital_status = models.CharField(
-        max_length=20, choices=MaritalStatus.choices, null=True, blank=True
-    )
-    sex_assign_at_birth = models.CharField(max_length=20, null=True, blank=True)
-    state = models.CharField(max_length=20, null=True, blank=True)
-    city = models.CharField(max_length=20, null=True, blank=True)
-    zip_code = models.CharField(max_length=20, null=True, blank=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.gender}"
@@ -62,7 +50,7 @@ class IodineAllergy(models.Model):
         return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_allergic else 'Not Allergic'}"
 
 
-class Allergy(TimeStampMixin):
+class Allergy(models.Model):
     """
     Allergy model to store patient's allergy information.
     """
@@ -72,7 +60,7 @@ class Allergy(TimeStampMixin):
         return f"{self.name}"
 
 
-class Medication(TimeStampMixin):
+class Medication(models.Model):
     """
     Medication model to store patient's medication history.
     """
@@ -82,7 +70,7 @@ class Medication(TimeStampMixin):
         return f"{self.name}"
 
 
-class MedicalHistory(TimeStampMixin):
+class MedicalHistory(models.Model):
     """
     Medical History model to store patient's medical history.
     """
@@ -92,7 +80,7 @@ class MedicalHistory(TimeStampMixin):
         return f"{self.medical_condition}"
 
 
-class SurgicalHistory(TimeStampMixin):
+class SurgicalHistory(models.Model):
     """
     Surgical History model to store patient's surgical history.
     """
@@ -102,7 +90,7 @@ class SurgicalHistory(TimeStampMixin):
         return f"{self.surgical_condition}"
 
 
-class CancerType(TimeStampMixin):
+class CancerType(models.Model):
     """
     Cancer Type model to use it in Cancer History.
     """
@@ -112,7 +100,7 @@ class CancerType(TimeStampMixin):
         return self.name
 
 
-class CancerHistory(TimeStampMixin):
+class CancerHistory(models.Model):
     """
     Cancer History model to store patient's cancer history.
     """
@@ -135,7 +123,7 @@ class CancerHistory(TimeStampMixin):
         return f"{self.cancer_type.name}"
 
 
-class AddictionHistory(TimeStampMixin):
+class AddictionHistory(models.Model):
     """
     Smoking and Alcohol History model to store patient's smoking history.
     """
@@ -155,7 +143,7 @@ class AddictionHistory(TimeStampMixin):
         return f"{self.addiction_type}"
 
 
-class PrimaryPhysician(TimeStampMixin):
+class PrimaryPhysician(models.Model):
     """
     Primary Physician model to store patient's primary physician information.
     """
@@ -166,7 +154,7 @@ class PrimaryPhysician(TimeStampMixin):
         return f"{self.name}"
 
 
-class Pharmacist(TimeStampMixin):
+class Pharmacist(models.Model):
     """
     Pharmacist model to store patient's pharmacist information.
     """
