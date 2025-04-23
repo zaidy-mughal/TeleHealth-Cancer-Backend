@@ -12,7 +12,7 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
 
     path('password/reset/', TeleHealthPasswordResetView.as_view(), name='password_reset'),
-    path('password/reset/otp/verify', OTPVerificationView.as_view(), name='password_reset_done'),
+    path('password/reset/otp/verify/', OTPVerificationView.as_view(), name='password_reset_done'),
     path('password/change/', PasswordChangeView.as_view(), name='password_change'),
 
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
