@@ -9,7 +9,7 @@ from drf_spectacular.utils import extend_schema
 
 
 @extend_schema(
-    request=UserSerializer, responses={200: {"exists": bool, "password_match": bool}}
+    request=UserSerializer, responses={200: {"example": {"exists": True, "password_match": True}}}
 )
 class CheckUserView(APIView):
     permission_classes = [AllowAny]
