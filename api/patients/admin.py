@@ -1,5 +1,10 @@
 from django.contrib import admin
-from .models import Patient
+
+from api.patients.models import (
+    Patient, IodineAllergy, Allergy, Medication, MedicalHistory,
+    AddictionHistory, SurgicalHistory, CancerHistory, CancerType,
+    Pharmacist, PrimaryPhysician, MaritalStatus
+)
 
 
 @admin.register(Patient)
@@ -15,4 +20,15 @@ class PatientAdmin(admin.ModelAdmin):
         return obj.user.email
     get_email.short_description = 'Email'
 
+
+admin.site.register(IodineAllergy)
+admin.site.register(Allergy)
+admin.site.register(Medication)
+admin.site.register(MedicalHistory)
+admin.site.register(AddictionHistory)
+admin.site.register(SurgicalHistory)
+admin.site.register(CancerHistory)
+admin.site.register(CancerType)
+admin.site.register(Pharmacist)
+admin.site.register(PrimaryPhysician)
 
