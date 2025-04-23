@@ -17,7 +17,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     last_name = serializers.CharField(required=True, allow_blank=True)
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
-    username = None  # Remove username field
+    username = serializers.CharField(required=False)  # Make username optional
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
@@ -31,10 +31,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         data["last_name"] = self.validated_data.get("last_name", "")
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
+        # Generate username from email if not provided
+        if not data.get("username"):
+            data["username"] = self.validated_data.get("email").split("@")[0]
         return data
 
     def custom_signup(self, request, user):
-
         user.first_name = self.validated_data.get("first_name", "")
         user.last_name = self.validated_data.get("last_name", "")
         role = self.validated_data.get("role", None)
