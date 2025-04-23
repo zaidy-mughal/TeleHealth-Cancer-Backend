@@ -6,6 +6,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
 
 from api.authentication.serializers import (
     TeleHealthLoginSerializer,
@@ -13,6 +16,8 @@ from api.authentication.serializers import (
     OTPPasswordResetSerializer,
     OTPVerificationSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TeleHealthRegisterView(RegisterView):
@@ -35,6 +40,39 @@ class TeleHealthPasswordResetView(PasswordResetView):
     """
     serializer_class = OTPPasswordResetSerializer
 
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+
+            # Test email configuration
+            try:
+                send_mail(
+                    'Test Email',
+                    'This is a test email.',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [request.data['email']],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error(f"Email test failed: {str(e)}")
+                return Response(
+                    {"detail": f"Email configuration error: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            serializer.save()
+            return Response(
+                {"detail": "Password reset OTP has been sent to your email."},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            logger.error(f"Password reset error: {str(e)}")
+            return Response(
+                {"detail": f"Error during password reset: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 @method_decorator(csrf_exempt, name='dispatch')
 class OTPVerificationView(APIView):
     """
@@ -44,7 +82,14 @@ class OTPVerificationView(APIView):
     serializer_class = OTPVerificationSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            return Response({"detail": "OTP verified successfully"})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid():
+                return Response({"detail": "OTP verified successfully"})
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"OTP verification error: {str(e)}")
+            return Response(
+                {"detail": f"Error during OTP verification: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
