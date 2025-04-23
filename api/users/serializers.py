@@ -8,5 +8,4 @@ class UserSerializer(serializers.Serializer):
     password1 = serializers.CharField(required=True, write_only=True)
     password2 = serializers.CharField(required=True, write_only=True)
     first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
-    
+    last_name = serializers.CharField(required=True, allow_blank=True)

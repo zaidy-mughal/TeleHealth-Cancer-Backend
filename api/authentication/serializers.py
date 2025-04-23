@@ -16,7 +16,7 @@ from api.authentication.validators import (
 
 class TeleHealthRegisterSerializer(RegisterSerializer):
     first_name = serializers.CharField(required=True)
-    last_name = serializers.CharField(required=True)
+    last_name = serializers.CharField(required=True, allow_blank=True)
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
     username = None  # Remove username field
