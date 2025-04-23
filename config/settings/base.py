@@ -190,6 +190,7 @@ SIMPLE_JWT = {
 REST_AUTH_SERIALIZERS = {
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
     "REGISTER_SERIALIZER": "api.authentication.serializers.TeleHealthRegisterSerializer",
+    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
 }
 
 # this is used to neglect username field in the of Custom model

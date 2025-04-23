@@ -22,6 +22,18 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
 
     username_validator = UnicodeUsernameValidator()
 
+    username = models.CharField(
+        _('username'),
+        max_length=150,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=_('Optional. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'),
+        validators=[username_validator],
+        error_messages={
+            'unique': _("A user with that username already exists."),
+        },
+    )
     email = models.CharField(
         _('email'),
         max_length=150,
@@ -52,6 +64,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
     )
     last_active = models.DateTimeField(_('last_active'), null=True, blank=True)
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = EMAIL_FIELD = 'email'
     REQUIRED_FIELDS = []

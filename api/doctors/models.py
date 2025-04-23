@@ -26,8 +26,6 @@ class Doctor(TimeStampMixin):
         SCREENING = "SCREENING", "Screening"
         SECOND_OPINION = "SECOND_OPINION", "Second Opinion"
 
-    uuid = models.UUIDField(unique=True, default=uuid.uuid4, editable=False, primary_key=True)
-
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="doctor"
     )

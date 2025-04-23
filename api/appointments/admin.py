@@ -17,7 +17,7 @@ class AppointmentsAdmin(admin.ModelAdmin):
     search_fields = ('doctor__user__first_name', 'doctor__user__last_name',
                      'patient__user__first_name', 'patient__user__last_name')
     ordering = ('-appointment_date', '-appointment_time')
-    readonly_fields = ('id', 'created_at', 'updated_at')
+    readonly_fields = ('uuid', 'created_at', 'updated_at')
 
     def doctor_name(self, obj):
         return obj.doctor.user.get_full_name()
