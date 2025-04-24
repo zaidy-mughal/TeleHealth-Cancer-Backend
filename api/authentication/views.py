@@ -12,6 +12,7 @@ from api.authentication.serializers import (
     TeleHealthLoginSerializer,
     OTPPasswordResetSerializer,
     OTPVerificationSerializer,
+    PasswordChangeSerializer,
 )
 
 
@@ -54,3 +55,21 @@ class OTPVerificationView(APIView):
             return Response({"detail": "OTP verified successfully"})
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordChangeView(APIView):
+    """
+    Custom password change view
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = PasswordChangeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
