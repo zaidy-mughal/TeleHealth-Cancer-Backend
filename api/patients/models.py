@@ -23,6 +23,7 @@ class Patient(models.Model):
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
     zip_code = models.CharField(max_length=20, blank=True)
+    is_iodine_contrast_allergic = models.BooleanField(default=False)
 
     allergies = models.ManyToManyField("Allergy", related_name="patients", blank=True)
     medications = models.ManyToManyField("Medication", related_name="patients", blank=True)

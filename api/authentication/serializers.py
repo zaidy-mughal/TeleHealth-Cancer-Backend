@@ -50,6 +50,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 user=user,
                 date_of_birth=self.validated_data.get("date_of_birth"),
                 phone_number=self.validated_data.get("phone_number"),
+                is_iodine_contrast_allergic=False
             )
 
             # Create IodineAllergy record with default value
