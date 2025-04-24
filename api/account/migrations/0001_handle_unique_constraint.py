@@ -12,7 +12,18 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             # Drop the existing unique constraint if it exists
-            "DROP CONSTRAINT IF EXISTS account_emailaddress_user_id_email_987c8728_uniq;",
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'account_emailaddress_user_id_email_987c8728_uniq'
+                ) THEN
+                    ALTER TABLE account_emailaddress DROP CONSTRAINT account_emailaddress_user_id_email_987c8728_uniq;
+                END IF;
+            END $$;
+            """,
             # No reverse SQL needed
             reverse_sql="",
         ),
