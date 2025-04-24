@@ -11,6 +11,9 @@ from api.authentication.validators import (
     validate_email_not_exits,
     validate_dob_not_in_future,
     validate_otp_for_email,
+    validate_password_match,
+    validate_email_otp_verified,
+    validate_email_exits,
 )
 
 
@@ -112,3 +115,47 @@ class OTPVerificationSerializer(serializers.Serializer):
             raise serializers.ValidationError("Invalid email address")
 
         return attrs
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    new_password1 = serializers.CharField(min_length=8, required=True)
+    new_password2 = serializers.CharField(min_length=8, required=True)
+
+    def validate_email(self, email):
+        exist = validate_email_exits(self, email)
+        if not exist:
+            raise serializers.ValidationError(
+                {"email": "User with this email does not exist."}
+            )
+
+        self.user = User.objects.get(email=email.lower())
+        verified_otp = validate_email_otp_verified(self, self.user)
+        if not verified_otp:
+            raise serializers.ValidationError(
+                {"email": "You must verify your OTP before changing password"}
+            )
+
+        return email
+
+    def validate(self, data):
+        password1 = data.get("new_password1")
+        password2 = data.get("new_password2")
+
+        validated_password = validate_password_match(self, password1, password2)
+        if not validated_password:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        return data
+
+    def save(self):
+        new_password = self.validated_data["new_password1"]
+
+        try:
+            self.user.set_password(new_password)
+            self.user.save()
+            return self.user
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to change password: {str(e)}"}
+            )
