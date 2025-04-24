@@ -16,3 +16,4 @@ class PasswordResetOTP(TimeStampMixin):
 
     class Meta:
         db_table = 'authentication_passwordresetotp'
+        get_latest_by = 'created_at'
