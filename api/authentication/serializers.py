@@ -46,10 +46,17 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         try:
             user.save()
 
-            Patient.objects.create(
+            patient = Patient.objects.create(
                 user=user,
                 date_of_birth=self.validated_data.get("date_of_birth"),
                 phone_number=self.validated_data.get("phone_number"),
+            )
+
+            # Create IodineAllergy record with default value
+            from api.patients.models import IodineAllergy
+            IodineAllergy.objects.create(
+                patient=patient,
+                is_allergic=False
             )
         except Exception as e:
             user.delete()
