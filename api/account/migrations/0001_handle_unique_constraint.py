@@ -11,27 +11,27 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            # First drop the existing unique constraint if it exists
+            # Drop all possible constraints and indexes
             """
             DO $$
             BEGIN
-                -- Drop the unique constraint if it exists
-                IF EXISTS (
-                    SELECT 1
+                -- Drop all possible constraints
+                FOR r IN (
+                    SELECT conname
                     FROM pg_constraint
-                    WHERE conname = 'account_emailaddress_user_id_email_987c8728_uniq'
-                ) THEN
-                    ALTER TABLE account_emailaddress DROP CONSTRAINT account_emailaddress_user_id_email_987c8728_uniq;
-                END IF;
+                    WHERE conrelid = 'account_emailaddress'::regclass
+                ) LOOP
+                    EXECUTE format('ALTER TABLE account_emailaddress DROP CONSTRAINT IF EXISTS %I', r.conname);
+                END LOOP;
 
-                -- Drop the unique index if it exists
-                IF EXISTS (
-                    SELECT 1
+                -- Drop all possible indexes
+                FOR r IN (
+                    SELECT indexname
                     FROM pg_indexes
-                    WHERE indexname = 'account_emailaddress_user_id_email_987c8728_uniq'
-                ) THEN
-                    DROP INDEX account_emailaddress_user_id_email_987c8728_uniq;
-                END IF;
+                    WHERE tablename = 'account_emailaddress'
+                ) LOOP
+                    EXECUTE format('DROP INDEX IF EXISTS %I', r.indexname);
+                END LOOP;
             END $$;
             """,
             # No reverse SQL needed
