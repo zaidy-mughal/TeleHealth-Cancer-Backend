@@ -37,7 +37,7 @@ def validate_otp_for_email(email, otp):
 
         return is_valid, otp_obj
 
-    except User.DoesNotExist:
+    except Exception as e:
         return False, None
 
 
