@@ -4,10 +4,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
-from .serializers import AppointmentSerializer
-from .models import Appointments
+from api.appointments.serializers import AppointmentSerializer
+from api.appointments.models import Appointments
+
+from drf_spectacular.utils import extend_schema
 
 
+@extend_schema(
+    tags=["Appointments"],
+    request=AppointmentSerializer,
+    description="API for managing appointments.",
+    methods=["GET", "POST"],
+)
 class AppointmentView(APIView):
     """
     API view to handle appointment creation and retrieval.

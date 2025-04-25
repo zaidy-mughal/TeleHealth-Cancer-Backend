@@ -43,8 +43,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
         appointment_time = data.get('appointment_time')
 
         validate_future_datetime(appointment_date, appointment_time)
-        validate_doctor_time_slot(doctor, appointment_time)
-        validate_appointment_conflicts(doctor, appointment_date, appointment_time, instance=self.instance)
+        # validate_doctor_time_slot(doctor, appointment_time)
+        # validate_appointment_conflicts(doctor, appointment_date, appointment_time, instance=self.instance)
 
         return data
 

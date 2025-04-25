@@ -91,7 +91,10 @@ class PatientSerializer(serializers.ModelSerializer):
 
 
     def validate(self, attrs):
-        missing = [field for field in self.fields if field not in self.initial_data and field not in self.Meta.read_only_fields]
+        missing = [
+            field for field in self.fields
+            if field not in attrs and field not in self.Meta.read_only_fields
+        ]
         if missing:
             raise serializers.ValidationError({
                 field: "This field is required in the payload." for field in missing
@@ -165,5 +168,6 @@ class PatientSerializer(serializers.ModelSerializer):
         return instance
 
     # will utilize it if i need a seperate api to create patient only
+    # patient is created when user is created automatically
     def create(self, validated_data):
         pass
