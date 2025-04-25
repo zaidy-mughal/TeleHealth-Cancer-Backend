@@ -2,6 +2,7 @@ from typing import override
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 from api.appointments.serializers import AppointmentSerializer
@@ -13,10 +14,10 @@ from drf_spectacular.utils import extend_schema
 @extend_schema(
     tags=["Appointments"],
     request=AppointmentSerializer,
+    responses=AppointmentSerializer(many=True),
     description="API for managing appointments.",
-    methods=["GET", "POST"],
 )
-class AppointmentView(APIView):
+class AppointmentRetrieveView(RetrieveAPIView):
     """
     API view to handle appointment creation and retrieval.
     Includes validation for appointments and proper error handling.
@@ -24,7 +25,6 @@ class AppointmentView(APIView):
 
     permission_classes = [IsAuthenticated]
     serializer_class = AppointmentSerializer
-
 
     def get(self, request, *args, **kwargs):
         """
@@ -53,8 +53,24 @@ class AppointmentView(APIView):
         except Exception as e:
             return Response(
                 {"error": f"Failed to retrieve appointments: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+
+
+@extend_schema(
+    tags=["Appointments"],
+    request=AppointmentSerializer,
+    description="API for managing appointments.",
+)
+class AppointmentCreateView(CreateAPIView):
+    """
+    API view to handle appointment creation.
+    Includes validation for appointments and proper error handling.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentSerializer
+
 
     def post(self, request):
         """
@@ -82,15 +98,3 @@ class AppointmentView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @override
-    def handle_exception(self, exc):
-        """
-        Handle any unhandled exceptions.
-        """
-        if isinstance(exc, ValidationError):
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response(
-            {"error": "An unexpected error occurred"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )

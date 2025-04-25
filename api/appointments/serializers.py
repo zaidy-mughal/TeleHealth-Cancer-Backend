@@ -3,6 +3,7 @@ from .models import Appointments
 from api.doctors.models import Doctor, TimeSlot
 from api.patients.models import Patient
 from api.patients.serializers import PatientSerializer
+from django.db import transaction
 from api.appointments.validators import (
     validate_doctor_time_slot,
     validate_appointment_conflicts,
@@ -48,7 +49,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         return data
 
-
+    @transaction.atomic
     def create(self, validated_data):
         """
         Create a new appointment and update patient details.
@@ -57,9 +58,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         # Get the user from the request context
         user = self.context['request'].user
+        print("User found:", user)
 
         try:
             patient_instance = Patient.objects.get(user=user)
+            print("Patient instance found:", patient_instance)
         except Patient.DoesNotExist:
             raise serializers.ValidationError("Patient profile not found for this user")
 
@@ -69,6 +72,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             data=patient_data,
             partial=True
         )
+        print("Patient serializer data:", patient_serializer)
 
         # Validate and save patient data
         if patient_serializer.is_valid(raise_exception=True):
@@ -84,5 +88,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             appointment_time=validated_data.get('appointment_time'),
             status=validated_data.get('status', 'SCHEDULED')
         )
+        print("Appointment created:", appointment)
 
         return appointment
