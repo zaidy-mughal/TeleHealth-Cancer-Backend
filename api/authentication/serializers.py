@@ -52,8 +52,6 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 raise serializers.ValidationError({'address': 'Address is required for doctors'})
             if not data.get('npi_number'):
                 raise serializers.ValidationError({'npi_number': 'NPI number is required for doctors'})
-            if not data.get('services'):
-                raise serializers.ValidationError({'services': 'Services is required for doctors'})
             if not data.get('specialization_id'):
                 raise serializers.ValidationError({'specialization_id': 'Specialization is required for doctors'})
             try:

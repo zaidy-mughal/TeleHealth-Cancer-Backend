@@ -20,12 +20,6 @@ class Doctor(TimeStampMixin):
     This model includes the Django User model and includes additional fields
     specific to the doctor.
     """
-    class Services(models.TextChoices):
-        SERVEILLANCE = "SERVEILLANCE", "Serveillance"
-        DIAGNOSIS = "DIAGNOSIS", "Diagnosis"
-        SCREENING = "SCREENING", "Screening"
-        SECOND_OPINION = "SECOND_OPINION", "Second Opinion"
-
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="doctor"
     )
@@ -35,7 +29,10 @@ class Doctor(TimeStampMixin):
     date_of_birth = models.DateField()
     address = models.CharField(max_length=255)
     npi_number = models.CharField(max_length=20, unique=True)
-    services = models.IntegerField(choices=Services.choices, blank=True)
+    services = models.IntegerField(choices=Services.choices, blank=True, null=True)
+
+    def __str__(self):
+        return self.user.get_full_name()
 
 
 class TimeSlot(TimeStampMixin):
