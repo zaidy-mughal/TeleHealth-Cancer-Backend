@@ -97,27 +97,32 @@ class OTPVerificationView(APIView):
             if serializer.is_valid():
                 return Response({"detail": "OTP verified successfully"})
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        except Exception as e:
+            logger.error(f"OTP verification error: {str(e)}")
+            return Response(
+                {"detail": f"Error during OTP verification: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class PasswordChangeView(APIView):
     """
     Custom password change view
     """
-
     permission_classes = [AllowAny]
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(
-                {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
-            )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = self.serializer_class(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(
+                    {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
+                )
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"OTP verification error: {str(e)}")
+            logger.error(f"Password change error: {str(e)}")
             return Response(
-                {"detail": f"Error during OTP verification: {str(e)}"},
+                {"detail": f"Error during password change: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
