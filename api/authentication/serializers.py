@@ -40,7 +40,6 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
             data["username"] = self.validated_data.get("email").split("@")[0]
         return data
 
-    @override
     @transaction.atomic
     def custom_signup(self, request, user):
         user.first_name = self.validated_data.get("first_name", "")
