@@ -35,7 +35,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     address = serializers.CharField(required=False)
     npi_number = serializers.CharField(required=False)
     services = serializers.IntegerField(required=False)
-    specialization_id = serializers.IntegerField(required=False)
+    specialization_id = serializers.UUIDField(required=False)
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
