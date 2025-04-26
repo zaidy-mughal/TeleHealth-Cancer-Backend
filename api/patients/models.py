@@ -1,6 +1,5 @@
 from django.db import models
 from django.conf import settings
-import uuid
 from api.patients.choices import Gender, VisitType, MaritalStatus
 
 from phonenumber_field.modelfields import PhoneNumberField
@@ -15,10 +14,10 @@ class Patient(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
     )
     date_of_birth = models.DateField()
-    gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
+    gender = models.IntegerField(max_length=10, choices=Gender.choices, blank=True)
     phone_number = PhoneNumberField()
-    visit_type = models.CharField(max_length=20, choices=VisitType.choices, blank=True)
-    marital_status = models.CharField(max_length=20, choices=MaritalStatus.choices, blank=True)
+    visit_type = models.IntegerField(max_length=20, choices=VisitType.choices, blank=True)
+    marital_status = models.IntegerField(max_length=20, choices=MaritalStatus.choices, blank=True)
     sex_assign_at_birth = models.CharField(max_length=20, blank=True)
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)

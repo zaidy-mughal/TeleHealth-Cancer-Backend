@@ -2,7 +2,7 @@ from django.db import models
 from api.base_models import TimeStampMixin
 from api.doctors.models import Doctor
 from api.patients.models import Patient
-import uuid
+from api.appointments.choices import Status
 
 
 class Appointments(TimeStampMixin):
@@ -23,7 +23,7 @@ class Appointments(TimeStampMixin):
     )
     appointment_date = models.DateField()
     appointment_time = models.TimeField()
-    status = models.CharField(max_length=20, choices=Status.choices)
+    status = models.IntegerField(max_length=20, choices=Status.choices)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.appointment_date} {self.appointment_time}"

@@ -3,7 +3,7 @@ from django.contrib import admin
 from api.patients.models import (
     Patient, IodineAllergy, Allergy, Medication, MedicalHistory,
     AddictionHistory, SurgicalHistory, CancerHistory, CancerType,
-    Pharmacist, PrimaryPhysician, MaritalStatus
+    Pharmacist, PrimaryPhysician
 )
 
 

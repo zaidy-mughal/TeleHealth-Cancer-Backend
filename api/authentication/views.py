@@ -1,5 +1,12 @@
 from dj_rest_auth.registration.views import RegisterView
-from dj_rest_auth.views import LoginView, PasswordResetView
+from dj_rest_auth.views import LoginView
+from dj_rest_auth.views import PasswordResetView
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+
+from dj_rest_auth.views import PasswordResetView
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -15,10 +22,13 @@ from api.authentication.serializers import (
     TeleHealthRegisterSerializer,
     OTPPasswordResetSerializer,
     OTPVerificationSerializer,
+    PasswordChangeSerializer,
 )
 
 logger = logging.getLogger(__name__)
 
+
+logger = logging.getLogger(__name__)
 @method_decorator(csrf_exempt, name='dispatch')
 class TeleHealthRegisterView(RegisterView):
     """
@@ -87,6 +97,24 @@ class OTPVerificationView(APIView):
             if serializer.is_valid():
                 return Response({"detail": "OTP verified successfully"})
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PasswordChangeView(APIView):
+    """
+    Custom password change view
+    """
+
+    permission_classes = [AllowAny]
+    serializer_class = PasswordChangeSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(
+                {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"OTP verification error: {str(e)}")
             return Response(
