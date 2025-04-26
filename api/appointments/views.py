@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
 from api.appointments.serializers import AppointmentSerializer
 from api.appointments.models import Appointments
+from api.patients.models import Patient
+from api.users.models import User
 
 from drf_spectacular.utils import extend_schema
 
@@ -34,14 +36,24 @@ class AppointmentRetrieveView(RetrieveAPIView):
             # date = request.query_params.get("date")
 
             doctor_id = request.query_params.get("doctor")
-            patient_id = kwargs.get("patient_id")
-            if not patient_id:
+            user_id = kwargs.get("patient_id")
+            
+            if not user_id:
                 return Response(
                     {"error": "Patient ID is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            appointments = Appointments.objects.filter(patient=patient_id)
+            try:
+                user = User.objects.get(id=user_id)
+                patient = Patient.objects.get(user=user)
+            except (User.DoesNotExist, Patient.DoesNotExist):
+                return Response(
+                    {"error": "Patient not found"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            appointments = Appointments.objects.filter(patient=patient)
 
             if doctor_id:
                 appointments = appointments.filter(doctor_id=doctor_id)
