@@ -23,7 +23,7 @@ class Appointments(TimeStampMixin):
     )
     appointment_date = models.DateField()
     appointment_time = models.TimeField()
-    status = models.IntegerField(max_length=20, choices=Status.choices)
+    status = models.IntegerField(choices=Status.choices)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.appointment_date} {self.appointment_time}"

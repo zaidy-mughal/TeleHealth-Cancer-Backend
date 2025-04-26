@@ -243,7 +243,12 @@ SPECTACULAR_SETTINGS = {
 
 # Authentication settings
 ACCOUNT_LOGIN_METHODS = {'email'}
-ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
+ACCOUNT_SIGNUP_FIELDS = {
+    'username': {'required': False},
+    'email': {'required': True},
+    'password1': {'required': True},
+    'password2': {'required': True},
+}
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_ENABLED = False
