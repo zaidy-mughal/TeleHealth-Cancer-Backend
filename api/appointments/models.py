@@ -1,11 +1,11 @@
 from django.db import models
-from api.base_models import TimeStampMixin
+from api.base_models import BaseModel
 from api.doctors.models import Doctor
 from api.patients.models import Patient
 from api.appointments.choices import Status
 
 
-class Appointments(TimeStampMixin):
+class Appointments(BaseModel):
     """
     Appointments model to store appointment information.
     This model includes the doctor and patient associated with the appointment.
@@ -19,7 +19,7 @@ class Appointments(TimeStampMixin):
     )
     appointment_date = models.DateField()
     appointment_time = models.TimeField()
-    status = models.IntegerField(max_length=20, choices=Status.choices)
+    status = models.IntegerField(choices=Status.choices)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.appointment_date} {self.appointment_time}"

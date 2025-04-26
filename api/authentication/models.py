@@ -1,9 +1,9 @@
 from django.db import models
 from django.conf import settings
-from api.base_models import TimeStampMixin
+from api.base_models import BaseModel
 
 
-class PasswordResetOTP(TimeStampMixin):
+class PasswordResetOTP(BaseModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     otp = models.CharField(max_length=6)
     is_used = models.BooleanField(default=False)

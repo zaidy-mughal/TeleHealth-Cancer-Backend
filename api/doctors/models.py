@@ -1,9 +1,9 @@
 from django.db import models
-from api.base_models import TimeStampMixin
+from api.base_models import BaseModel
 from api.users.models import User
 from api.doctors.choices import Services
 
-class Specialization(TimeStampMixin):
+class Specialization(BaseModel):
     """
     Specialization model to store the specialization of doctors.
     This model is used to categorize doctors based on their expertise.
@@ -14,7 +14,7 @@ class Specialization(TimeStampMixin):
         return self.name
 
 
-class Doctor(TimeStampMixin):
+class Doctor(BaseModel):
     """
     Doctor model to store doctor information.
     This model includes the Django User model and includes additional fields
@@ -33,7 +33,7 @@ class Doctor(TimeStampMixin):
     services = models.IntegerField(choices=Services.choices, blank=True)
 
 
-class TimeSlot(TimeStampMixin):
+class TimeSlot(BaseModel):
     """
     TimeSlot model to store the time slots available for doctors.
     This model is used to manage the availability of doctors.
@@ -48,7 +48,7 @@ class TimeSlot(TimeStampMixin):
         return f"{self.doctor.user.get_full_name()} - {self.start_time} to {self.end_time}"
 
 
-class LicenseInfo(TimeStampMixin):
+class LicenseInfo(BaseModel):
     """
     LicenseInfo model to store the license information of doctors.
     This model is used to manage the licensing information of doctors.

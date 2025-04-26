@@ -193,8 +193,6 @@ ACCOUNT_EMAIL_VERIFICATION = "none"
 ACCOUNT_EMAIL_REQUIRED = True
 # this is used to make email field unique in the database.
 ACCOUNT_UNIQUE_EMAIL = True
-# this is used to make email field unique in the database.
-ACCOUNT_UNIQUE_EMAIL = True
 # Disable social login
 SOCIALACCOUNT_ENABLED = False
 
