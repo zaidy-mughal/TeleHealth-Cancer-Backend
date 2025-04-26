@@ -9,18 +9,12 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunSQL(
             sql="""
-            ALTER TABLE doctors_doctor 
-            DROP CONSTRAINT doctors_doctor_pkey CASCADE;
-            ALTER TABLE doctors_doctor 
-            DROP COLUMN id,
-            ADD COLUMN id UUID PRIMARY KEY DEFAULT gen_random_uuid();
+            -- No need to modify the id column since it's already UUID
+            -- Just ensure the UUID extension is enabled
+            CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
             """,
             reverse_sql="""
-            ALTER TABLE doctors_doctor 
-            DROP CONSTRAINT doctors_doctor_pkey CASCADE;
-            ALTER TABLE doctors_doctor 
-            DROP COLUMN id,
-            ADD COLUMN id SERIAL PRIMARY KEY;
+            -- No reverse operation needed
             """
         ),
     ] 
