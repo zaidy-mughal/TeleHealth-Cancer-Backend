@@ -22,6 +22,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
     username = serializers.CharField(required=False)  # Make username optional
+    gender = serializers.IntegerField(required=False, allow_null=True)
+    visit_type = serializers.IntegerField(required=False, allow_null=True)
+    marital_status = serializers.IntegerField(required=False, allow_null=True)
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
@@ -35,9 +38,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         data["last_name"] = self.validated_data.get("last_name", "")
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
+        data["gender"] = self.validated_data.get("gender", None)
+        data["visit_type"] = self.validated_data.get("visit_type", None)
+        data["marital_status"] = self.validated_data.get("marital_status", None)
         # Generate username from email if not provided
         if not data.get("username"):
-            data["username"] = self.validated_data.get("email").split("@")[0]
+            data["username"] = self.validated_data.get("email").split("@")[-2]
         return data
 
     @transaction.atomic
@@ -55,7 +61,10 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 user=user,
                 date_of_birth=self.validated_data.get("date_of_birth"),
                 phone_number=self.validated_data.get("phone_number"),
-                is_iodine_contrast_allergic=False
+                gender=self.validated_data.get("gender", None),
+                visit_type=self.validated_data.get("visit_type", None),
+                marital_status=self.validated_data.get("marital_status", None),
+                is_iodine_contrast_allergic=self.validated_data.get("is_iodine_contrast_allergic", False)
             )
 
             # Create IodineAllergy record with default value

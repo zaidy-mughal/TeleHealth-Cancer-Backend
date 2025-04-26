@@ -15,10 +15,10 @@ class Patient(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
     )
     date_of_birth = models.DateField()
-    gender = models.IntegerField(choices=Gender.choices, blank=True)
+    gender = models.IntegerField(choices=Gender.choices, blank=True, null=True)
     phone_number = PhoneNumberField()
-    visit_type = models.IntegerField(choices=VisitType.choices, blank=True)
-    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True)
+    visit_type = models.IntegerField(choices=VisitType.choices, blank=True, null=True)
+    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True, null=True)
     sex_assign_at_birth = models.CharField(max_length=20, blank=True)
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
