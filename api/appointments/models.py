@@ -15,10 +15,10 @@ class Appointments(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Status(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        CONFIRMED = "CONFIRMED", "Confirmed"
-        CANCELLED = "CANCELLED", "Cancelled"
+    class Status(models.IntegerChoices):
+        PENDING = 0, "Pending"
+        CONFIRMED = 1, "Confirmed"
+        CANCELLED = 2, "Cancelled"
 
     doctor = models.ForeignKey(
         Doctor, on_delete=models.CASCADE, related_name="appointments"
