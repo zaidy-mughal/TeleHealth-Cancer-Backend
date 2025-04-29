@@ -78,14 +78,15 @@ class AddictionHistorySerializer(serializers.ModelSerializer):
 
 
 class PatientSerializer(serializers.ModelSerializer):
-    allergies = AllergySerializer(many=True, required=True)
-    medications = MedicationSerializer(many=True, required=True)
-    medical_history = MedicalHistorySerializer(many=True, required=True)
-    surgical_history = SurgicalHistorySerializer(many=True, required=True)
-    primary_physician = PrimaryPhysicianSerializer(required=True)
-    pharmacist = PharmacistSerializer(required=True)
-    cancer_history = CancerHistorySerializer(many=True, required=True)
-    addiction_history = AddictionHistorySerializer(many=True, required=True)
+    iodine_allergy = IodineAllergySerializer()
+    allergies = AllergySerializer(many=True)
+    medications = MedicationSerializer(many=True) 
+    medical_history = MedicalHistorySerializer(many=True) 
+    surgical_history = SurgicalHistorySerializer(many=True)
+    primary_physician = PrimaryPhysicianSerializer() 
+    pharmacist = PharmacistSerializer()
+    cancer_history = CancerHistorySerializer(many=True)
+    addiction_history = AddictionHistorySerializer(many=True)
 
     class Meta:
         model = Patient
@@ -99,6 +100,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "zip_code",
             "visit_type",
             "allergies",
+            "iodine_allergy",
             "medications",
             "medical_history",
             "surgical_history",
@@ -132,6 +134,15 @@ class PatientSerializer(serializers.ModelSerializer):
             surgical_history_data = validated_data.pop("surgical_history")
             cancer_history_data = validated_data.pop("cancer_history")
             addiction_history_data = validated_data.pop("addiction_history")
+
+            #adding one to one field
+            iodine_allergy_data = validated_data.pop("iodine_allergy")
+            iodine_allergy, _ = IodineAllergy.objects.get_or_create(
+                patient=instance,
+                defaults={"is_allergic": iodine_allergy_data.get("is_allergic", False)},
+            )
+            iodine_allergy.is_allergic = iodine_allergy_data.get("is_allergic", False)
+            iodine_allergy.save()
 
             # Handle the foreign key fields
             primary_physician_data = validated_data.pop("primary_physician")

@@ -9,3 +9,6 @@ class UserSerializer(serializers.Serializer):
     password2 = serializers.CharField(required=True, write_only=True)
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=User.UserRole.choices, default=User.UserRole.PATIENT, required=False
+    )

@@ -1,7 +1,7 @@
 from django.db import models
 from api.base_models import BaseModel
 import config.settings.base as settings
-from api.patients.choices import Gender, VisitType, MaritalStatus
+from api.patients.choices import Gender, VisitType, MaritalStatus, TreatmentReceived, AddictionType
 
 from phonenumber_field.modelfields import PhoneNumberField
 
@@ -115,11 +115,6 @@ class CancerHistory(BaseModel):
     """
     Cancer History model to store patient's cancer history.
     """
-    class TreatmentReceived(models.TextChoices):
-        CHEMOTHERAPY = "CHEMOTHERAPY", "Chemotherapy"
-        RADIATION = "RADIATION", "Radiation Therapy"
-        SURGERY = "SURGERY", "Surgery"
-        OTHER = "OTHER", "Other"
 
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="cancer_history"
@@ -127,8 +122,8 @@ class CancerHistory(BaseModel):
     cancer_type = models.ForeignKey(
         CancerType, on_delete=models.CASCADE, related_name="cancer_type"
     )
-    year_of_diagnosis = models.IntegerField()
-    treatment_received = models.CharField(max_length=100, choices=TreatmentReceived.choices)
+    year_of_diagnosis = models.PositiveIntegerField()
+    treatment_received = models.IntegerField(choices=TreatmentReceived.choices)
 
     def __str__(self):
         return f"{self.cancer_type.name}"
@@ -138,17 +133,14 @@ class AddictionHistory(BaseModel):
     """
     Smoking and Alcohol History model to store patient's smoking history.
     """
-    class AddictionType(models.TextChoices):
-        SMOKING = "SMOKING", "Smoking"
-        ALCOHOL = "ALCOHOL", "Alcohol"
 
     patient = models.ForeignKey(
         Patient, on_delete=models.CASCADE, related_name="addiction_history"
     )
 
-    addiction_type = models.CharField(max_length=20, choices=AddictionType.choices, null=True, blank=True)
+    addiction_type = models.IntegerField(choices=AddictionType.choices, null=True, blank=True)
     description = models.TextField()
-    total_years = models.IntegerField()
+    total_years = models.PositiveIntegerField()
 
     def __str__(self):
         return f"{self.addiction_type}"
