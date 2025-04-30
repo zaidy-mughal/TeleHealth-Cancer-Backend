@@ -244,13 +244,13 @@ SPECTACULAR_SETTINGS = {
 # Authentication settings
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_SIGNUP_FIELDS = {
-    'username': {'required': False},
     'email': {'required': True},
     'password1': {'required': True},
     'password2': {'required': True},
 }
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 SOCIALACCOUNT_ENABLED = False
 
 # JWT Settings

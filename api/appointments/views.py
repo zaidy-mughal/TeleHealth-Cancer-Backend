@@ -1,15 +1,14 @@
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema
+
 from api.appointments.serializers import AppointmentSerializer
 from api.appointments.models import Appointments
 from api.patients.models import Patient
-from api.users.models import User
 
-from drf_spectacular.utils import extend_schema
 
 
 @extend_schema(
@@ -36,24 +35,15 @@ class AppointmentRetrieveView(RetrieveAPIView):
             # date = request.query_params.get("date")
 
             doctor_id = request.query_params.get("doctor")
-            user_id = kwargs.get("patient_id")
-            
-            if not user_id:
+            patient_uuid = kwargs.get("patient_uuid")
+            if not patient_uuid:
                 return Response(
                     {"error": "Patient ID is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            try:
-                user = User.objects.get(id=user_id)
-                patient = Patient.objects.get(user=user)
-            except (User.DoesNotExist, Patient.DoesNotExist):
-                return Response(
-                    {"error": "Patient not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-            appointments = Appointments.objects.filter(patient=patient)
+            patient_id = Patient.objects.get(uuid=patient_uuid)
+            appointments = Appointments.objects.filter(patient=patient_id)
 
             if doctor_id:
                 appointments = appointments.filter(doctor_id=doctor_id)
@@ -64,7 +54,7 @@ class AppointmentRetrieveView(RetrieveAPIView):
         except Exception as e:
             return Response(
                 {"error": f"Failed to retrieve appointments: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
 
@@ -103,6 +93,7 @@ class AppointmentCreateView(CreateAPIView):
 
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
             return Response(
                 {"error": f"Failed to create appointment: {str(e)}"},

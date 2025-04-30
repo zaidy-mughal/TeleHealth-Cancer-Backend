@@ -29,65 +29,58 @@ logger = logging.getLogger(__name__)
 
 
 logger = logging.getLogger(__name__)
-@method_decorator(csrf_exempt, name='dispatch')
+
+
+@method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthRegisterView(RegisterView):
     """
     Custom registration view for TeleHealth
     """
+
     serializer_class = TeleHealthRegisterSerializer
 
-@method_decorator(csrf_exempt, name='dispatch')
+
+@method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthLoginView(LoginView):
     """
     Custom login view for TeleHealth
     """
+
     serializer_class = TeleHealthLoginSerializer
 
-@method_decorator(csrf_exempt, name='dispatch')
+
+@method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthPasswordResetView(PasswordResetView):
     """
     Custom password reset view that sends OTP instead of reset link
     """
+
     serializer_class = OTPPasswordResetSerializer
 
     def post(self, request, *args, **kwargs):
         try:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-
-            # Test email configuration
-            try:
-                send_mail(
-                    'Test Email',
-                    'This is a test email.',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.data['email']],
-                    fail_silently=False,
-                )
-            except Exception as e:
-                logger.error(f"Email test failed: {str(e)}")
-                return Response(
-                    {"detail": f"Email configuration error: {str(e)}"},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                )
-
             serializer.save()
+            
             return Response(
                 {"detail": "Password reset OTP has been sent to your email."},
-                status=status.HTTP_200_OK
+                status=status.HTTP_200_OK,
             )
         except Exception as e:
             logger.error(f"Password reset error: {str(e)}")
             return Response(
                 {"detail": f"Error during password reset: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-@method_decorator(csrf_exempt, name='dispatch')
+
+@method_decorator(csrf_exempt, name="dispatch")
 class OTPVerificationView(APIView):
     """
     Custom OTP verification view
     """
+
     permission_classes = [AllowAny]
     serializer_class = OTPVerificationSerializer
 
@@ -101,13 +94,15 @@ class OTPVerificationView(APIView):
             logger.error(f"OTP verification error: {str(e)}")
             return Response(
                 {"detail": f"Error during OTP verification: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
 
 class PasswordChangeView(APIView):
     """
     Custom password change view
     """
+
     permission_classes = [AllowAny]
     serializer_class = PasswordChangeSerializer
 
@@ -117,12 +112,13 @@ class PasswordChangeView(APIView):
             if serializer.is_valid():
                 serializer.save()
                 return Response(
-                    {"detail": "Password changed successfully"}, status=status.HTTP_200_OK
+                    {"detail": "Password changed successfully"},
+                    status=status.HTTP_200_OK,
                 )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             logger.error(f"Password change error: {str(e)}")
             return Response(
                 {"detail": f"Error during password change: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

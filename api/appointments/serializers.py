@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Appointments
-from api.doctors.models import Doctor, TimeSlot
+from api.doctors.models import Doctor
 from api.patients.models import Patient
 from api.patients.serializers import PatientSerializer
 from django.db import transaction
@@ -23,6 +23,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointments
         fields = [
             "id",
+            "uuid",
             "doctor",
             "patient",
             "appointment_date",
@@ -31,7 +32,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at"
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", 'uuid', "created_at", "updated_at"]
 
 
     def validate(self, data):
@@ -58,36 +59,35 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         # Get the user from the request context
         user = self.context['request'].user
-        print("User found:", user)
 
         try:
             patient_instance = Patient.objects.get(user=user)
-            print("Patient instance found:", patient_instance)
+
+            # Update patient instance with provided data
+            patient_serializer = PatientSerializer(
+                instance=patient_instance,
+                data=patient_data,
+                partial=True
+            )
+
+            # Validate and save patient data
+            if patient_serializer.is_valid(raise_exception=True):
+                updated_patient = patient_serializer.save()
+            
+
+            # Create appointment with the updated patient
+            appointment = Appointments.objects.create(
+                doctor=validated_data.get('doctor'),
+                patient=updated_patient,
+                appointment_date=validated_data.get('appointment_date'),
+                appointment_time=validated_data.get('appointment_time'),
+                status=validated_data.get('status', 'SCHEDULED')
+            )
+
         except Patient.DoesNotExist:
             raise serializers.ValidationError("Patient profile not found for this user")
-
-        # Update patient instance with provided data
-        patient_serializer = PatientSerializer(
-            instance=patient_instance,
-            data=patient_data,
-            partial=True
-        )
-        print("Patient serializer data:", patient_serializer)
-
-        # Validate and save patient data
-        if patient_serializer.is_valid(raise_exception=True):
-            updated_patient = patient_serializer.save()
-        else:
-            raise serializers.ValidationError(patient_serializer.errors)
-
-        # Create appointment with the updated patient
-        appointment = Appointments.objects.create(
-            doctor=validated_data.get('doctor'),
-            patient=updated_patient,
-            appointment_date=validated_data.get('appointment_date'),
-            appointment_time=validated_data.get('appointment_time'),
-            status=validated_data.get('status', 'SCHEDULED')
-        )
-        print("Appointment created:", appointment)
+        
+        except Exception as e:
+            raise serializers.ValidationError(f"Error creating appointment: {str(e)}")
 
         return appointment

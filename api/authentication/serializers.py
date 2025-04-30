@@ -1,12 +1,13 @@
 from rest_framework import serializers
+from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer, PasswordResetSerializer
+
 from api.users.models import User
 from api.patients.models import Patient
 from api.doctors.models import Doctor, Specialization
 from api.authentication.utilities.otp import create_otp_for_user
 from api.authentication.utilities.send_email import send_otp_email
-from django.db import transaction
 from api.authentication.validators import (
     validate_email_not_exits,
     validate_dob_not_in_future,
@@ -20,18 +21,14 @@ from api.authentication.validators import (
 class TeleHealthRegisterSerializer(RegisterSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
+    username = None
+    role = serializers.IntegerField(required=True)
+
+    # Patient-specific fields
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
-    username = serializers.CharField(required=False)  # Make username optional
-    role = serializers.IntegerField(required=True)
-    
-    # Patient-specific fields
-    gender = serializers.IntegerField(required=False, allow_null=True)
-    visit_type = serializers.IntegerField(required=False, allow_null=True)
-    marital_status = serializers.IntegerField(required=False, allow_null=True)
-    is_iodine_contrast_allergic = serializers.BooleanField(required=False, default=False)
-    
-    # Doctor-specific fields
+
+    # Doctor-specific fields in case if role is 1.
     address = serializers.CharField(required=False)
     npi_number = serializers.CharField(required=False)
     services = serializers.CharField(required=False)
@@ -45,47 +42,50 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        role = data.get('role')
-        
+        role = data.get("role")
+
         if role == 1:  # Doctor
-            if not data.get('address'):
-                raise serializers.ValidationError({'address': 'Address is required for doctors'})
-            if not data.get('npi_number'):
-                raise serializers.ValidationError({'npi_number': 'NPI number is required for doctors'})
-            if not data.get('specialization_id'):
-                raise serializers.ValidationError({'specialization_id': 'Specialization is required for doctors'})
+            if not data.get("address"):
+                raise serializers.ValidationError(
+                    {"address": "Address is required for doctors"}
+                )
+            if not data.get("npi_number"):
+                raise serializers.ValidationError(
+                    {"npi_number": "NPI number is required for doctors"}
+                )
+            if not data.get("specialization_id"):
+                raise serializers.ValidationError(
+                    {"specialization_id": "Specialization is required for doctors"}
+                )
             try:
-                Specialization.objects.get(id=data.get('specialization_id'))
+                Specialization.objects.get(id=data.get("specialization_id"))
             except Specialization.DoesNotExist:
-                raise serializers.ValidationError({'specialization_id': 'Invalid specialization ID'})
-        
+                raise serializers.ValidationError(
+                    {"specialization_id": "Invalid specialization ID"}
+                )
+
         return data
 
     def get_cleaned_data(self):
         data = super().get_cleaned_data()
         data["first_name"] = self.validated_data.get("first_name", "")
         data["last_name"] = self.validated_data.get("last_name", "")
+        data["role"] = self.validated_data.get("role")
+
+        # Patient-specific fields
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
-        data["role"] = self.validated_data.get("role")
-        
-        # Patient-specific fields
-        if data["role"] == 2:
-            data["gender"] = self.validated_data.get("gender", None)
-            data["visit_type"] = self.validated_data.get("visit_type", None)
-            data["marital_status"] = self.validated_data.get("marital_status", None)
-            data["is_iodine_contrast_allergic"] = self.validated_data.get("is_iodine_contrast_allergic", False)
-        
+
         # Doctor-specific fields
-        elif data["role"] == 1:
+        if data["role"] == 1:
             data["address"] = self.validated_data.get("address")
             data["npi_number"] = self.validated_data.get("npi_number")
             data["services"] = self.validated_data.get("services")
             data["specialization_id"] = self.validated_data.get("specialization_id")
-        
+
         # Generate username from email if not provided
-        if not data.get("username"):
-            data["username"] = self.validated_data.get("email").split("@")[0]
+        # if not data.get("username"):
+        #     data["username"] = self.validated_data.get("email").split("@")[0]
         return data
 
     @transaction.atomic
@@ -102,28 +102,21 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                     user=user,
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     phone_number=self.validated_data.get("phone_number"),
-                    gender=self.validated_data.get("gender", None),
-                    visit_type=self.validated_data.get("visit_type", None),
-                    marital_status=self.validated_data.get("marital_status", None),
-                    is_iodine_contrast_allergic=self.validated_data.get("is_iodine_contrast_allergic", False)
                 )
 
-                # Create IodineAllergy record with default value
-                from api.patients.models import IodineAllergy
-                IodineAllergy.objects.create(
-                    patient=patient,
-                    is_allergic=False
-                )
             elif role == 1:  # Doctor
-                specialization = Specialization.objects.get(id=self.validated_data.get("specialization_id"))
-                Doctor.objects.create(
+                specialization = Specialization.objects.get(
+                    id=self.validated_data.get("specialization_id")
+                )
+                doctor = Doctor.objects.create(
                     user=user,
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     address=self.validated_data.get("address"),
                     npi_number=self.validated_data.get("npi_number"),
                     services=self.validated_data.get("services"),
-                    specialization=specialization
+                    specialization=specialization,
                 )
+
         except Exception as e:
             user.delete()
             raise serializers.ValidationError(
@@ -137,7 +130,24 @@ class TeleHealthLoginSerializer(LoginSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
-        data["role"] = data.get("user").role
+        user = data.get("user")
+        data["role"] = user.role
+        
+        profile_uuid = None
+        if user.role == 1:
+            try:
+                doctor = Doctor.objects.get(user=user)
+                profile_uuid = doctor.uuid
+            except Doctor.DoesNotExist:
+                pass
+        elif user.role == 2:
+            try:
+                patient = Patient.objects.get(user=user)
+                profile_uuid = patient.uuid
+            except Patient.DoesNotExist:
+                pass
+                
+        data["profile_uuid"] = profile_uuid
         return data
 
 

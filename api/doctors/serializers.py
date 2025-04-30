@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Doctor, Specialization, TimeSlot
-from api.users.serializers import UserSerializer
+from api.users.serializers import UserDetailsSerializer
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -17,7 +17,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     """
     Serializer for the Doctor model.
     """
-    user = UserSerializer()
+    user = UserDetailsSerializer()
     specialization = SpecializationSerializer()
 
     class Meta:

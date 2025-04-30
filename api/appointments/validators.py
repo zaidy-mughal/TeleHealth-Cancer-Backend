@@ -15,21 +15,25 @@ def validate_doctor_time_slot(doctor, appointment_time):
     raise serializers.ValidationError("Doctor is not available at the requested time")
 
 
-def validate_appointment_conflicts(doctor, appointment_date, appointment_time, instance=None):
+def validate_appointment_conflicts(
+    doctor, appointment_date, appointment_time, instance=None
+):
     """
     Check for any conflicting appointments at the requested time.
     """
     existing_appointments = Appointments.objects.filter(
         doctor=doctor,
         appointment_date=appointment_date,
-        appointment_time=appointment_time
+        appointment_time=appointment_time,
     )
 
     if instance:
         existing_appointments = existing_appointments.exclude(uuid=instance.uuid)
 
     if existing_appointments.exists():
-        raise serializers.ValidationError("Doctor already has an appointment at this time")
+        raise serializers.ValidationError(
+            "Doctor already has an appointment at this time"
+        )
 
 
 def validate_future_datetime(appointment_date, appointment_time):
@@ -41,4 +45,6 @@ def validate_future_datetime(appointment_date, appointment_time):
     )
 
     if appointment_datetime <= timezone.now():
-        raise serializers.ValidationError("Appointment must be scheduled for a future date and time")
+        raise serializers.ValidationError(
+            "Appointment must be scheduled for a future date and time"
+        )

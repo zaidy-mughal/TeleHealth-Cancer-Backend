@@ -1,7 +1,7 @@
 from django.db import models
 
-class Services(models.TextChoices):
-    SERVEILLANCE = "SERVEILLANCE", "Serveillance"
-    DIAGNOSIS = "DIAGNOSIS", "Diagnosis"
-    SCREENING = "SCREENING", "Screening"
-    SECOND_OPINION = "SECOND_OPINION", "Second Opinion"
+class Services(models.IntegerChoices):
+    SERVEILLANCE = 0, "Serveillance"
+    DIAGNOSIS = 1, "Diagnosis"
+    SCREENING = 2, "Screening"
+    SECOND_OPINION = 3, "Second Opinion"
