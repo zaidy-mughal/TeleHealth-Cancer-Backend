@@ -36,6 +36,8 @@ class AppointmentRetrieveView(RetrieveAPIView):
             # date = request.query_params.get("date")
 
             doctor_id = request.query_params.get("doctor")
+            patient_uuid = kwargs.get("patient_uuid")
+            if not patient_uuid:
             user_id = kwargs.get("patient_id")
             
             if not user_id:
@@ -43,7 +45,9 @@ class AppointmentRetrieveView(RetrieveAPIView):
                     {"error": "Patient ID is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
+            
+            
+            patient_id = Patient.objects.get(uuid=patient_uuid)
             try:
                 user = User.objects.get(id=user_id)
                 patient = Patient.objects.get(user=user)

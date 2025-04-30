@@ -9,13 +9,6 @@ class UserSerializer(serializers.Serializer):
     password2 = serializers.CharField(required=True, write_only=True)
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
-
-
-class UserDetailsSerializer(ModelSerializer):
-    """
-    User model w/o password
-    """
-    class Meta:
-        model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'role')
-        read_only_fields = ('email', 'id')
+    role = serializers.ChoiceField(
+        choices=User.UserRole.choices, default=User.UserRole.PATIENT, required=False
+    )

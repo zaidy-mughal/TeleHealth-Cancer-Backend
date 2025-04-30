@@ -1,24 +1,22 @@
 import uuid
 from django.db import models
-from django.conf import settings
-from api.patients.choices import Gender, VisitType, MaritalStatus
+from api.base_models import BaseModel
+import config.settings.base as settings
+from api.patients.choices import Gender, VisitType, MaritalStatus, TreatmentReceived, AddictionType
 
 from phonenumber_field.modelfields import PhoneNumberField
 
 
-class Patient(models.Model):
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+class Patient(BaseModel):
 
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
     )
     date_of_birth = models.DateField()
-    gender = models.IntegerField(choices=Gender.choices, blank=True, null=True)
+    gender = models.IntegerField(choices=Gender.choices, blank=True)
     phone_number = PhoneNumberField()
-    visit_type = models.IntegerField(choices=VisitType.choices, blank=True, null=True)
-    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True, null=True)
+    visit_type = models.IntegerField(choices=VisitType.choices, blank=True)
+    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True)
     sex_assign_at_birth = models.CharField(max_length=20, blank=True)
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
@@ -41,11 +39,7 @@ class Patient(models.Model):
         return f"{self.user.get_full_name()} - {self.gender}"
 
 
-class IodineAllergy(models.Model):
-    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
+class IodineAllergy(BaseModel):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="iodine_allergy"
     )
@@ -55,7 +49,7 @@ class IodineAllergy(models.Model):
         return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_allergic else 'Not Allergic'}"
 
 
-class Allergy(models.Model):
+class Allergy(BaseModel):
     """
     Allergy model to store patient's allergy information.
     """
@@ -69,7 +63,7 @@ class Allergy(models.Model):
         return f"{self.name}"
 
 
-class Medication(models.Model):
+class Medication(BaseModel):
     """
     Medication model to store patient's medication history.
     """
@@ -83,7 +77,7 @@ class Medication(models.Model):
         return f"{self.name}"
 
 
-class MedicalHistory(models.Model):
+class MedicalHistory(BaseModel):
     """
     Medical History model to store patient's medical history.
     """
@@ -97,7 +91,7 @@ class MedicalHistory(models.Model):
         return f"{self.medical_condition}"
 
 
-class SurgicalHistory(models.Model):
+class SurgicalHistory(BaseModel):
     """
     Surgical History model to store patient's surgical history.
     """
@@ -111,7 +105,7 @@ class SurgicalHistory(models.Model):
         return f"{self.surgical_condition}"
 
 
-class CancerType(models.Model):
+class CancerType(BaseModel):
     """
     Cancer Type model to use it in Cancer History.
     """
@@ -125,7 +119,7 @@ class CancerType(models.Model):
         return self.name
 
 
-class CancerHistory(models.Model):
+class CancerHistory(BaseModel):
     """
     Cancer History model to store patient's cancer history.
     """
@@ -145,14 +139,14 @@ class CancerHistory(models.Model):
     cancer_type = models.ForeignKey(
         CancerType, on_delete=models.CASCADE, related_name="cancer_type"
     )
-    year_of_diagnosis = models.IntegerField()
-    treatment_received = models.CharField(max_length=100, choices=TreatmentReceived.choices)
+    year_of_diagnosis = models.PositiveIntegerField()
+    treatment_received = models.IntegerField(choices=TreatmentReceived.choices)
 
     def __str__(self):
         return f"{self.cancer_type.name}"
 
 
-class AddictionHistory(models.Model):
+class AddictionHistory(BaseModel):
     """
     Smoking and Alcohol History model to store patient's smoking history.
     """
@@ -168,15 +162,15 @@ class AddictionHistory(models.Model):
         Patient, on_delete=models.CASCADE, related_name="addiction_history"
     )
 
-    addiction_type = models.CharField(max_length=20, choices=AddictionType.choices, null=True, blank=True)
+    addiction_type = models.IntegerField(choices=AddictionType.choices, null=True, blank=True)
     description = models.TextField()
-    total_years = models.IntegerField()
+    total_years = models.PositiveIntegerField()
 
     def __str__(self):
         return f"{self.addiction_type}"
 
 
-class PrimaryPhysician(models.Model):
+class PrimaryPhysician(BaseModel):
     """
     Primary Physician model to store patient's primary physician information.
     """
@@ -191,7 +185,7 @@ class PrimaryPhysician(models.Model):
         return f"{self.name}"
 
 
-class Pharmacist(models.Model):
+class Pharmacist(BaseModel):
     """
     Pharmacist model to store patient's pharmacist information.
     """

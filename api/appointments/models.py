@@ -1,12 +1,12 @@
 from django.db import models
-from api.base_models import TimeStampMixin
+from api.base_models import BaseModel
 from api.doctors.models import Doctor
 from api.patients.models import Patient
 from api.appointments.choices import Status
 import uuid
 
 
-class Appointments(models.Model):
+class Appointments(BaseModel):
     """
     Appointments model to store appointment information.
     This model includes the doctor and patient associated with the appointment.

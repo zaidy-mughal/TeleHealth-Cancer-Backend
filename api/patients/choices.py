@@ -24,3 +24,15 @@ class Gender(models.IntegerChoices):
     FEMALE = 1, "Female"
     NON_BINARY = 2, "Non-binary"
     PREFER_NOT_TO_SAY = 3, "Prefer not to say"
+
+
+class TreatmentReceived(models.IntegerChoices):
+    CHEMOTHERAPY = 0, "Chemotherapy"
+    RADIATION = 1, "Radiation Therapy"
+    SURGERY = 2, "Surgery"
+    OTHER = 3, "Other"
+
+
+class AddictionType(models.IntegerChoices):
+    SMOKING = 0, "Smoking"
+    ALCOHOL = 1, "Alcohol"
