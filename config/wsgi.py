@@ -15,7 +15,7 @@ try:
     setup_environment()
     print("Environment setup complete")
     
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings.base')
     print(f"Using settings module: {os.environ.get('DJANGO_SETTINGS_MODULE')}")
     
     application = get_wsgi_application()
