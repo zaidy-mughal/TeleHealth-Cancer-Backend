@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from api.base_models import BaseModel
-from api.base_models import TimeStampMixin
 from django.utils import timezone
 from api.users.models import User
 
