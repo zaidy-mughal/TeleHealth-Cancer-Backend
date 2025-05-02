@@ -36,3 +36,9 @@ class TreatmentType(models.IntegerChoices):
 class AddictionType(models.IntegerChoices):
     SMOKING = 0, "Smoking"
     ALCOHOL = 1, "Alcohol"
+
+
+class IsIodineAllergic(models.IntegerChoices):
+    YES = 0, "No"
+    NO = 1, "Yes"
+    UNKNOWN = 2, "Unknown"

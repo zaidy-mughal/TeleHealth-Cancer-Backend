@@ -77,16 +77,19 @@ class AddictionHistorySerializer(serializers.ModelSerializer):
         fields = ["addiction_type", "description", "total_years"]
 
 
+
 class PatientSerializer(serializers.ModelSerializer):
-    iodine_allergy = IodineAllergySerializer()
-    allergies = AllergySerializer(many=True)
-    medications = MedicationSerializer(many=True) 
-    medical_history = MedicalHistorySerializer(many=True) 
-    surgical_history = SurgicalHistorySerializer(many=True)
-    primary_physician = PrimaryPhysicianSerializer() 
-    pharmacist = PharmacistSerializer()
-    cancer_history = CancerHistorySerializer(many=True)
-    addiction_history = AddictionHistorySerializer(many=True)
+    
+    surgical_history = SurgicalHistorySerializer(many=True, allow_empty=True)
+    cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
+    addiction_history = AddictionHistorySerializer(many=True, allow_empty=True)
+
+    primary_physician = PrimaryPhysicianSerializer(allow_blank=False)
+    pharmacist = PharmacistSerializer(allow_blank=False)
+    iodine_allergy = IodineAllergySerializer(allow_blank=False)
+    allergies = AllergySerializer(many=True, allow_empty=False)
+    medications = MedicationSerializer(many=True, allow_empty=False)
+    medical_history = MedicalHistorySerializer(many=True, allow_empty=False)
 
     class Meta:
         model = Patient
@@ -135,7 +138,7 @@ class PatientSerializer(serializers.ModelSerializer):
             cancer_history_data = validated_data.pop("cancer_history")
             addiction_history_data = validated_data.pop("addiction_history")
 
-            #adding one to one field
+            # adding one to one field
             iodine_allergy_data = validated_data.pop("iodine_allergy")
             iodine_allergy, _ = IodineAllergy.objects.get_or_create(
                 patient=instance,

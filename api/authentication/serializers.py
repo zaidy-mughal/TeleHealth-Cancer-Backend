@@ -2,6 +2,8 @@ from rest_framework import serializers
 from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer, PasswordResetSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 from api.users.models import User
 from api.patients.models import Patient
@@ -238,3 +240,31 @@ class PasswordChangeSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": f"Failed to change password: {str(e)}"}
             )
+
+
+# Custom Logout Serializer to bypass the default dj-rest-auth logout
+class TeleHealthLogoutSerializer(serializers.Serializer):
+    """
+    Serializer for logging out a user.
+    """
+
+    refresh = serializers.CharField()
+
+    def validate_refresh(self, value):
+        try:
+            RefreshToken(value)
+            return value
+        except Exception as e:
+            raise serializers.ValidationError("Invalid refresh token")
+
+    def save(self):
+        try:
+            refresh_token = self.validated_data["refresh"]
+
+            # Blacklist the token
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return True
+        except Exception as e:
+            raise serializers.ValidationError(f"Failed to blacklist token: {str(e)}")

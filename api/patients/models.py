@@ -1,4 +1,3 @@
-import uuid
 from django.db import models
 from api.base_models import BaseModel
 from django.conf import settings
@@ -8,6 +7,7 @@ from api.patients.choices import (
     MaritalStatus,
     TreatmentType,
     AddictionType,
+    IsIodineAllergic,
 )
 
 from phonenumber_field.modelfields import PhoneNumberField
@@ -27,7 +27,6 @@ class Patient(BaseModel):
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
     zip_code = models.CharField(max_length=20, blank=True)
-    is_iodine_contrast_allergic = models.BooleanField(default=False)
 
     allergies = models.ManyToManyField("Allergy", related_name="patients", blank=True)
     medications = models.ManyToManyField(
@@ -63,7 +62,7 @@ class IodineAllergy(BaseModel):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="iodine_allergy"
     )
-    is_allergic = models.BooleanField(default=False)
+    is_iodine_allergic = models.IntegerField(choices=IsIodineAllergic.choices, blank=True)
 
     def __str__(self):
         return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_allergic else 'Not Allergic'}"
@@ -136,7 +135,9 @@ class CancerHistory(BaseModel):
         CancerType, on_delete=models.CASCADE, related_name="cancer_type"
     )
     year_of_diagnosis = models.PositiveIntegerField()
-    treatment_received = models.IntegerField(choices=TreatmentType.choices)
+    treatment_recieved = models.IntegerField(
+        choices=TreatmentType.choices, blank=True
+    )
 
     def __str__(self):
         return f"{self.cancer_type.name}"

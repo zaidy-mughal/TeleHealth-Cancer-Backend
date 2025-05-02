@@ -1,6 +1,5 @@
 from dj_rest_auth.registration.views import RegisterView
-from dj_rest_auth.views import LoginView
-from dj_rest_auth.views import PasswordResetView
+from dj_rest_auth.views import LoginView, PasswordResetView, LogoutView
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -23,6 +22,7 @@ from api.authentication.serializers import (
     OTPPasswordResetSerializer,
     OTPVerificationSerializer,
     PasswordChangeSerializer,
+    TeleHealthLogoutSerializer,
 )
 
 logger = logging.getLogger(__name__)
@@ -122,3 +122,21 @@ class PasswordChangeView(APIView):
                 {"detail": f"Error during password change: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+
+class TeleHealthLogoutView(LogoutView):
+    serializer_class = TeleHealthLogoutSerializer
+
+    def logout(self, request):
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            response = super().logout(request)
+
+            return response
+
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

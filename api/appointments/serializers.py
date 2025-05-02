@@ -1,9 +1,11 @@
 from rest_framework import serializers
-from .models import Appointments
-from api.doctors.models import Doctor
+from django.db import transaction
+
+from api.appointments.models import Appointments
+from api.doctors.models import Doctor, TimeSlot
+from api.doctors.serializers import TimeSlotSerializer
 from api.patients.models import Patient
 from api.patients.serializers import PatientSerializer
-from django.db import transaction
 from api.appointments.validators import (
     validate_doctor_time_slot,
     validate_appointment_conflicts,
@@ -17,6 +19,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     This serializer is used to convert Appointment model instances to JSON and vice versa.
     """
     doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
+    time_slot = TimeSlotSerializer()
     patient = PatientSerializer()
 
     class Meta:
@@ -26,8 +29,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "uuid",
             "doctor",
             "patient",
-            "appointment_date",
-            "appointment_time",
+            "time_slot",
             "status",
             "created_at",
             "updated_at"
@@ -41,10 +43,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
         """
 
         doctor = data.get('doctor')
-        appointment_date = data.get('appointment_date')
-        appointment_time = data.get('appointment_time')
+        time_slot = data.get('time_slot')
 
-        validate_future_datetime(appointment_date, appointment_time)
+        # # Use time_slot fields to validate the appointment time
+
+        # validate_future_datetime(appointment_date, appointment_time)
         # validate_doctor_time_slot(doctor, appointment_time)
         # validate_appointment_conflicts(doctor, appointment_date, appointment_time, instance=self.instance)
 
@@ -56,6 +59,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
         Create a new appointment and update patient details.
         """
         patient_data = validated_data.pop('patient')
+        time_slot_id = validated_data.pop('time_slot')
+        time_slot = TimeSlot.objects.get(id=time_slot_id)
 
         # Get the user from the request context
         user = self.context['request'].user
@@ -79,8 +84,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             appointment = Appointments.objects.create(
                 doctor=validated_data.get('doctor'),
                 patient=updated_patient,
-                appointment_date=validated_data.get('appointment_date'),
-                appointment_time=validated_data.get('appointment_time'),
+                time_slot=time_slot,
                 status=validated_data.get('status', 'SCHEDULED')
             )
 

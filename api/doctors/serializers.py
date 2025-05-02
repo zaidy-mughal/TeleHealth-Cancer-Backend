@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Doctor, Specialization, TimeSlot
+from .models import Doctor, Specialization, TimeSlot, LicenseInfo
 from api.users.serializers import UserDetailsSerializer
 
 
@@ -24,7 +24,7 @@ class DoctorSerializer(serializers.ModelSerializer):
         model = Doctor
         fields = "__all__"
 
-
+# will add validations to timeslot in doctor
 class TimeSlotSerializer(serializers.ModelSerializer):
     """
     Serializer for the TimeSlot model.
@@ -37,3 +37,15 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         model = TimeSlot
         fields = "__all__"
 
+
+class LicenseInfoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the LicenseInfo model.
+    """
+    doctor = serializers.PrimaryKeyRelatedField(
+        queryset=Doctor.objects.all()
+    )
+
+    class Meta:
+        model = LicenseInfo
+        fields = "__all__"

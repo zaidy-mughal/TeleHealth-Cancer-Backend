@@ -1,7 +1,7 @@
 from django.db import models
 from api.base_models import BaseModel
 from api.users.models import User
-from api.doctors.choices import Services
+from api.doctors.choices import Services, StateChoices
 
 class Specialization(BaseModel):
     """
@@ -43,8 +43,9 @@ class TimeSlot(BaseModel):
     doctor = models.ForeignKey(
         Doctor, on_delete=models.CASCADE, related_name="time_slots"
     )
-    start_time = models.TimeField()
-    end_time = models.TimeField()
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    is_booked = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.start_time} to {self.end_time}"
@@ -59,7 +60,7 @@ class LicenseInfo(BaseModel):
         Doctor, on_delete=models.CASCADE, related_name="license_info"
     )
     license_number = models.CharField(max_length=20, unique=True)
-    state = models.CharField(max_length=50)
+    state = models.CharField(choices=StateChoices.choices, max_length=2)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.license_number}"
