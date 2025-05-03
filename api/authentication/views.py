@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import serializers
 
 from dj_rest_auth.views import PasswordResetView
 from rest_framework.views import APIView
@@ -15,6 +16,7 @@ from django.utils.decorators import method_decorator
 from django.core.mail import send_mail
 from django.conf import settings
 import logging
+from drf_spectacular.utils import extend_schema
 
 from api.authentication.serializers import (
     TeleHealthLoginSerializer,
@@ -36,8 +38,29 @@ class TeleHealthRegisterView(RegisterView):
     """
     Custom registration view for TeleHealth
     """
-
     serializer_class = TeleHealthRegisterSerializer
+
+    def create(self, request, *args, **kwargs):
+    
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+    
+        user_data = self.get_response_data(user)
+
+        # combined response with user data and profile_uuid as separate fields
+        response_data = {
+            'user': user_data,
+        }
+        if hasattr(serializer, 'profile_uuid') and serializer.profile_uuid:
+            response_data['profile_uuid'] = str(serializer.profile_uuid)
+
+        return Response(
+            response_data,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -45,8 +68,20 @@ class TeleHealthLoginView(LoginView):
     """
     Custom login view for TeleHealth
     """
-
     serializer_class = TeleHealthLoginSerializer
+
+    def get_response(self):
+        response = super().get_response()
+        
+        # Add profile_uuid to the response data
+        if hasattr(self, 'user'):
+            data = self.serializer.validated_data
+            profile_uuid = data.get('profile_uuid')
+            
+            if isinstance(response.data, dict):
+                response.data['profile_uuid'] = profile_uuid
+        
+        return response
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -128,15 +163,18 @@ class PasswordChangeView(APIView):
 class TeleHealthLogoutView(LogoutView):
     serializer_class = TeleHealthLogoutSerializer
 
-    def logout(self, request):
+    def post(self, request):
         try:
-            serializer = self.get_serializer(data=request.data)
+            serializer = self.serializer_class(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
             response = super().logout(request)
 
             return response
+        
+        except serializers.ValidationError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

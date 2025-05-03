@@ -10,5 +10,5 @@ class UserDetailsSerializer(ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "uuid", "email", "first_name", "last_name", "role")
+        fields = ("id", "uuid", "email", "first_name", "last_name", "user_role")
         read_only_fields = ("email", "id", "uuid")

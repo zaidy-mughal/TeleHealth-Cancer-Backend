@@ -18,7 +18,7 @@ from api.patients.models import (
 class IodineAllergySerializer(serializers.ModelSerializer):
     class Meta:
         model = IodineAllergy
-        fields = ["is_allergic"]
+        fields = ["is_iodine_allergic"]
 
 
 class AllergySerializer(serializers.ModelSerializer):
@@ -77,16 +77,15 @@ class AddictionHistorySerializer(serializers.ModelSerializer):
         fields = ["addiction_type", "description", "total_years"]
 
 
-
 class PatientSerializer(serializers.ModelSerializer):
-    
+
     surgical_history = SurgicalHistorySerializer(many=True, allow_empty=True)
     cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
     addiction_history = AddictionHistorySerializer(many=True, allow_empty=True)
 
-    primary_physician = PrimaryPhysicianSerializer(allow_blank=False)
-    pharmacist = PharmacistSerializer(allow_blank=False)
-    iodine_allergy = IodineAllergySerializer(allow_blank=False)
+    primary_physician = PrimaryPhysicianSerializer()
+    pharmacist = PharmacistSerializer()
+    iodine_allergy = IodineAllergySerializer()
     allergies = AllergySerializer(many=True, allow_empty=False)
     medications = MedicationSerializer(many=True, allow_empty=False)
     medical_history = MedicalHistorySerializer(many=True, allow_empty=False)
@@ -128,8 +127,6 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         try:
-            print("Updating patient instance:", instance)
-
             # First, extract all the many-to-many fields before saving
             allergies_data = validated_data.pop("allergies")
             medications_data = validated_data.pop("medications")
@@ -142,9 +139,15 @@ class PatientSerializer(serializers.ModelSerializer):
             iodine_allergy_data = validated_data.pop("iodine_allergy")
             iodine_allergy, _ = IodineAllergy.objects.get_or_create(
                 patient=instance,
-                defaults={"is_allergic": iodine_allergy_data.get("is_allergic", False)},
+                defaults={
+                    "is_iodine_allergic": iodine_allergy_data.get(
+                        "is_iodine_allergic", False
+                    )
+                },
             )
-            iodine_allergy.is_allergic = iodine_allergy_data.get("is_allergic", False)
+            iodine_allergy.is_iodine_allergic = iodine_allergy_data.get(
+                "is_iodine_allergic", False
+            )
             iodine_allergy.save()
 
             # Handle the foreign key fields

@@ -24,7 +24,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
     username = None
-    role = serializers.IntegerField(required=True)
+    user_role = serializers.IntegerField(required=True)
 
     # Patient-specific fields
     date_of_birth = serializers.DateField(required=True)
@@ -36,6 +36,8 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     services = serializers.CharField(required=False)
     specialization_id = serializers.UUIDField(required=False)
 
+    profile_uuid = serializers.UUIDField(read_only=True)
+
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
 
@@ -44,9 +46,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
 
     def validate(self, data):
         data = super().validate(data)
-        role = data.get("role")
+        user_role = data.get("user_role")
 
-        if role == 1:  # Doctor
+        if user_role == 1:  # Doctor
             if not data.get("address"):
                 raise serializers.ValidationError(
                     {"address": "Address is required for doctors"}
@@ -72,14 +74,14 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         data = super().get_cleaned_data()
         data["first_name"] = self.validated_data.get("first_name", "")
         data["last_name"] = self.validated_data.get("last_name", "")
-        data["role"] = self.validated_data.get("role")
+        data["user_role"] = self.validated_data.get("user_role")
 
         # Patient-specific fields
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
 
         # Doctor-specific fields
-        if data["role"] == 1:
+        if data["user_role"] == 1:
             data["address"] = self.validated_data.get("address")
             data["npi_number"] = self.validated_data.get("npi_number")
             data["services"] = self.validated_data.get("services")
@@ -94,19 +96,20 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     def custom_signup(self, request, user):
         user.first_name = self.validated_data.get("first_name", "")
         user.last_name = self.validated_data.get("last_name", "")
-        role = self.validated_data.get("role")
-        user.role = role
+        user_role = self.validated_data.get("user_role")
+        user.user_role = user_role
         user.save()
 
         try:
-            if role == 2:  # Patient
+            if user_role == 2:  # Patient
                 patient = Patient.objects.create(
                     user=user,
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     phone_number=self.validated_data.get("phone_number"),
                 )
+                self.profile_uuid = patient.uuid
 
-            elif role == 1:  # Doctor
+            elif user_role == 1:  # Doctor
                 specialization = Specialization.objects.get(
                     id=self.validated_data.get("specialization_id")
                 )
@@ -118,6 +121,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                     services=self.validated_data.get("services"),
                     specialization=specialization,
                 )
+                self.profile_uuid = doctor.uuid
 
         except Exception as e:
             user.delete()
@@ -133,16 +137,16 @@ class TeleHealthLoginSerializer(LoginSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = data.get("user")
-        data["role"] = user.role
+        data["user_role"] = user.user_role
         
         profile_uuid = None
-        if user.role == 1:
+        if user.user_role == 1:
             try:
                 doctor = Doctor.objects.get(user=user)
                 profile_uuid = doctor.uuid
             except Doctor.DoesNotExist:
                 pass
-        elif user.role == 2:
+        elif user.user_role == 2:
             try:
                 patient = Patient.objects.get(user=user)
                 profile_uuid = patient.uuid

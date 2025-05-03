@@ -19,7 +19,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     This serializer is used to convert Appointment model instances to JSON and vice versa.
     """
     doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
-    time_slot = TimeSlotSerializer()
+    time_slot = serializers.PrimaryKeyRelatedField(queryset=TimeSlot.objects.all())
     patient = PatientSerializer()
 
     class Meta:
@@ -34,7 +34,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at"
         ]
-        read_only_fields = ["id", 'uuid', "created_at", "updated_at"]
+        read_only_fields = ["id", 'uuid', "created_at", "updated_at", "status"]
 
 
     def validate(self, data):
@@ -44,6 +44,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         doctor = data.get('doctor')
         time_slot = data.get('time_slot')
+
+        # validate_if_time_slot_is_booked_already
+        # validate_if_time_slot_is_of_same_doctor
 
         # # Use time_slot fields to validate the appointment time
 
@@ -59,8 +62,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         Create a new appointment and update patient details.
         """
         patient_data = validated_data.pop('patient')
-        time_slot_id = validated_data.pop('time_slot')
-        time_slot = TimeSlot.objects.get(id=time_slot_id)
+        time_slot = validated_data.pop('time_slot')
 
         # Get the user from the request context
         user = self.context['request'].user
@@ -79,14 +81,15 @@ class AppointmentSerializer(serializers.ModelSerializer):
             if patient_serializer.is_valid(raise_exception=True):
                 updated_patient = patient_serializer.save()
             
-
             # Create appointment with the updated patient
             appointment = Appointments.objects.create(
                 doctor=validated_data.get('doctor'),
                 patient=updated_patient,
                 time_slot=time_slot,
-                status=validated_data.get('status', 'SCHEDULED')
             )
+            appointment.time_slot.is_booked = True
+            appointment.time_slot.save()
+            appointment.save()
 
         except Patient.DoesNotExist:
             raise serializers.ValidationError("Patient profile not found for this user")

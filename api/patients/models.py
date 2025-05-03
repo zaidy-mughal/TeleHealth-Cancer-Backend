@@ -19,10 +19,10 @@ class Patient(BaseModel):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
     )
     date_of_birth = models.DateField()
-    gender = models.IntegerField(choices=Gender.choices, blank=True)
+    gender = models.IntegerField(choices=Gender.choices, blank=True, null=True)
     phone_number = PhoneNumberField()
-    visit_type = models.IntegerField(choices=VisitType.choices, blank=True)
-    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True)
+    visit_type = models.IntegerField(choices=VisitType.choices, blank=True, null=True)
+    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True, null=True)
     sex_assign_at_birth = models.CharField(max_length=20, blank=True)
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
@@ -62,10 +62,10 @@ class IodineAllergy(BaseModel):
     patient = models.OneToOneField(
         Patient, on_delete=models.CASCADE, related_name="iodine_allergy"
     )
-    is_iodine_allergic = models.IntegerField(choices=IsIodineAllergic.choices, blank=True)
+    is_iodine_allergic = models.IntegerField(choices=IsIodineAllergic.choices)
 
     def __str__(self):
-        return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_allergic else 'Not Allergic'}"
+        return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_iodine_allergic else 'Not Allergic'}"
 
 
 class Allergy(BaseModel):
@@ -135,7 +135,7 @@ class CancerHistory(BaseModel):
         CancerType, on_delete=models.CASCADE, related_name="cancer_type"
     )
     year_of_diagnosis = models.PositiveIntegerField()
-    treatment_recieved = models.IntegerField(
+    treatment_received = models.IntegerField(
         choices=TreatmentType.choices, blank=True
     )
 

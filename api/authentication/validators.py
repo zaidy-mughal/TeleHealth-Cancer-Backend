@@ -30,7 +30,7 @@ def validate_otp_for_email(email, otp):
 
         is_valid = (
             not otp_obj.is_used
-            and otp_obj.created_at >= timezone.now() - timedelta(minutes=10)
+            and otp_obj.created_at >= timezone.now() - timedelta(minutes=2)
         )
         otp_obj.is_used = True
         otp_obj.save()

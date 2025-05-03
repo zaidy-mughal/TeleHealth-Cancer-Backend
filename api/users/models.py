@@ -14,7 +14,7 @@ class User(AbstractUser, BaseModel):
     username = None
     REQUIRED_FIELDS = []
     objects = UserManager()
-    role = models.IntegerField(_('role'), choices=Role.choices, default=Role.PATIENT)
+    user_role = models.IntegerField(_('role'), choices=Role.choices, default=Role.PATIENT)
 
     @property
     def role(self):

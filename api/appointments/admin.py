@@ -1,23 +1,5 @@
 from django.contrib import admin
 from api.appointments.models import Appointments
-
-
-# @admin.register(Appointments)
-# class AppointmentsAdmin(admin.ModelAdmin):
-#     list_display = ['id', 'uuid', 'status']
-#     readonly_fields = ['uuid', 'created_at', 'updated_at']
-
-#     def doctor_name(self, obj):
-#         return obj.doctor.user.get_full_name()
-#     doctor_name.short_description = 'Doctor'
-
-#     def patient_name(self, obj):
-#         return obj.patient.user.get_full_name()
-#     patient_name.short_description = 'Patient'
-
-
-# from django.contrib import admin
-# from api.appointments.models import Appointments
 from api.appointments.choices import Status
 
 @admin.register(Appointments)
@@ -38,11 +20,11 @@ class AppointmentsAdmin(admin.ModelAdmin):
     patient_name.short_description = 'Patient'
     
     def appointment_start(self, obj):
-        return obj.time_slot.start_date if hasattr(obj.time_slot, 'start') else '-'
+        return obj.time_slot.start_time if hasattr(obj.time_slot, 'start') else '-'
     appointment_start.short_description = 'Start'
     
     def appointment_end(self, obj):
-        return obj.time_slot.end_date if hasattr(obj.time_slot, 'end') else '-'
+        return obj.time_slot.end_time if hasattr(obj.time_slot, 'end') else '-'
     appointment_start.short_description = 'End'
     
     def status_display(self, obj):
