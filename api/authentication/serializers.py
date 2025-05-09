@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 
 from api.users.models import User
+from api.users.choices import Role
 from api.patients.models import Patient
 from api.doctors.models import Doctor, Specialization
 from api.authentication.utilities.otp import create_otp_for_user
@@ -17,6 +18,9 @@ from api.authentication.validators import (
     validate_password_match,
     validate_email_otp_verified,
     validate_email_exits,
+    validate_min_length,
+    validate_special_character,
+    validate_uppercase,
 )
 
 
@@ -24,49 +28,33 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
     username = None
-    user_role = serializers.IntegerField(required=True)
+    role = serializers.IntegerField(required=False)
 
     # Patient-specific fields
     date_of_birth = serializers.DateField(required=True)
     phone_number = serializers.CharField(required=True)
-
-    # Doctor-specific fields in case if role is 1.
-    address = serializers.CharField(required=False)
-    npi_number = serializers.CharField(required=False)
-    services = serializers.CharField(required=False)
-    specialization_id = serializers.UUIDField(required=False)
-
-    profile_uuid = serializers.UUIDField(read_only=True)
+    patient_uuid = serializers.UUIDField(read_only=True)
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
+    
+    def validate_password1(self, password):
+        validate_uppercase(password)
+        validate_special_character(password)
+        validate_min_length(password)
+        return password
 
     def validate_date_of_birth(self, dob):
         return validate_dob_not_in_future(self, dob)
 
     def validate(self, data):
         data = super().validate(data)
-        user_role = data.get("user_role")
+        role = data.get("role")
 
-        if user_role == 1:  # Doctor
-            if not data.get("address"):
-                raise serializers.ValidationError(
-                    {"address": "Address is required for doctors"}
-                )
-            if not data.get("npi_number"):
-                raise serializers.ValidationError(
-                    {"npi_number": "NPI number is required for doctors"}
-                )
-            if not data.get("specialization_id"):
-                raise serializers.ValidationError(
-                    {"specialization_id": "Specialization is required for doctors"}
-                )
-            try:
-                Specialization.objects.get(id=data.get("specialization_id"))
-            except Specialization.DoesNotExist:
-                raise serializers.ValidationError(
-                    {"specialization_id": "Invalid specialization ID"}
-                )
+        if role and role != 2:
+            raise serializers.ValidationError(
+                {"role": "Role must be 2 (Patient)."}
+            )
 
         return data
 
@@ -74,60 +62,41 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         data = super().get_cleaned_data()
         data["first_name"] = self.validated_data.get("first_name", "")
         data["last_name"] = self.validated_data.get("last_name", "")
-        data["user_role"] = self.validated_data.get("user_role")
+        data["role"] = self.validated_data.get("role")
 
         # Patient-specific fields
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
 
-        # Doctor-specific fields
-        if data["user_role"] == 1:
-            data["address"] = self.validated_data.get("address")
-            data["npi_number"] = self.validated_data.get("npi_number")
-            data["services"] = self.validated_data.get("services")
-            data["specialization_id"] = self.validated_data.get("specialization_id")
-
-        # Generate username from email if not provided
-        # if not data.get("username"):
-        #     data["username"] = self.validated_data.get("email").split("@")[0]
         return data
 
     @transaction.atomic
     def custom_signup(self, request, user):
         user.first_name = self.validated_data.get("first_name", "")
         user.last_name = self.validated_data.get("last_name", "")
-        user_role = self.validated_data.get("user_role")
-        user.user_role = user_role
+        role = self.validated_data.get("role")
+        if role is not None:
+            user.role = role
         user.save()
 
-        try:
-            if user_role == 2:  # Patient
+        if user.role == Role.PATIENT:
+            try:
                 patient = Patient.objects.create(
                     user=user,
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     phone_number=self.validated_data.get("phone_number"),
                 )
-                self.profile_uuid = patient.uuid
+                self.patient_uuid = patient.uuid
 
-            elif user_role == 1:  # Doctor
-                specialization = Specialization.objects.get(
-                    id=self.validated_data.get("specialization_id")
+            except Exception as e:
+                raise serializers.ValidationError(
+                    {"detail": f"Failed to create profile: {str(e)}"}
                 )
-                doctor = Doctor.objects.create(
-                    user=user,
-                    date_of_birth=self.validated_data.get("date_of_birth"),
-                    address=self.validated_data.get("address"),
-                    npi_number=self.validated_data.get("npi_number"),
-                    services=self.validated_data.get("services"),
-                    specialization=specialization,
-                )
-                self.profile_uuid = doctor.uuid
-
-        except Exception as e:
-            user.delete()
+        else:
             raise serializers.ValidationError(
-                {"detail": f"Failed to create profile: {str(e)}"}
+                {"role": "Role must be 2 (Patient)."}
             )
+        # return user
 
 
 class TeleHealthLoginSerializer(LoginSerializer):
@@ -137,21 +106,27 @@ class TeleHealthLoginSerializer(LoginSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = data.get("user")
-        data["user_role"] = user.user_role
-        
+        data["role"] = user.role
         profile_uuid = None
-        if user.user_role == 1:
-            try:
+
+        try:
+            if user.role == 0:
+                user = User.objects.get(email=self.validated_data["email"])
+                profile_uuid = user.uuid
+
+            elif user.role == 1:
                 doctor = Doctor.objects.get(user=user)
                 profile_uuid = doctor.uuid
-            except Doctor.DoesNotExist:
-                pass
-        elif user.user_role == 2:
-            try:
+
+            elif user.role == 2:
                 patient = Patient.objects.get(user=user)
                 profile_uuid = patient.uuid
-            except Patient.DoesNotExist:
-                pass
+            
+
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Error Logging in {e}."}
+            )
                 
         data["profile_uuid"] = profile_uuid
         return data
@@ -178,6 +153,11 @@ class OTPPasswordResetSerializer(PasswordResetSerializer):
             raise serializers.ValidationError(
                 {"detail": "User with this email does not exist."}
             )
+        
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to send OTP: {str(e)}"}
+            )
 
 
 class OTPVerificationSerializer(serializers.Serializer):
@@ -198,6 +178,11 @@ class OTPVerificationSerializer(serializers.Serializer):
 
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email address")
+        
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to verify OTP: {str(e)}"}
+            )
 
         return attrs
 
@@ -269,6 +254,5 @@ class TeleHealthLogoutSerializer(serializers.Serializer):
             token = RefreshToken(refresh_token)
             token.blacklist()
 
-            return True
         except Exception as e:
             raise serializers.ValidationError(f"Failed to blacklist token: {str(e)}")

@@ -10,8 +10,7 @@ from api.patients.models import (
     SurgicalHistory,
     CancerHistory,
     CancerType,
-    Pharmacist,
-    PrimaryPhysician,
+    CareProvider,
 )
 
 
@@ -39,5 +38,4 @@ admin.site.register(AddictionHistory)
 admin.site.register(SurgicalHistory)
 admin.site.register(CancerHistory)
 admin.site.register(CancerType)
-admin.site.register(Pharmacist)
-admin.site.register(PrimaryPhysician)
+admin.site.register(CareProvider)

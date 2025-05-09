@@ -1,13 +1,12 @@
 from django.contrib.auth.base_user import BaseUserManager
-from django.utils.translation import gettext_lazy as _
-
+from api.users.choices import Role
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
 
     def _create_user(self, email, password, **extra_fields):
         """
-        Create and save a user with the given email, username, and password.
+        Create and save a user with the given email, and password.
         """
         if not email:
             raise ValueError('The given email must be set')
@@ -15,6 +14,8 @@ class UserManager(BaseUserManager):
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
+        if extra_fields.get("is_superuser"):
+            user.role = Role.ADMIN
         user.save(using=self._db)
         return user
 

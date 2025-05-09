@@ -1,62 +1,57 @@
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
 
-class StateChoices(models.TextChoices):
-    """
-    Choices for all 50 US states using their standard 2-letter abbreviation.
-    """
-
-    ALABAMA = "AL", _("Alabama")
-    ALASKA = "AK", _("Alaska")
-    ARIZONA = "AZ", _("Arizona")
-    ARKANSAS = "AR", _("Arkansas")
-    CALIFORNIA = "CA", _("California")
-    COLORADO = "CO", _("Colorado")
-    CONNECTICUT = "CT", _("Connecticut")
-    DELAWARE = "DE", _("Delaware")
-    FLORIDA = "FL", _("Florida")
-    GEORGIA = "GA", _("Georgia")
-    HAWAII = "HI", _("Hawaii")
-    IDAHO = "ID", _("Idaho")
-    ILLINOIS = "IL", _("Illinois")
-    INDIANA = "IN", _("Indiana")
-    IOWA = "IA", _("Iowa")
-    KANSAS = "KS", _("Kansas")
-    KENTUCKY = "KY", _("Kentucky")
-    LOUISIANA = "LA", _("Louisiana")
-    MAINE = "ME", _("Maine")
-    MARYLAND = "MD", _("Maryland")
-    MASSACHUSETTS = "MA", _("Massachusetts")
-    MICHIGAN = "MI", _("Michigan")
-    MINNESOTA = "MN", _("Minnesota")
-    MISSISSIPPI = "MS", _("Mississippi")
-    MISSOURI = "MO", _("Missouri")
-    MONTANA = "MT", _("Montana")
-    NEBRASKA = "NE", _("Nebraska")
-    NEVADA = "NV", _("Nevada")
-    NEW_HAMPSHIRE = "NH", _("New Hampshire")
-    NEW_JERSEY = "NJ", _("New Jersey")
-    NEW_MEXICO = "NM", _("New Mexico")
-    NEW_YORK = "NY", _("New York")
-    NORTH_CAROLINA = "NC", _("North Carolina")
-    NORTH_DAKOTA = "ND", _("North Dakota")
-    OHIO = "OH", _("Ohio")
-    OKLAHOMA = "OK", _("Oklahoma")
-    OREGON = "OR", _("Oregon")
-    PENNSYLVANIA = "PA", _("Pennsylvania")
-    RHODE_ISLAND = "RI", _("Rhode Island")
-    SOUTH_CAROLINA = "SC", _("South Carolina")
-    SOUTH_DAKOTA = "SD", _("South Dakota")
-    TENNESSEE = "TN", _("Tennessee")
-    TEXAS = "TX", _("Texas")
-    UTAH = "UT", _("Utah")
-    VERMONT = "VT", _("Vermont")
-    VIRGINIA = "VA", _("Virginia")
-    WASHINGTON = "WA", _("Washington")
-    WEST_VIRGINIA = "WV", _("West Virginia")
-    WISCONSIN = "WI", _("Wisconsin")
-    WYOMING = "WY", _("Wyoming")
+class StateChoices(models.IntegerChoices):
+    ALABAMA = 1, "Alabama"
+    ALASKA = 2, "Alaska"
+    ARIZONA = 3, "Arizona"
+    ARKANSAS = 4, "Arkansas"
+    CALIFORNIA = 5, "California"
+    COLORADO = 6, "Colorado"
+    CONNECTICUT = 7, "Connecticut"
+    DELAWARE = 8, "Delaware"
+    FLORIDA = 9, "Florida"
+    GEORGIA = 10, "Georgia"
+    HAWAII = 11, "Hawaii"
+    IDAHO = 12, "Idaho"
+    ILLINOIS = 13, "Illinois"
+    INDIANA = 14, "Indiana"
+    IOWA = 15, "Iowa"
+    KANSAS = 16, "Kansas"
+    KENTUCKY = 17, "Kentucky"
+    LOUISIANA = 18, "Louisiana"
+    MAINE = 19, "Maine"
+    MARYLAND = 20, "Maryland"
+    MASSACHUSETTS = 21, "Massachusetts"
+    MICHIGAN = 22, "Michigan"
+    MINNESOTA = 23, "Minnesota"
+    MISSISSIPPI = 24, "Mississippi"
+    MISSOURI = 25, "Missouri"
+    MONTANA = 26, "Montana"
+    NEBRASKA = 27, "Nebraska"
+    NEVADA = 28, "Nevada"
+    NEW_HAMPSHIRE = 29, "New Hampshire"
+    NEW_JERSEY = 30, "New Jersey"
+    NEW_MEXICO = 31, "New Mexico"
+    NEW_YORK = 32, "New York"
+    NORTH_CAROLINA = 33, "North Carolina"
+    NORTH_DAKOTA = 34, "North Dakota"
+    OHIO = 35, "Ohio"
+    OKLAHOMA = 36, "Oklahoma"
+    OREGON = 37, "Oregon"
+    PENNSYLVANIA = 38, "Pennsylvania"
+    RHODE_ISLAND = 39, "Rhode Island"
+    SOUTH_CAROLINA = 40, "South Carolina"
+    SOUTH_DAKOTA = 41, "South Dakota"
+    TENNESSEE = 42, "Tennessee"
+    TEXAS = 43, "Texas"
+    UTAH = 44, "Utah"
+    VERMONT = 45, "Vermont"
+    VIRGINIA = 46, "Virginia"
+    WASHINGTON = 47, "Washington"
+    WEST_VIRGINIA = 48, "West Virginia"
+    WISCONSIN = 49, "Wisconsin"
+    WYOMING = 50, "Wyoming"
 
 
 class Services(models.IntegerChoices):

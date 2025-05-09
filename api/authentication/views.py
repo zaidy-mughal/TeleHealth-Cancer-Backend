@@ -45,21 +45,16 @@ class TeleHealthRegisterView(RegisterView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
     
         user_data = self.get_response_data(user)
 
-        # combined response with user data and profile_uuid as separate fields
-        response_data = {
-            'user': user_data,
-        }
-        if hasattr(serializer, 'profile_uuid') and serializer.profile_uuid:
-            response_data['profile_uuid'] = str(serializer.profile_uuid)
+        # combined response with user data and patient_uuid as separate fields
+        if hasattr(serializer, 'patient_uuid') and serializer.patient_uuid:
+            user_data['patient_uuid'] = str(serializer.patient_uuid)
 
         return Response(
-            response_data,
+            user_data,
             status=status.HTTP_201_CREATED,
-            headers=headers,
         )
 
 

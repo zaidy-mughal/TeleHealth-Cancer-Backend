@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
 from django.core.exceptions import ValidationError
@@ -38,7 +39,7 @@ class AppointmentRetrieveView(RetrieveAPIView):
             patient_uuid = kwargs.get("patient_uuid")
             if not patient_uuid:
                 return Response(
-                    {"error": "Patient ID is required"},
+                    {"error": "Patient UUID is required"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -50,6 +51,13 @@ class AppointmentRetrieveView(RetrieveAPIView):
 
             serializer = self.serializer_class(appointments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        
+
+        except ValidationError:
+            return Response(
+                {"error": "Invalid UUID format"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         except Exception as e:
             return Response(

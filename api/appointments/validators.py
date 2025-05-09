@@ -48,3 +48,17 @@ def validate_future_datetime(appointment_date, appointment_time):
         raise serializers.ValidationError(
             "Appointment must be scheduled for a future date and time"
         )
+
+
+def validate_time_slot(self, timeslot_uuid):
+    """
+    Check if the time slot is already booked.
+    """
+    if Appointments.objects.filter(time_slot=timeslot_uuid).exists():
+        raise serializers.ValidationError("This time slot is already booked.")
+    
+    elif not TimeSlot.objects.filter(uuid=timeslot_uuid).exists():
+        raise serializers.ValidationError("This time slot does not exist.")
+    
+    elif not TimeSlot.objects.filter(uuid=timeslot_uuid, is_booked=False).exists():
+        raise serializers.ValidationError("This time slot is not available.")

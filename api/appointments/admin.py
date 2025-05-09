@@ -5,14 +5,14 @@ from api.appointments.choices import Status
 @admin.register(Appointments)
 class AppointmentsAdmin(admin.ModelAdmin):
     list_display = ['id', 'uuid', 'doctor_name', 'patient_name', 'appointment_start', 'appointment_end', 'status_display']
-    list_filter = ['status', 'doctor', 'patient', 'created_at']
-    search_fields = ['doctor__user__first_name', 'doctor__user__last_name', 
+    list_filter = ['status', 'patient', 'created_at']
+    search_fields = ['time_slot__doctor__user__first_name', 'time_slot__doctor__user__last_name',
                     'patient__user__first_name', 'patient__user__last_name']
     date_hierarchy = 'created_at'
-    raw_id_fields = ['doctor', 'patient', 'time_slot']
+    raw_id_fields = ['patient', 'time_slot']
     
     def doctor_name(self, obj):
-        return obj.doctor.user.get_full_name()
+        return obj.time_slot.doctor.user.get_full_name()
     doctor_name.short_description = 'Doctor'
     
     def patient_name(self, obj):
@@ -33,7 +33,7 @@ class AppointmentsAdmin(admin.ModelAdmin):
     
     fieldsets = [
         ('Appointment Details', {
-            'fields': ['doctor', 'patient', 'time_slot', 'status']
+            'fields': ['patient', 'time_slot', 'status']
         }),
         ('Metadata', {
             'fields': ['created_at', 'updated_at'],

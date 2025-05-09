@@ -39,6 +39,11 @@ class AddictionType(models.IntegerChoices):
 
 
 class IsIodineAllergic(models.IntegerChoices):
-    YES = 0, "No"
-    NO = 1, "Yes"
+    NO = 0, "No"
+    YES = 1, "Yes"
     UNKNOWN = 2, "Unknown"
+
+
+class CareProviderType(models.IntegerChoices):
+    PRIMARY_PHYSICIAN = 0, "Primary Physician"
+    PHARMACIST = 1, "Pharmacist"

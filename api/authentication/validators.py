@@ -1,8 +1,26 @@
+import re
 from rest_framework import serializers
 from django.utils import timezone
+from datetime import timedelta
+from django.core.exceptions import ValidationError
+
 from api.users.models import User
 from api.authentication.models import PasswordResetOTP
-from datetime import timedelta
+
+
+def validate_min_length(password):
+    if len(password) < 8:
+        raise ValidationError("Password must be at least 8 characters long.")
+
+
+def validate_uppercase(password):
+    if not re.search(r"[A-Z]", password):
+        raise ValidationError("Password must contain at least one uppercase letter.")
+
+
+def validate_special_character(password):
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>]", password):
+        raise ValidationError("Password must contain at least one special character.")
 
 
 def validate_email_not_exits(self, email):

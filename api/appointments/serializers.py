@@ -10,6 +10,7 @@ from api.appointments.validators import (
     validate_doctor_time_slot,
     validate_appointment_conflicts,
     validate_future_datetime,
+    validate_time_slot
 )
 
 
@@ -18,8 +19,11 @@ class AppointmentSerializer(serializers.ModelSerializer):
     Serializer for the Appointments model.
     This serializer is used to convert Appointment model instances to JSON and vice versa.
     """
-    doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
-    time_slot = serializers.PrimaryKeyRelatedField(queryset=TimeSlot.objects.all())
+    time_slot = serializers.SlugRelatedField(
+        slug_field='uuid',
+        queryset=TimeSlot.objects.all(),
+        write_only=True
+    )
     patient = PatientSerializer()
 
     class Meta:
@@ -27,7 +31,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "uuid",
-            "doctor",
             "patient",
             "time_slot",
             "status",
@@ -42,8 +45,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
         all validations
         """
 
-        doctor = data.get('doctor')
         time_slot = data.get('time_slot')
+
+        validate_time_slot(self, time_slot)
 
         # validate_if_time_slot_is_booked_already
         # validate_if_time_slot_is_of_same_doctor
@@ -62,6 +66,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
         Create a new appointment and update patient details.
         """
         patient_data = validated_data.pop('patient')
+        print('patient', patient_data)
         time_slot = validated_data.pop('time_slot')
 
         # Get the user from the request context
@@ -69,7 +74,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
         try:
             patient_instance = Patient.objects.get(user=user)
-
             # Update patient instance with provided data
             patient_serializer = PatientSerializer(
                 instance=patient_instance,
@@ -79,11 +83,12 @@ class AppointmentSerializer(serializers.ModelSerializer):
 
             # Validate and save patient data
             if patient_serializer.is_valid(raise_exception=True):
+                print("patient validated")
                 updated_patient = patient_serializer.save()
+            
             
             # Create appointment with the updated patient
             appointment = Appointments.objects.create(
-                doctor=validated_data.get('doctor'),
                 patient=updated_patient,
                 time_slot=time_slot,
             )

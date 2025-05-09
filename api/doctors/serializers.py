@@ -1,6 +1,21 @@
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from .models import Doctor, Specialization, TimeSlot, LicenseInfo
-from api.users.serializers import UserDetailsSerializer
+
+from api.doctors.models import (
+    Doctor,
+    Specialization,
+    TimeSlot,
+    LicenseInfo,
+    Service,
+    DoctorService,
+)
+from api.doctors.validators import (
+    validate_user_role,
+    validate_start_time_lt_end_time,
+    future_start_time,
+)
+
+User = get_user_model()
 
 
 class SpecializationSerializer(serializers.ModelSerializer):
@@ -10,42 +25,102 @@ class SpecializationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Specialization
-        fields = "__all__"
+        fields = ["name"]
 
 
 class DoctorSerializer(serializers.ModelSerializer):
     """
     Serializer for the Doctor model.
     """
-    user = UserDetailsSerializer()
-    specialization = SpecializationSerializer()
+    first_name = serializers.CharField(source='user.first_name', read_only=True)
+    last_name = serializers.CharField(source='user.last_name', read_only=True)
+
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    specialization = serializers.PrimaryKeyRelatedField(
+        queryset=Specialization.objects.all(),
+        write_only=True,
+    )
+
+    specialization = SpecializationSerializer(read_only=True)
+
+    def validate_user(self, user):
+        """
+        Validate that the user is a doctor.
+        """
+        return validate_user_role(self, user)
 
     class Meta:
         model = Doctor
-        fields = "__all__"
+        fields = [
+            "id",
+            "uuid",
+            "user",
+            "first_name",
+            "last_name",
+            "specialization",
+            "date_of_birth",
+            "address",
+            "npi_number",
+        ]
+        read_only_fields = ["id", "uuid", "created_at", "updated_at"]
+
 
 # will add validations to timeslot in doctor
 class TimeSlotSerializer(serializers.ModelSerializer):
     """
     Serializer for the TimeSlot model.
     """
-    doctor = serializers.PrimaryKeyRelatedField(
-        queryset=Doctor.objects.all()
-    )
+
+    def validate(self, attrs):
+        """
+        Validate timeslots for the doctor.
+        """
+        validate_start_time_lt_end_time(attrs["start_time"], attrs["end_time"])
+        future_start_time(attrs["start_time"])
+
+        return attrs
 
     class Meta:
         model = TimeSlot
-        fields = "__all__"
+        fields = ["id", "uuid", "start_time", "end_time", "is_booked"]
+        read_only_fields = ["id", "uuid", "is_booked"]
+
+    def create(self, validated_data):
+        validated_data["doctor"] = self.context["request"].user.doctor
+        return super().create(validated_data)
 
 
 class LicenseInfoSerializer(serializers.ModelSerializer):
     """
     Serializer for the LicenseInfo model.
     """
-    doctor = serializers.PrimaryKeyRelatedField(
-        queryset=Doctor.objects.all()
-    )
 
     class Meta:
         model = LicenseInfo
-        fields = "__all__"
+        fields = ["license_number", "state", "doctor"]
+        read_only_fields = ["doctor"]
+
+    def create(self, validated_data):
+        validated_data["doctor"] = self.context["request"].user.doctor
+        return super().create(validated_data)
+
+
+class Services(serializers.ModelSerializer):
+    """
+    Serializer for Doctor Services
+    """
+
+    class Meta:
+        model = Service
+        fields = ["id", "uuid", "name"]
+        read_only_fields = ["id", "uuid"]
+
+
+class DoctorServiceSerializer(serializers.ModelSerializer):
+    doctor = serializers.PrimaryKeyRelatedField(queryset=Doctor.objects.all())
+    service = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())
+
+    class Meta:
+        model = DoctorService
+        fields = ['doctor', 'service']
+

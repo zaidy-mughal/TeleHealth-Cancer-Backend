@@ -1,6 +1,8 @@
 from django.db import models
+from django.contrib.auth import get_user_model
+from phonenumber_field.modelfields import PhoneNumberField
+
 from api.base_models import BaseModel
-from django.conf import settings
 from api.patients.choices import (
     Gender,
     VisitType,
@@ -8,51 +10,35 @@ from api.patients.choices import (
     TreatmentType,
     AddictionType,
     IsIodineAllergic,
+    CareProviderType,
 )
 
-from phonenumber_field.modelfields import PhoneNumberField
+User = get_user_model()
 
 
 class Patient(BaseModel):
 
-    user = models.OneToOneField(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="patient"
-    )
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="patient")
     date_of_birth = models.DateField()
     gender = models.IntegerField(choices=Gender.choices, blank=True, null=True)
     phone_number = PhoneNumberField()
     visit_type = models.IntegerField(choices=VisitType.choices, blank=True, null=True)
-    marital_status = models.IntegerField(choices=MaritalStatus.choices, blank=True, null=True)
-    sex_assign_at_birth = models.CharField(max_length=20, blank=True)
+    marital_status = models.IntegerField(
+        choices=MaritalStatus.choices, blank=True, null=True
+    )
+    sex_assigned_at_birth = models.CharField(max_length=20, blank=True)
     state = models.CharField(max_length=20, blank=True)
     city = models.CharField(max_length=20, blank=True)
     zip_code = models.CharField(max_length=20, blank=True)
 
-    allergies = models.ManyToManyField("Allergy", related_name="patients", blank=True)
-    medications = models.ManyToManyField(
-        "Medication", related_name="patients", blank=True
-    )
-    medical_history = models.ManyToManyField(
-        "MedicalHistory", related_name="patients", blank=True
-    )
-    surgical_history = models.ManyToManyField(
-        "SurgicalHistory", related_name="patients", blank=True
-    )
-
-    pharmacist = models.ForeignKey(
-        "Pharmacist",
-        on_delete=models.SET_NULL,
-        related_name="patients",
-        null=True,
-        blank=True,
-    )
-    primary_physician = models.ForeignKey(
-        "PrimaryPhysician",
-        on_delete=models.SET_NULL,
-        related_name="patients",
-        null=True,
-        blank=True,
-    )
+    class Meta:
+        verbose_name = "Patient"
+        verbose_name_plural = "Patients"
+        db_table = "patient"
+        indexes = [
+            models.Index(fields=["visit_type"]),
+            models.Index(fields=["state"]),
+        ]
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.gender}"
@@ -67,6 +53,11 @@ class IodineAllergy(BaseModel):
     def __str__(self):
         return f"{self.patient.user.get_full_name()} - {'Allergic' if self.is_iodine_allergic else 'Not Allergic'}"
 
+    class Meta:
+        verbose_name = "Iodine Allergy"
+        verbose_name_plural = "Iodine Allergies"
+        db_table = "iodine_allergy"
+
 
 class Allergy(BaseModel):
     """
@@ -77,6 +68,11 @@ class Allergy(BaseModel):
 
     def __str__(self):
         return f"{self.name}"
+
+    class Meta:
+        verbose_name = "Allergy"
+        verbose_name_plural = "Allergies"
+        db_table = "allergy"
 
 
 class Medication(BaseModel):
@@ -89,6 +85,11 @@ class Medication(BaseModel):
     def __str__(self):
         return f"{self.name}"
 
+    class Meta:
+        verbose_name = "Medication"
+        verbose_name_plural = "Medications"
+        db_table = "medication"
+
 
 class MedicalHistory(BaseModel):
     """
@@ -99,6 +100,11 @@ class MedicalHistory(BaseModel):
 
     def __str__(self):
         return f"{self.medical_condition}"
+
+    class Meta:
+        verbose_name = "Medical History"
+        verbose_name_plural = "Medical Histories"
+        db_table = "medical_history"
 
 
 class SurgicalHistory(BaseModel):
@@ -111,6 +117,11 @@ class SurgicalHistory(BaseModel):
     def __str__(self):
         return f"{self.surgical_condition}"
 
+    class Meta:
+        verbose_name = "Surgical History"
+        verbose_name_plural = "Surgical Histories"
+        db_table = "surgical_history"
+
 
 class CancerType(BaseModel):
     """
@@ -122,6 +133,12 @@ class CancerType(BaseModel):
     def __str__(self):
         return self.name
 
+    class Meta:
+        verbose_name = "Cancer Type"
+        verbose_name_plural = "Cancer Types"
+        db_table = "cancer_type"
+
+
 
 class CancerHistory(BaseModel):
     """
@@ -132,15 +149,37 @@ class CancerHistory(BaseModel):
         Patient, on_delete=models.CASCADE, related_name="cancer_history"
     )
     cancer_type = models.ForeignKey(
-        CancerType, on_delete=models.CASCADE, related_name="cancer_type"
+        CancerType, on_delete=models.RESTRICT, related_name="cancer_type"
     )
     year_of_diagnosis = models.PositiveIntegerField()
-    treatment_received = models.IntegerField(
-        choices=TreatmentType.choices, blank=True
-    )
 
     def __str__(self):
         return f"{self.cancer_type.name}"
+
+    class Meta:
+        verbose_name = "Cancer History"
+        verbose_name_plural = "Cancer Histories"
+        db_table = "cancer_history"
+
+
+class TreatmentRecieved(BaseModel):
+    """
+    Treatment Recieved model to use it in Cancer History.
+    """
+
+    cancer_history = models.ForeignKey(
+        CancerHistory, on_delete=models.CASCADE, related_name="treatment_received"
+    )
+
+    name = models.IntegerField(choices=TreatmentType.choices, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Treatment Recieved"
+        verbose_name_plural = "Treatment Recieveds"
+        db_table = "treatment_recieved"
 
 
 class AddictionHistory(BaseModel):
@@ -153,32 +192,135 @@ class AddictionHistory(BaseModel):
     )
 
     addiction_type = models.IntegerField(choices=AddictionType.choices, blank=True)
-    description = models.TextField()
     total_years = models.PositiveIntegerField()
 
     def __str__(self):
         return f"{self.addiction_type}"
 
+    class Meta:
+        verbose_name = "Addiction History"
+        verbose_name_plural = "Addiction Histories"
+        db_table = "addiction_history"
 
-class PrimaryPhysician(BaseModel):
+
+class CareProvider(BaseModel):
     """
-    Primary Physician model to store patient's primary physician information.
-    """
-
-    name = models.CharField(max_length=100)
-    contact_number = models.CharField(max_length=15)
-
-    def __str__(self):
-        return f"{self.name}"
-
-
-class Pharmacist(BaseModel):
-    """
-    Pharmacist model to store patient's pharmacist information.
+    Patient Care Provider model to store patient's care provider information.
     """
 
     name = models.CharField(max_length=100)
     contact_number = models.CharField(max_length=15)
+    type = models.IntegerField(CareProviderType.choices)
 
-    def __str__(self):
-        return f"{self.name}"
+    class Meta:
+        verbose_name = "Care Provider"
+        verbose_name_plural = "Care Providers"
+        db_table = "care_provider"
+
+
+# ALL JUNCTION TABLES
+class PatientAllergy(models.Model):
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="allergies"
+    )
+    allergy = models.ForeignKey(
+        Allergy, on_delete=models.RESTRICT, related_name="allergy_patients"
+    )
+
+    class Meta:
+        verbose_name = "Patient Allergy"
+        verbose_name_plural = "Patient Allergies"
+        db_table = "patient_allergy"
+
+
+class PatientMedication(models.Model):
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="medications"
+    )
+    medication = models.ForeignKey(
+        Medication, on_delete=models.RESTRICT, related_name="medication_patients"
+    )
+
+    class Meta:
+        verbose_name = "Patient Medication"
+        verbose_name_plural = "Patient Medications"
+        db_table = "patient_medication"
+
+
+class PatientMedicalHistory(models.Model):
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="medical_histories"
+    )
+    medical_history = models.ForeignKey(
+        MedicalHistory,
+        on_delete=models.RESTRICT,
+        related_name="medical_history_patients",
+    )
+
+    class Meta:
+        verbose_name = "Patient Medical History"
+        verbose_name_plural = "Patient Medical Histories"
+        db_table = "patient_medical_history"
+
+
+class PatientSurgicalHistory(models.Model):
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="surgical_histories"
+    )
+    surgical_history = models.ForeignKey(
+        SurgicalHistory,
+        on_delete=models.RESTRICT,
+        related_name="surgical_history_patients",
+    )
+
+    class Meta:
+        verbose_name = "Patient Surgical History"
+        verbose_name_plural = "Patient Surgical Histories"
+        db_table = "patient_surgical_history"
+
+
+class PatientCareProvider(models.Model):
+    patient = models.ForeignKey(
+        Patient, on_delete=models.CASCADE, related_name="care_providers"
+    )
+    care_provider = models.ForeignKey(
+        CareProvider, on_delete=models.RESTRICT, related_name="care_provider_patients"
+    )
+
+    class Meta:
+        verbose_name = "Patient Care Provider"
+        verbose_name_plural = "Patient Care Providers"
+        db_table = "patient_care_provider"
+
+
+## this approach is not understandable as there are ambiguities
+## - what if a patient has multiple allergies, medications, ....?
+## - how to handle this complexity in serializers and views?
+## - how this helps us in versioning of appointments?
+
+# class PatientMedicalRecord(BaseModel):
+#     """
+#     This models is used to link all the medical records of the patient.
+#     """
+#     patient = models.ForeignKey(
+#         Patient, on_delete=models.CASCADE, related_name="patient_medical_record"
+#     )
+#     allergy = models.ForeignKey(
+#         Allergy, on_delete=models.RESTRICT, related_name="patient_allergy"
+#     )
+#     medication = models.ForeignKey(
+#         Medication, on_delete=models.RESTRICT, related_name="patient_medication"
+#     )
+#     medical_history = models.ForeignKey(
+#         MedicalHistory,
+#         on_delete=models.RESTRICT,
+#         related_name="patient_medical_history",
+#     )
+#     surgical_history = models.ForeignKey(
+#         SurgicalHistory,
+#         on_delete=models.RESTRICT,
+#         related_name="patient_surgical_history",
+#     )
+#     care_provider = models.ForeignKey(
+#         CareProvider, on_delete=models.RESTRICT, related_name="patient_care_provider"
+#     )
