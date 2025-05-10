@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from api.doctors.models import Doctor
 
 class IsDoctor(BasePermission):
     """
@@ -9,22 +10,21 @@ class IsDoctor(BasePermission):
     """
     
     def has_permission(self, request, view):
-        
         return request.user.is_authenticated and hasattr(request.user, 'doctor')
     
     def has_object_permission(self, request, view, obj):
-        if not request.user.is_authenticated:
+        try:
+            doctor = request.user.doctor
+        except Doctor.DoesNotExist:
             return False
-        
-        # Check if user has a doctor profile
-        if not hasattr(request.user, 'doctor'):
-            return False
-            
+
         if hasattr(obj, 'doctor'):
-            # For TimeSlot, LicenseInfo and other models with a doctor field
-            return obj.doctor == request.user.doctor
-        elif hasattr(obj, 'user'):
-            # If this is a Doctor object itself
-            return obj == request.user.doctor
-        
+            return obj.doctor == doctor
+
+        if isinstance(obj, Doctor):
+            return obj == doctor
+
+        if hasattr(obj, 'user'):
+            return obj.user == request.user
+
         return False

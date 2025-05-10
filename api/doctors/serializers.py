@@ -77,7 +77,7 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         """
         validate_start_time_lt_end_time(attrs["start_time"], attrs["end_time"])
         future_start_time(attrs["start_time"])
-
+        
         return attrs
 
     class Meta:

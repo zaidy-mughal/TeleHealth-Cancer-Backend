@@ -6,17 +6,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 
-from dj_rest_auth.views import PasswordResetView
-from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.core.mail import send_mail
-from django.conf import settings
 import logging
-from drf_spectacular.utils import extend_schema
 
 from api.authentication.serializers import (
     TeleHealthLoginSerializer,
@@ -26,8 +18,6 @@ from api.authentication.serializers import (
     PasswordChangeSerializer,
     TeleHealthLogoutSerializer,
 )
-
-logger = logging.getLogger(__name__)
 
 
 logger = logging.getLogger(__name__)
@@ -128,6 +118,7 @@ class OTPVerificationView(APIView):
             )
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class PasswordChangeView(APIView):
     """
     Custom password change view
@@ -154,7 +145,7 @@ class PasswordChangeView(APIView):
             )
 
 
-
+@method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthLogoutView(LogoutView):
     serializer_class = TeleHealthLogoutSerializer
 

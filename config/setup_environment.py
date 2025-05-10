@@ -7,4 +7,8 @@ def setup_environment():
     if environment not in environment_supported:
         raise Exception(f'Please set environment variable APP_ENV from {environment_supported}')
 
-    os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings'
+    settings_mapping = {
+        'production': 'config.settings.production',
+        'local': 'config.settings.local',
+    }
+    os.environ['DJANGO_SETTINGS_MODULE'] = settings_mapping[environment]
