@@ -59,7 +59,9 @@ def validate_otp_for_email(email, otp):
         return False, None
 
 
-def validate_password_match(self, password1, password2):
+def validate_password_match(self, data):
+    password1 = data.get("new_password1")
+    password2 = data.get("new_password2")
     """Validate that the two passwords match"""
     if password1 != password2:
         raise serializers.ValidationError("Passwords do not match.")
@@ -84,3 +86,21 @@ def validate_email_exits(self, email):
     if not User.objects.filter(email=email).exists():
         raise serializers.ValidationError("A user with this email does not exist.")
     return email
+
+
+def validate_email_format(self, data):
+    """Validate that the email format is correct"""
+    email = data.get("email")
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        raise serializers.ValidationError("Invalid email format.")
+    return email
+
+
+def validate_name_length(self, data):
+    """Validate that the name is at least 2 characters long"""
+
+    if len(data.get("first_name", "")) > 30:
+        raise serializers.ValidationError({"first_name": "First name cannot exceed 30 characters"})
+    if len(data.get("last_name", "")) > 30:
+        raise serializers.ValidationError({"last_name": "Last name cannot exceed 30 characters"})
+    return data

@@ -40,7 +40,6 @@ class SpecializationListCreateView(ListCreateAPIView):
 class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
-    lookup_field = "uuid"  # Use UUID as the lookup field
     filter_backends = [DjangoFilterBackend]
     filterset_class = DoctorFilter
 

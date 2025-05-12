@@ -21,6 +21,8 @@ from api.authentication.validators import (
     validate_min_length,
     validate_special_character,
     validate_uppercase,
+    validate_email_format,
+    validate_name_length,
 )
 
 
@@ -48,9 +50,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         return validate_dob_not_in_future(self, dob)
 
     def validate(self, data):
-        data = super().validate(data)
+        validate_email_format(self, data)
+        validate_password_match(self, data)
+        validate_name_length(self, data)
+        # data = super().validate(data) # ignored this because i want custom validation
+        
         role = data.get("role")
-
         if role and role != 2:
             raise serializers.ValidationError(
                 {"role": "Role must be 2 (Patient)."}
@@ -209,13 +214,7 @@ class PasswordChangeSerializer(serializers.Serializer):
         return email
 
     def validate(self, data):
-        password1 = data.get("new_password1")
-        password2 = data.get("new_password2")
-
-        validated_password = validate_password_match(self, password1, password2)
-        if not validated_password:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-
+        validate_password_match(self, data)
         return data
 
     def save(self):

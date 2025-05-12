@@ -1,13 +1,13 @@
 from django_filters import rest_framework as filters
 from django.core.exceptions import ValidationError
 
-from api.doctors.choices import StateChoices
-from api.doctors.models import Doctor
+from api.doctors.choices import StateChoices, Services
+from api.doctors.models import Doctor, Service
 
 
 class DoctorFilter(filters.FilterSet):
     state = filters.CharFilter(method="filter_by_state")
-    service = filters.UUIDFilter(method="filter_by_service")
+    service = filters.CharFilter(method="filter_by_service")
 
     class Meta:
         model = Doctor
@@ -25,4 +25,18 @@ class DoctorFilter(filters.FilterSet):
         return queryset.filter(license_info__state=state_value).distinct()
 
     def filter_by_service(self, queryset, name, value):
-        return queryset.filter(doctor_services__service__uuid=value).distinct()
+        try:
+            
+            service_value = next(
+                choice.value
+                for choice in Services
+                if choice.label.lower() == value.lower()
+            )
+
+            service = Service.objects.filter(name=service_value).first()
+            if service:
+                return queryset.filter(doctor_services__service=service).distinct()
+            return queryset.none()
+        except StopIteration:
+            raise ValidationError(f"Invalid service: {value}")
+
