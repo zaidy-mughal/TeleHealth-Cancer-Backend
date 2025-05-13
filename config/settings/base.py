@@ -97,7 +97,7 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",  # Add CORS middleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "api.middleware.csrf.CustomCsrfMiddleware",  # Replace default CSRF middleware
+    # "api.middleware.csrf.CustomCsrfMiddleware",  # Replace default CSRF middleware
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -106,6 +106,7 @@ MIDDLEWARE = [
 
 # API CSRF Settings
 API_CSRF_EXEMPT_PATHS = [
+    "/admin/",
     "/api/auth/",
     "/api/users/",
     "/api/patients/",
@@ -214,7 +215,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        "rest_framework.authentication.SessionAuthentication",
+        # "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

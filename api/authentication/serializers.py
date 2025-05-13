@@ -1,3 +1,4 @@
+from datetime import date
 from rest_framework import serializers
 from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
@@ -8,7 +9,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from api.users.models import User
 from api.users.choices import Role
 from api.patients.models import Patient
-from api.doctors.models import Doctor, Specialization
+from api.doctors.models import Doctor, Specialization, Service, DoctorService
 from api.authentication.utilities.otp import create_otp_for_user
 from api.authentication.utilities.send_email import send_otp_email
 from api.authentication.validators import (
@@ -23,6 +24,8 @@ from api.authentication.validators import (
     validate_uppercase,
     validate_email_format,
     validate_name_length,
+    validate_doctor_fields,
+    validate_patient_fields,
 )
 
 
@@ -34,8 +37,15 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
 
     # Patient-specific fields
     date_of_birth = serializers.DateField(required=True)
-    phone_number = serializers.CharField(required=True)
-    patient_uuid = serializers.UUIDField(read_only=True)
+    phone_number = serializers.CharField(required=False)
+    profile_uuid = serializers.UUIDField(read_only=True)
+
+    # Doctor-specific fields
+    specialization = serializers.CharField(required=False)
+    npi_number = serializers.CharField(required=False)
+    address = serializers.CharField(required=False)
+    service = serializers.IntegerField(required=False)
+
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
@@ -53,13 +63,11 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         validate_email_format(self, data)
         validate_password_match(self, data)
         validate_name_length(self, data)
-        # data = super().validate(data) # ignored this because i want custom validation
-        
-        role = data.get("role")
-        if role and role != 2:
-            raise serializers.ValidationError(
-                {"role": "Role must be 2 (Patient)."}
-            )
+
+        if data.get("role") == 1:
+            validate_doctor_fields(self, data)
+        else:
+            validate_patient_fields(self, data)
 
         return data
 
@@ -72,6 +80,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         # Patient-specific fields
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
+
+        # Doctor-specific fields
+        data["specialization"] = self.validated_data.get("specialization", "")
+        data["npi_number"] = self.validated_data.get("npi_number", "")
+        data["address"] = self.validated_data.get("address", "")
+        data["service"] = self.validated_data.get("service", "")
 
         return data
 
@@ -91,7 +105,35 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     phone_number=self.validated_data.get("phone_number"),
                 )
-                self.patient_uuid = patient.uuid
+                self.profile_uuid = patient.uuid
+
+            except Exception as e:
+                raise serializers.ValidationError(
+                    {"detail": f"Failed to create profile: {str(e)}"}
+                )
+        
+        elif user.role == Role.DOCTOR:
+            try:
+                specialization, _ = Specialization.objects.get_or_create(
+                    name=self.validated_data.get("specialization")
+                )
+                doctor = Doctor.objects.create(
+                    user=user,
+                    specialization=specialization,
+                    npi_number=self.validated_data.get("npi_number"),
+                    address=self.validated_data.get("address"),
+                    date_of_birth=self.validated_data.get("date_of_birth"),
+                )
+                service = self.validated_data.get("service")
+                if service not in (0, 1, 2, 3):
+                    raise serializers.ValidationError(
+                        {"service": "Invalid service ID."}
+                    )
+                service_obj, _ = Service.objects.get_or_create(name=service)
+                DoctorService.objects.create(
+                    doctor=doctor, service=service_obj
+                )
+                self.profile_uuid = doctor.uuid
 
             except Exception as e:
                 raise serializers.ValidationError(
@@ -99,9 +141,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 )
         else:
             raise serializers.ValidationError(
-                {"role": "Role must be 2 (Patient)."}
+                {"role": "Role must be 2 (Patient) OR 1 (Doctor)."}
             )
-        # return user
+        
 
 
 class TeleHealthLoginSerializer(LoginSerializer):

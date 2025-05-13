@@ -38,9 +38,9 @@ class TeleHealthRegisterView(RegisterView):
     
         user_data = self.get_response_data(user)
 
-        # combined response with user data and patient_uuid as separate fields
-        if hasattr(serializer, 'patient_uuid') and serializer.patient_uuid:
-            user_data['patient_uuid'] = str(serializer.patient_uuid)
+        # combined response with user data and profile_uuid as separate fields
+        if hasattr(serializer, 'profile_uuid') and serializer.profile_uuid:
+            user_data['profile_uuid'] = str(serializer.profile_uuid)
 
         return Response(
             user_data,

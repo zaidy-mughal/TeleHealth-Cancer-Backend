@@ -104,3 +104,26 @@ def validate_name_length(self, data):
     if len(data.get("last_name", "")) > 30:
         raise serializers.ValidationError({"last_name": "Last name cannot exceed 30 characters"})
     return data
+
+
+def validate_doctor_fields(self, data):
+    """Validate that the doctor fields are not empty"""
+    if not data.get("specialization"):
+        raise serializers.ValidationError({"specialization": "Specialization cannot be empty"})
+    if not data.get("npi_number"):
+        raise serializers.ValidationError({"npi_number": "NPI number cannot be empty"})
+    if not data.get("date_of_birth"):
+        raise serializers.ValidationError({"date_of_birth": "Date of birth cannot be empty"})
+    if not data.get("address"):
+        raise serializers.ValidationError({"address": "Address cannot be empty"})
+    if not data.get("service"):
+        raise serializers.ValidationError({"service": "Service cannot be empty"})
+    return data
+
+def validate_patient_fields(self, data):
+    """Validate that the patient fields are not empty"""
+    if not data.get("date_of_birth"):
+        raise serializers.ValidationError({"date_of_birth": "Date of birth cannot be empty"})
+    if not data.get("phone_number"):
+        raise serializers.ValidationError({"phone_number": "Phone number cannot be empty"})
+    return data
