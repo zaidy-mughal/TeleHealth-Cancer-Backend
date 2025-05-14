@@ -153,10 +153,8 @@ class TeleHealthLogoutView(LogoutView):
         try:
             serializer = self.serializer_class(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save()
 
             response = super().logout(request)
-
             return response
         
         except serializers.ValidationError as e:

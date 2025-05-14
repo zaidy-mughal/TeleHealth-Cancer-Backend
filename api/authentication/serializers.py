@@ -285,15 +285,4 @@ class TeleHealthLogoutSerializer(serializers.Serializer):
             RefreshToken(value)
             return value
         except Exception as e:
-            raise serializers.ValidationError("Invalid refresh token")
-
-    def save(self):
-        try:
-            refresh_token = self.validated_data["refresh"]
-
-            # Blacklist the token
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-
-        except Exception as e:
-            raise serializers.ValidationError(f"Failed to blacklist token: {str(e)}")
+            raise serializers.ValidationError("Invalid refresh token")    
