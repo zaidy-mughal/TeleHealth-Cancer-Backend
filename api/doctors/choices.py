@@ -55,7 +55,7 @@ class StateChoices(models.IntegerChoices):
 
 
 class Services(models.IntegerChoices):
-    SERVEILLANCE = 1, "Surveillance"
-    DIAGNOSIS = 2, "Diagnosis"
-    SCREENING = 3, "Screening"
-    SECOND_OPINION = 4, "Second Opinion"
+    SERVEILLANCE = 0, "Surveillance"
+    DIAGNOSIS = 1, "Diagnosis"
+    SCREENING = 2, "Screening"
+    SECOND_OPINION = 3, "Second Opinion"

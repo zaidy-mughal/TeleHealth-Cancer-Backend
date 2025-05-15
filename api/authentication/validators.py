@@ -116,7 +116,7 @@ def validate_doctor_fields(self, data):
         raise serializers.ValidationError({"date_of_birth": "Date of birth cannot be empty"})
     if not data.get("address"):
         raise serializers.ValidationError({"address": "Address cannot be empty"})
-    if not data.get("service"):
+    if "service" not in data or data.get("service") is None:
         raise serializers.ValidationError({"service": "Service cannot be empty"})
     return data
 
