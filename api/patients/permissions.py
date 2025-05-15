@@ -1,6 +1,6 @@
 from rest_framework.permissions import BasePermission
 
-class IsPatient(BasePermission):
+class IsPatientOrAdmin(BasePermission):
     """
     Custom permission to only allow patients to access their own data.
     This permission checks:
@@ -9,9 +9,17 @@ class IsPatient(BasePermission):
     """
     
     def has_permission(self, request, view):
-        return request.user.is_authenticated and hasattr(request.user, 'patient')
+        # Allow if user is authenticated AND (has a patient profile OR is admin)
+        user = request.user
+        return user.is_authenticated and (hasattr(user, 'patient') or user.is_staff or user.is_superuser)
+
     
     def has_object_permission(self, request, view, obj):
+        # Allow admins full access
+        user = request.user
+        if user.is_staff or user.is_superuser:
+            return True
+        
         if not request.user.is_authenticated:
             return False
         

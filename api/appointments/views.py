@@ -11,9 +11,9 @@ from django.utils.decorators import method_decorator
 from api.appointments.serializers import AppointmentSerializer
 from api.appointments.models import Appointments
 from api.patients.models import Patient
-from api.doctors.permissions import IsDoctor
+from api.doctors.permissions import IsDoctorOrAdmin
 from api.doctors.models import TimeSlot
-from api.patients.permissions import IsPatient
+from api.patients.permissions import IsPatientOrAdmin
 
 import logging
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class PatientAppointmentRetrieveView(RetrieveAPIView):
     Includes validation for appointments and proper error handling.
     """
 
-    permission_classes = [IsAuthenticated, IsPatient]
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     serializer_class = AppointmentSerializer
 
     def get(self, request, *args, **kwargs):
@@ -71,7 +71,7 @@ class DoctorAppointmentRetrieveView(RetrieveAPIView):
     Includes validation for appointments and proper error handling.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = AppointmentSerializer
 
     def get(self, request, *args, **kwargs):

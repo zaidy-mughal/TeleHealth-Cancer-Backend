@@ -99,6 +99,7 @@ class AddictionHistorySerializer(serializers.ModelSerializer):
 
 
 class PatientSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(source='user.email', read_only=True)
     first_name = serializers.CharField(source='user.first_name', read_only=True)
     last_name = serializers.CharField(source='user.last_name', read_only=True)
 
@@ -117,6 +118,7 @@ class PatientSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "uuid",
+            "email",
             "first_name",
             "last_name",
             "date_of_birth",
@@ -137,7 +139,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "cancer_history",
             "addiction_history",
         ]
-        read_only_fields = ["id", "uuid", "first_name", "last_name"]
+        read_only_fields = ["id", "uuid", "email", "first_name", "last_name"]
 
     def validate(self, attrs):
         validate_fields(self, attrs)

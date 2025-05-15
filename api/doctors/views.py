@@ -9,6 +9,9 @@ from rest_framework import viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
+
 
 from api.doctors.serializers import (
     SpecializationSerializer,
@@ -17,7 +20,7 @@ from api.doctors.serializers import (
     LicenseInfoSerializer,
 )
 from api.doctors.filters import DoctorFilter
-from api.doctors.permissions import IsDoctor
+from api.doctors.permissions import IsDoctorOrAdmin
 from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
 from drf_spectacular.utils import extend_schema
 
@@ -30,7 +33,7 @@ class SpecializationListCreateView(ListCreateAPIView):
     API view to handle specialization creation and listing.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = SpecializationSerializer
     queryset = Specialization.objects.all()
     
@@ -42,6 +45,14 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DoctorSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = DoctorFilter
+
+    # will not return 500 error on wrong params
+    def filter_queryset(self, queryset):
+        try:
+            return super().filter_queryset(queryset)
+        except DjangoValidationError as e:
+            detail = e.message_dict if hasattr(e, 'message_dict') else str(e)
+            raise DRFValidationError(detail=detail)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -84,7 +95,7 @@ class TimeSlotCreateAPIView(APIView):
     """
 
     serializer_class = TimeSlotSerializer
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
 
     def post(self, request, *args, **kwargs):
         data = request.data
@@ -149,7 +160,7 @@ class LicenseInfoListAPIView(APIView):
     API view to handle license information listing.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = LicenseInfoSerializer
 
     def get(self, request, *args, **kwargs):
@@ -180,7 +191,7 @@ class LicenseInfoCreateAPIView(APIView):
     API view to handle license information creation.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = LicenseInfoSerializer
 
     def post(self, request, *args, **kwargs):
