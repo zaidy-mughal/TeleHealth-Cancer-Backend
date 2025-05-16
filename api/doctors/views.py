@@ -1,4 +1,6 @@
 from django.db import transaction
+from django.db.models import Prefetch
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -41,12 +43,19 @@ class SpecializationListCreateView(ListCreateAPIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Doctor.objects.all()
     serializer_class = DoctorSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = DoctorFilter
 
-    # will not return 500 error on wrong params
+    def get_queryset(self):
+        available_slots = TimeSlot.objects.filter(
+            is_booked=False,
+            start_time__gte=timezone.now()
+        )
+        return Doctor.objects.prefetch_related(
+            Prefetch('time_slots', queryset=available_slots)
+        )
+
     def filter_queryset(self, queryset):
         try:
             return super().filter_queryset(queryset)
