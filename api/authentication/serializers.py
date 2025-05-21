@@ -4,9 +4,12 @@ from dj_rest_auth.serializers import LoginSerializer, PasswordResetSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 
+
 from api.users.models import User
 from api.users.choices import Role
 from api.patients.models import Patient
+from api.patients.utils.fields import LabelChoiceField
+from api.doctors.choices import Services
 from api.doctors.models import Doctor, Specialization, Service, DoctorService
 from api.authentication.utilities.otp import create_otp_for_user
 from api.authentication.utilities.send_email import send_otp_email
@@ -31,7 +34,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True, allow_blank=True)
     username = None
-    role = serializers.IntegerField(required=False)
+    role = LabelChoiceField(choices=Role.choices, required=True)
 
     # Patient-specific fields
     date_of_birth = serializers.DateField(required=True)
@@ -42,7 +45,10 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     specialization = serializers.CharField(required=False)
     npi_number = serializers.CharField(required=False)
     address = serializers.CharField(required=False)
-    service = serializers.IntegerField(required=False)
+    service = LabelChoiceField(
+        choices=Services.choices,
+        required=False,
+    )
 
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
@@ -63,8 +69,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
 
         if data.get("role") == 1:
             validate_doctor_fields(self, data)
-        else:
+        elif data.get("role") == 2:
             validate_patient_fields(self, data)
+        else:
+            raise serializers.ValidationError(
+                {"role": "Role must be Patient OR Doctor."}
+            )
 
         return data
 
