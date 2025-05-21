@@ -45,14 +45,16 @@ class IodineAllergySerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "uuid"]
 
     def create(self, validated_data):
-        patient = self.context['request'].user.patient
-        
+        patient = self.context["request"].user.patient
+
         if IodineAllergy.objects.filter(patient=patient).exists():
             raise serializers.ValidationError(
-                {"detail": "Iodine allergy record already exists. Use PUT or PATCH to update."}
+                {
+                    "detail": "Iodine allergy record already exists. Use PUT or PATCH to update."
+                }
             )
-            
-        validated_data['patient'] = patient
+
+        validated_data["patient"] = patient
         return super().create(validated_data)
 
 

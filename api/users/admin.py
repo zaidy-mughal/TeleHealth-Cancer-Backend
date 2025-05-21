@@ -8,31 +8,69 @@ User = get_user_model()
 
 @admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'get_role_display', 'is_active', 'is_staff', 'created_at')
-    list_filter = ('role', 'is_active', 'is_staff', 'created_at')
-    search_fields = ('email', 'first_name', 'last_name', 'uuid')
-    ordering = ('-created_at',)
-    readonly_fields = ('uuid', 'created_at', 'updated_at', 'last_login', 'date_joined')
-    
+    list_display = (
+        "email",
+        "first_name",
+        "last_name",
+        "get_role_display",
+        "is_active",
+        "is_staff",
+        "created_at",
+    )
+    list_filter = ("role", "is_active", "is_staff", "created_at")
+    search_fields = ("email", "first_name", "last_name", "uuid")
+    ordering = ("-created_at",)
+    readonly_fields = ("uuid", "created_at", "updated_at", "last_login", "date_joined")
+
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name')}),
-        ('Role', {'fields': ('role',)}),
-        ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions'),
-        }),
-        ('Metadata', {'fields': ('uuid', 'created_at', 'updated_at', 'last_login', 'date_joined')}),
+        (None, {"fields": ("email", "password")}),
+        ("Personal info", {"fields": ("first_name", "last_name")}),
+        ("Role", {"fields": ("role",)}),
+        (
+            "Permissions",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                ),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "uuid",
+                    "created_at",
+                    "updated_at",
+                    "last_login",
+                    "date_joined",
+                )
+            },
+        ),
     )
-    
+
     add_fieldsets = (
-        (None, {
-            'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'role'),
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "password1",
+                    "password2",
+                    "first_name",
+                    "last_name",
+                    "role",
+                ),
+            },
+        ),
     )
-    
+
     def get_role_display(self, obj):
         """Return the human-readable role name"""
         return Role(obj.role).label
-    get_role_display.short_description = 'Role'
-    
+
+    get_role_display.short_description = "Role"

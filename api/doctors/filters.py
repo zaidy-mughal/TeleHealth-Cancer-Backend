@@ -26,7 +26,6 @@ class DoctorFilter(filters.FilterSet):
 
     def filter_by_service(self, queryset, name, value):
         try:
-            
             service_value = next(
                 choice.value
                 for choice in Services
@@ -39,4 +38,3 @@ class DoctorFilter(filters.FilterSet):
             return queryset.none()
         except StopIteration:
             raise ValidationError(f"Invalid service: {value}")
-

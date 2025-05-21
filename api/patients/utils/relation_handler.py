@@ -1,14 +1,6 @@
 from django.db import transaction
 
 from api.patients.models import (
-    Allergy,
-    PatientAllergy,
-    Medication,
-    PatientMedication,
-    MedicalHistory,
-    PatientMedicalHistory,
-    SurgicalHistory,
-    PatientSurgicalHistory,
     CareProvider,
     PatientCareProvider,
     CancerHistory,
@@ -17,7 +9,6 @@ from api.patients.models import (
     AddictionHistory,
 )
 
-# 975fe322-801c-4024-9fb5-a578c970dc6e
 
 class PatientRelationHandlerMixin:
     relation_model = None
@@ -66,14 +57,14 @@ def handle_care_provider(validated_data, clear_existing=False):
             PatientCareProvider.objects.create(
                 patient=patient, care_provider=care_provider
             )
-        
+
         return {
-            "message": "Updated successfully" if clear_existing else "Created successfully"
+            "message": (
+                "Updated successfully" if clear_existing else "Created successfully"
+            )
         }
     else:
-        return {
-            "message": "No care providers data provided."
-        }
+        return {"message": "No care providers data provided."}
 
 
 # this will handle one to many relation of cancer history

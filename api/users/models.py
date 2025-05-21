@@ -28,7 +28,7 @@ class User(AbstractUser, BaseModel):
 
     def get_short_name(self):
         return self.first_name
-    
+
     @property
     def is_patient(self):
         return self.role == Role.PATIENT

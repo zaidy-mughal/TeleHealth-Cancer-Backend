@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.db import connection
-import uuid
 
 class Command(BaseCommand):
     help = 'Fix duplicate UUIDs in the database'

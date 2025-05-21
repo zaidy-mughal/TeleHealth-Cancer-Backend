@@ -27,7 +27,9 @@ from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
 from drf_spectacular.utils import extend_schema
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class SpecializationListCreateView(ListCreateAPIView):
@@ -38,7 +40,6 @@ class SpecializationListCreateView(ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = SpecializationSerializer
     queryset = Specialization.objects.all()
-    
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -49,18 +50,17 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         available_slots = TimeSlot.objects.filter(
-            is_booked=False,
-            start_time__gte=timezone.now()
+            is_booked=False, start_time__gte=timezone.now()
         )
         return Doctor.objects.prefetch_related(
-            Prefetch('time_slots', queryset=available_slots)
+            Prefetch("time_slots", queryset=available_slots)
         )
 
     def filter_queryset(self, queryset):
         try:
             return super().filter_queryset(queryset)
         except DjangoValidationError as e:
-            detail = e.message_dict if hasattr(e, 'message_dict') else str(e)
+            detail = e.message_dict if hasattr(e, "message_dict") else str(e)
             raise DRFValidationError(detail=detail)
 
 

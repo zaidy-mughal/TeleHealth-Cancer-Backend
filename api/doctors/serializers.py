@@ -92,7 +92,15 @@ class DoctorSerializer(serializers.ModelSerializer):
             "address",
             "npi_number",
         ]
-        read_only_fields = ["id", "uuid", "first_name", "last_name", "time_slots", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "uuid",
+            "first_name",
+            "last_name",
+            "time_slots",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class LicenseInfoSerializer(serializers.ModelSerializer):

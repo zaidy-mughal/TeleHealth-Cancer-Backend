@@ -20,9 +20,15 @@ urlpatterns = [
         SpecializationListCreateView.as_view(),
         name="specialization-list-create",
     ),
-    path("timeslots/<str:doctor_uuid>", TimeSlotListAPIView.as_view(), name="time-slot-list-create"),
+    path(
+        "timeslots/<str:doctor_uuid>",
+        TimeSlotListAPIView.as_view(),
+        name="time-slot-list-create",
+    ),
     path("timeslots/create/", TimeSlotCreateAPIView.as_view(), name="time-slot-create"),
     path("license/", LicenseInfoListAPIView.as_view(), name="license-info-list"),
-    path("license/create", LicenseInfoCreateAPIView.as_view(), name="license-info-create"),
-    path("", include(router.urls)), 
+    path(
+        "license/create", LicenseInfoCreateAPIView.as_view(), name="license-info-create"
+    ),
+    path("", include(router.urls)),
 ]

@@ -31,19 +31,19 @@ class IodineAllergyViewSet(viewsets.ModelViewSet):
     serializer_class = IodineAllergySerializer
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
-    
+
     def get_queryset(self):
         return IodineAllergy.objects.filter(patient=self.request.user.patient)
 
     def get_object(self):
         return IodineAllergy.objects.get(patient=self.request.user.patient)
-    
 
 
 class PatientAllergyViewSet(viewsets.ViewSet):
     """
     Handles creating and updating allergies for the current user (patient).
     """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
 
@@ -76,6 +76,7 @@ class PatientMedicationViewSet(viewsets.ViewSet):
     """
     Handles creating and updating medications for the current user (patient).
     """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
 
@@ -140,6 +141,7 @@ class PatientSurgicalHistoryViewSet(viewsets.ViewSet):
     """
     Handles creating and updating surgical history for the current user (patient).
     """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
 
@@ -171,6 +173,7 @@ class PatientCareProviderViewSet(viewsets.ViewSet):
     """
     Handles creating and updating care providers for the current user (patient).
     """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
 
@@ -209,12 +212,12 @@ class CancerHistoryViewSet(viewsets.ModelViewSet):
         return CancerHistory.objects.filter(patient=self.request.user.patient)
 
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class PatientAddictionHistoryViewSet(viewsets.ViewSet):
     """
     Handles creating and updating addiction history for the current user (patient).
     """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
 

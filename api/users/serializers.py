@@ -6,6 +6,7 @@ class UserDetailsSerializer(serializers.ModelSerializer):
     """
     User model w/o password
     """
+
     class Meta:
         model = User
         fields = ("id", "uuid", "email", "first_name", "last_name", "role")
@@ -20,4 +21,3 @@ class CheckSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password1 = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
-    

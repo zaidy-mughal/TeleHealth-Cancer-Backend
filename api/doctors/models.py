@@ -127,7 +127,7 @@ class LicenseInfo(BaseModel):
         Doctor, on_delete=models.CASCADE, related_name="license_info"
     )
     license_number = models.CharField(max_length=20, unique=True)
-    state = models.IntegerField(choices=StateChoices.choices)  # try django cities
+    state = models.IntegerField(choices=StateChoices.choices)
 
     def __str__(self):
         return f"{self.doctor.user.get_full_name()} - {self.license_number}"

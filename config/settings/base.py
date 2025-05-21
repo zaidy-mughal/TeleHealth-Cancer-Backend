@@ -28,7 +28,7 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 
 # Configure allowed hosts for Railway
 RAILWAY_STATIC_URL = env("RAILWAY_STATIC_URL", default=None)
- # Be careful with this in production
+# Be careful with this in production
 
 # Configure CORS
 CORS_ALLOW_ALL_ORIGINS = True
@@ -61,7 +61,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'django.contrib.postgres',  # <-- needed for RandomUUID & other PG-specific features
+    "django.contrib.postgres",  # <-- needed for RandomUUID & other PG-specific features
 ]
 
 THIRD_PARTY_APPS = [
