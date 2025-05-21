@@ -7,11 +7,12 @@ from api.users.managers import UserManager
 
 
 class User(AbstractUser, BaseModel):
-    email = models.EmailField("email address", blank=True, unique=True)
+    email = models.EmailField("email address", unique=True)
     USERNAME_FIELD = EMAIL_FIELD = "email"
     username = None
     REQUIRED_FIELDS = []
     objects = UserManager()
+    middle_name = models.CharField(max_length=150, blank=True, default="")
     role = models.IntegerField(choices=Role.choices, default=Role.PATIENT)
 
     class Meta:

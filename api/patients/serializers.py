@@ -26,8 +26,11 @@ from api.patients.choices import (
     VisitType,
     MaritalStatus,
 )
+from api.patients.validators import (
+    validate_fields,
+    validate_existing_record,
+)
 from api.patients.utils.fields import LabelChoiceField
-from api.patients.validators import validate_fields
 from api.patients.utils.relation_handler import (
     PatientRelationHandlerMixin,
     handle_care_provider,
@@ -272,6 +275,7 @@ class PatientAddictionHistorySerializer(serializers.Serializer):
 class PatientSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email")
     first_name = serializers.CharField(source="user.first_name")
+    middle_name = serializers.CharField(source="user.middle_name")
     last_name = serializers.CharField(source="user.last_name")
     gender = LabelChoiceField(choices=Gender.choices)
     visit_type = LabelChoiceField(choices=VisitType.choices)
@@ -298,6 +302,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "uuid",
             "email",
             "first_name",
+            "middle_name",
             "last_name",
             "date_of_birth",
             "gender",
@@ -322,6 +327,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "uuid",
             "email",
             "first_name",
+            "middle_name",
             "last_name",
             "iodine_allergy",
             "allergies",
