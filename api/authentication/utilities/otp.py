@@ -1,7 +1,4 @@
 import random
-from datetime import timedelta
-from django.utils import timezone
-from django.conf import settings
 from api.authentication.models import PasswordResetOTP
 
 

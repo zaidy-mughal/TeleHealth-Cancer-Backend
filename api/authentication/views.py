@@ -28,19 +28,20 @@ class TeleHealthRegisterView(RegisterView):
     """
     Custom registration view for TeleHealth
     """
+
     serializer_class = TeleHealthRegisterSerializer
 
     def create(self, request, *args, **kwargs):
-    
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = self.perform_create(serializer)
-    
+
         user_data = self.get_response_data(user)
 
         # combined response with user data and profile_uuid as separate fields
-        if hasattr(serializer, 'profile_uuid') and serializer.profile_uuid:
-            user_data['profile_uuid'] = str(serializer.profile_uuid)
+        if hasattr(serializer, "profile_uuid") and serializer.profile_uuid:
+            user_data["profile_uuid"] = str(serializer.profile_uuid)
 
         return Response(
             user_data,
@@ -53,19 +54,20 @@ class TeleHealthLoginView(LoginView):
     """
     Custom login view for TeleHealth
     """
+
     serializer_class = TeleHealthLoginSerializer
 
     def get_response(self):
         response = super().get_response()
-        
+
         # Add profile_uuid to the response data
-        if hasattr(self, 'user'):
+        if hasattr(self, "user"):
             data = self.serializer.validated_data
-            profile_uuid = data.get('profile_uuid')
-            
+            profile_uuid = data.get("profile_uuid")
+
             if isinstance(response.data, dict):
-                response.data['profile_uuid'] = profile_uuid
-        
+                response.data["profile_uuid"] = profile_uuid
+
         return response
 
 
@@ -82,7 +84,7 @@ class TeleHealthPasswordResetView(PasswordResetView):
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-            
+
             return Response(
                 {"detail": "Password reset OTP has been sent to your email."},
                 status=status.HTTP_200_OK,
@@ -156,9 +158,11 @@ class TeleHealthLogoutView(LogoutView):
 
             response = super().logout(request)
             return response
-        
+
         except serializers.ValidationError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(
+                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

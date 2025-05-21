@@ -1,10 +1,8 @@
-from datetime import date
-from rest_framework import serializers
 from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer, PasswordResetSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from rest_framework import serializers
 
 from api.users.models import User
 from api.users.choices import Role
@@ -46,10 +44,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
     address = serializers.CharField(required=False)
     service = serializers.IntegerField(required=False)
 
-
     def validate_email(self, email):
         return validate_email_not_exits(self, email)
-    
+
     def validate_password1(self, password):
         validate_uppercase(password)
         validate_special_character(password)
@@ -111,7 +108,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 raise serializers.ValidationError(
                     {"detail": f"Failed to create profile: {str(e)}"}
                 )
-        
+
         elif user.role == Role.DOCTOR:
             try:
                 specialization, _ = Specialization.objects.get_or_create(
@@ -130,9 +127,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                         {"service": "Invalid service ID."}
                     )
                 service_obj, _ = Service.objects.get_or_create(name=service)
-                DoctorService.objects.create(
-                    doctor=doctor, service=service_obj
-                )
+                DoctorService.objects.create(doctor=doctor, service=service_obj)
                 self.profile_uuid = doctor.uuid
 
             except Exception as e:
@@ -143,7 +138,6 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
             raise serializers.ValidationError(
                 {"role": "Role must be 2 (Patient) OR 1 (Doctor)."}
             )
-        
 
 
 class TeleHealthLoginSerializer(LoginSerializer):
@@ -168,13 +162,10 @@ class TeleHealthLoginSerializer(LoginSerializer):
             elif user.role == 2:
                 patient = Patient.objects.get(user=user)
                 profile_uuid = patient.uuid
-            
 
         except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Error Logging in {e}."}
-            )
-                
+            raise serializers.ValidationError({"detail": f"Error Logging in {e}."})
+
         data["profile_uuid"] = profile_uuid
         return data
 
@@ -200,7 +191,7 @@ class OTPPasswordResetSerializer(PasswordResetSerializer):
             raise serializers.ValidationError(
                 {"detail": "User with this email does not exist."}
             )
-        
+
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to send OTP: {str(e)}"}
@@ -225,7 +216,7 @@ class OTPVerificationSerializer(serializers.Serializer):
 
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email address")
-        
+
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to verify OTP: {str(e)}"}
@@ -285,4 +276,4 @@ class TeleHealthLogoutSerializer(serializers.Serializer):
             RefreshToken(value)
             return value
         except Exception as e:
-            raise serializers.ValidationError("Invalid refresh token")    
+            raise serializers.ValidationError("Invalid refresh token")

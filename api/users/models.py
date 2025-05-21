@@ -28,3 +28,15 @@ class User(AbstractUser, BaseModel):
 
     def get_short_name(self):
         return self.first_name
+    
+    @property
+    def is_patient(self):
+        return self.role == Role.PATIENT
+
+    @property
+    def is_doctor(self):
+        return self.role == Role.DOCTOR
+
+    @property
+    def is_admin(self):
+        return self.role == Role.ADMIN

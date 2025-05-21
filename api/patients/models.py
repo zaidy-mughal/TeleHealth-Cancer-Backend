@@ -96,7 +96,7 @@ class MedicalHistory(BaseModel):
     Medical History model to store patient's medical history.
     """
 
-    medical_condition = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.medical_condition}"
@@ -112,7 +112,7 @@ class SurgicalHistory(BaseModel):
     Surgical History model to store patient's surgical history.
     """
 
-    surgical_condition = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
 
     def __str__(self):
         return f"{self.surgical_condition}"
@@ -137,7 +137,6 @@ class CancerType(BaseModel):
         verbose_name = "Cancer Type"
         verbose_name_plural = "Cancer Types"
         db_table = "cancer_type"
-
 
 
 class CancerHistory(BaseModel):
@@ -209,7 +208,7 @@ class CareProvider(BaseModel):
     """
 
     name = models.CharField(max_length=100)
-    contact_number = models.CharField(max_length=15)
+    contact_number = PhoneNumberField()
     type = models.IntegerField(CareProviderType.choices)
 
     class Meta:
@@ -291,36 +290,3 @@ class PatientCareProvider(models.Model):
         verbose_name = "Patient Care Provider"
         verbose_name_plural = "Patient Care Providers"
         db_table = "patient_care_provider"
-
-
-## this approach is not understandable as there are ambiguities
-## - what if a patient has multiple allergies, medications, ....?
-## - how to handle this complexity in serializers and views?
-## - how this helps us in versioning of appointments?
-
-# class PatientMedicalRecord(BaseModel):
-#     """
-#     This models is used to link all the medical records of the patient.
-#     """
-#     patient = models.ForeignKey(
-#         Patient, on_delete=models.CASCADE, related_name="patient_medical_record"
-#     )
-#     allergy = models.ForeignKey(
-#         Allergy, on_delete=models.RESTRICT, related_name="patient_allergy"
-#     )
-#     medication = models.ForeignKey(
-#         Medication, on_delete=models.RESTRICT, related_name="patient_medication"
-#     )
-#     medical_history = models.ForeignKey(
-#         MedicalHistory,
-#         on_delete=models.RESTRICT,
-#         related_name="patient_medical_history",
-#     )
-#     surgical_history = models.ForeignKey(
-#         SurgicalHistory,
-#         on_delete=models.RESTRICT,
-#         related_name="patient_surgical_history",
-#     )
-#     care_provider = models.ForeignKey(
-#         CareProvider, on_delete=models.RESTRICT, related_name="patient_care_provider"
-#     )

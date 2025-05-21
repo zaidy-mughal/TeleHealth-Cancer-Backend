@@ -1,100 +1,86 @@
 from rest_framework import serializers
 from django.db import transaction
 
-from api.appointments.models import Appointments
-from api.doctors.models import Doctor, TimeSlot
+
+from api.doctors.models import TimeSlot
 from api.doctors.serializers import TimeSlotSerializer
+from api.patients.utils.fields import LabelChoiceField
 from api.patients.models import Patient
 from api.patients.serializers import PatientSerializer
+from api.appointments.models import Appointment
+from api.appointments.choices import Status
 from api.appointments.validators import (
-    validate_doctor_time_slot,
-    validate_appointment_conflicts,
-    validate_future_datetime,
     validate_time_slot,
 )
 
 
 class AppointmentSerializer(serializers.ModelSerializer):
     """
-    Serializer for the Appointments model.
-    This serializer is used to convert Appointment model instances to JSON and vice versa.
+    Serializer for the Appointment model.
+    This serializer is used to create appointments.
+    It includes the time slot and patient information.
     """
 
-    time_slot = serializers.SlugRelatedField(
-        slug_field="uuid", queryset=TimeSlot.objects.all(), write_only=True
-    )
-    patient = PatientSerializer()
+    time_slot_uuid = serializers.UUIDField(write_only=True)
+    time_slot = TimeSlotSerializer(read_only=True)
+    patient = PatientSerializer(read_only=True)
+    status = LabelChoiceField(choices=Status.choices, default=Status.PENDING)
+    doctor = serializers.SerializerMethodField(read_only=True)
+
+    def get_doctor(self, obj):
+        if obj.time_slot:
+            return {
+                "uuid": obj.time_slot.doctor.uuid,
+                "name": obj.time_slot.doctor.user.get_full_name(),
+            }
+        return None
+
+    def validate(self, data):
+        time_slot_uuid = data.get("time_slot_uuid")
+        validate_time_slot(self, time_slot_uuid)
+
+        return data
 
     class Meta:
-        model = Appointments
+        model = Appointment
         fields = [
             "id",
             "uuid",
+            "doctor",
             "patient",
+            "time_slot_uuid",
             "time_slot",
             "status",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "uuid", "created_at", "updated_at", "status"]
-
-    def validate(self, data):
-        """
-        all validations
-        """
-
-        time_slot = data.get("time_slot")
-
-        validate_time_slot(self, time_slot)
-
-        # validate_if_time_slot_is_booked_already
-        # validate_if_time_slot_is_of_same_doctor
-
-        # # Use time_slot fields to validate the appointment time
-
-        # validate_future_datetime(appointment_date, appointment_time)
-        # validate_doctor_time_slot(doctor, appointment_time)
-        # validate_appointment_conflicts(doctor, appointment_date, appointment_time, instance=self.instance)
-
-        return data
+        read_only_fields = [
+            "id",
+            "uuid",
+            "doctor",
+            "time_slot",
+            "patient",
+            "created_at",
+            "updated_at",
+            "status",
+        ]
 
     @transaction.atomic
     def create(self, validated_data):
-        """
-        Create a new appointment and update patient details.
-        """
-        patient_data = validated_data.pop("patient")
-        print("patient", patient_data)
-        time_slot = validated_data.pop("time_slot")
-
-        # Get the user from the request context
-        user = self.context["request"].user
-
         try:
-            patient_instance = Patient.objects.get(user=user)
-            # Update patient instance with provided data
-            patient_serializer = PatientSerializer(
-                instance=patient_instance, data=patient_data, partial=True
-            )
-
-            # Validate and save patient data
-            if patient_serializer.is_valid(raise_exception=True):
-                print("patient validated")
-                updated_patient = patient_serializer.save()
-
-            # Create appointment with the updated patient
-            appointment = Appointments.objects.create(
-                patient=updated_patient,
-                time_slot=time_slot,
-            )
-            appointment.time_slot.is_booked = True
-            appointment.time_slot.save()
-            appointment.save()
+            request = self.context["request"]
+            patient = Patient.objects.get(user=request.user)
+            validated_data["patient"] = patient
+            time_slot_uuid = validated_data.pop("time_slot_uuid")
+            # mark the time slot as booked
+            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
+            validated_data["time_slot"] = time_slot
+            time_slot.is_booked = True
+            time_slot.save()
+            return super().create(validated_data)
 
         except Patient.DoesNotExist:
             raise serializers.ValidationError("Patient profile not found for this user")
 
         except Exception as e:
             raise serializers.ValidationError(f"Error creating appointment: {str(e)}")
-
-        return appointment
