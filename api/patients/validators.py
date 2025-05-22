@@ -38,7 +38,7 @@ def validate_addiction_types(self, data):
     - One for smoking
     - One for alcohol
     """
-
+    
     addiction_history = data.get("addiction_history", [])
 
     if len(addiction_history) != 2:
@@ -54,6 +54,33 @@ def validate_addiction_types(self, data):
     if first_record == second_record:
         raise serializers.ValidationError(
             {"addiction_history": "Both records cannot have the same addiction_type."}
+        )
+
+    return data
+
+
+def validate_careprovider_types(self, data):
+    """
+    Validate that exactly two addiction history records are provided:
+    - One for smoking
+    - One for alcohol
+    """
+    
+    care_providers_data = data.get("care_providers", [])
+
+    if len(care_providers_data) != 2:
+        raise serializers.ValidationError(
+            {
+                "care_providers": "Exactly two care_providers required (one for smoking and one for alcohol)."
+            }
+        )
+
+    first_record = care_providers_data[0].get("type")
+    second_record = care_providers_data[1].get("type")
+
+    if first_record == second_record:
+        raise serializers.ValidationError(
+            {"addiction_history": "Both records cannot have the same care_providers."}
         )
 
     return data

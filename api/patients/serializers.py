@@ -93,10 +93,20 @@ class PatientAllergySerializer(serializers.Serializer, PatientRelationHandlerMix
     data_key = "allergies"
 
     def create(self, validated_data):
-        return self.handle_relation(validated_data, clear_existing=False)
+        try:
+            return self.handle_relation(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create allergies: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        return self.handle_relation(validated_data, clear_existing=True)
+        try:
+            return self.handle_relation(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update allergies: {str(e)}"}
+            )
 
     def to_representation(self, instance):
         allergies = Allergy.objects.filter(allergy_patients__patient=instance)
@@ -119,10 +129,20 @@ class PatientMedicationSerializer(serializers.Serializer, PatientRelationHandler
     data_key = "medications"
 
     def create(self, validated_data):
-        return self.handle_relation(validated_data, clear_existing=False)
+        try:
+            return self.handle_relation(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create medications: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        return self.handle_relation(validated_data, clear_existing=True)
+        try:
+            return self.handle_relation(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update medications: {str(e)}"}
+            )
 
     def to_representation(self, instance):
         medications = Medication.objects.filter(medication_patients__patient=instance)
@@ -146,10 +166,20 @@ class PatientMedicalHistorySerializer(
     data_key = "medical_histories"
 
     def create(self, validated_data):
-        return self.handle_relation(validated_data, clear_existing=False)
+        try:
+            return self.handle_relation(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create medical histories: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        return self.handle_relation(validated_data, clear_existing=True)
+        try:
+            return self.handle_relation(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update medical histories: {str(e)}"}
+            )
 
     def to_representation(self, instance):
         medical_histories = MedicalHistory.objects.filter(
@@ -179,10 +209,20 @@ class PatientSurgicalHistorySerializer(
     data_key = "surgical_histories"
 
     def create(self, validated_data):
-        return self.handle_relation(validated_data, clear_existing=False)
+        try:
+            return self.handle_relation(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create surgical histories: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        return self.handle_relation(validated_data, clear_existing=True)
+        try:
+            return self.handle_relation(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update surgical histories: {str(e)}"}
+            )
 
     def to_representation(self, instance):
         surgical_histories = SurgicalHistory.objects.filter(
@@ -207,14 +247,24 @@ class PatientCareProviderSerializer(serializers.Serializer):
     care_providers = CareProviderSerializer(many=True, allow_empty=True)
 
     def create(self, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_care_provider(validated_data, clear_existing=False)
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_care_provider(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create care providers: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_care_provider(validated_data, clear_existing=True)
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_care_provider(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update care providers: {str(e)}"}
+            )
 
     def to_representation(self, instance):
         care_providers = SurgicalHistory.objects.filter(
@@ -253,29 +303,29 @@ class CancerHistorySerializer(serializers.ModelSerializer):
             "treatment_received",
         ]
 
-    # def create(self, validated_data):
-    #     patient = self.context["request"].user.patient
-    #     validated_data["patiecreatent"] = patient
-    #     return handle_cancer_history(validated_data)
-
-    # def update(self, instance, validated_data):
-    #     patient = self.context["request"].user.patient
-    #     validated_data["patient"] = patient
-    #     return handle_cancer_history(validated_data, instance=instance)
-
 
 class CancerHistoryListSerializer(serializers.Serializer):
     cancer_histories = CancerHistorySerializer(many=True, allow_empty=True)
 
     def create(self, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_cancer_history_list(validated_data, clear_existing=False)
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_cancer_history_list(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create cancer history: {str(e)}"}
+            )
 
     def update(self, instance, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_cancer_history_list(validated_data, clear_existing=True)
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_cancer_history_list(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update cancer history: {str(e)}"}
+            )
 
 
 class AddictionHistorySerializer(serializers.ModelSerializer):
@@ -292,19 +342,29 @@ class PatientAddictionHistorySerializer(serializers.Serializer):
     )
 
     def validate(self, data):
-        validate_existing_record(self, data)
         validate_addiction_types(self, data)
         return super().validate(data)
 
     def create(self, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_addiction_history(validated_data, clear_existing=False)
-
+        try:
+            validate_existing_record(self, AddictionHistory)
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_addiction_history(validated_data, clear_existing=False)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create addiction history: {str(e)}"}
+            )
+        
     def update(self, instance, validated_data):
-        patient = self.context["request"].user.patient
-        validated_data["patient"] = patient
-        return handle_addiction_history(validated_data, clear_existing=True)
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return handle_addiction_history(validated_data, clear_existing=True)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update addiction history: {str(e)}"}
+            )
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -379,14 +439,19 @@ class PatientSerializer(serializers.ModelSerializer):
         return super().validate(attrs)
 
     def update(self, instance, validated_data):
-        user_data = validated_data.pop("user", None)
-        if user_data:
-            user = instance.user
-            for attr, value in user_data.items():
-                setattr(user, attr, value)
-            user.save()
+        try:
+            user_data = validated_data.pop("user", None)
+            if user_data:
+                user = instance.user
+                for attr, value in user_data.items():
+                    setattr(user, attr, value)
+                user.save()
 
-        return super().update(instance, validated_data)
+            return super().update(instance, validated_data)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update patient: {str(e)}"}
+            )
 
     def get_allergies(self, obj):
         patient_allergies = obj.allergies.all()
