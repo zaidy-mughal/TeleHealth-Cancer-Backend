@@ -7,7 +7,7 @@ from .views import (
     PatientMedicalHistoryViewSet,
     PatientSurgicalHistoryViewSet,
     PatientCareProviderViewSet,
-    CancerHistoryViewSet,
+    CancerHistoryBulkViewSet,
     PatientAddictionHistoryViewSet,
     PatientRetreiveView,
 )
@@ -24,12 +24,12 @@ urlpatterns = [
     ),
     path(
         "cancer-history/create/",
-        CancerHistoryViewSet.as_view({"post": "create"}),
+        CancerHistoryBulkViewSet.as_view({"post": "create_cancer_history"}),
         name="cancer-history-create",
     ),
     path(
-        "cancer-history/update/<uuid:uuid>/",
-        CancerHistoryViewSet.as_view({"put": "update"}),
+        "cancer-history/update/",
+        CancerHistoryBulkViewSet.as_view({"put": "update_cancer_history"}),
         name="cancer-history-update",
     ),
     path(

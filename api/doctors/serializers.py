@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from django.utils import timezone
 
+from api.doctors.choices import StateChoices
 from api.doctors.models import (
     Doctor,
     Specialization,
@@ -15,6 +15,7 @@ from api.doctors.validators import (
     validate_start_time_lt_end_time,
     future_start_time,
 )
+from api.patients.utils.fields import LabelChoiceField
 
 User = get_user_model()
 
@@ -107,6 +108,8 @@ class LicenseInfoSerializer(serializers.ModelSerializer):
     """
     Serializer for the LicenseInfo model.
     """
+
+    state = LabelChoiceField(choices=StateChoices.choices)
 
     class Meta:
         model = LicenseInfo

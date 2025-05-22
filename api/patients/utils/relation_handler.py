@@ -1,4 +1,6 @@
+import logging
 from django.db import transaction
+from rest_framework.exceptions import APIException
 
 from api.patients.models import (
     CareProvider,
@@ -9,6 +11,8 @@ from api.patients.models import (
     AddictionHistory,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class PatientRelationHandlerMixin:
     relation_model = None
@@ -18,12 +22,25 @@ class PatientRelationHandlerMixin:
 
     @transaction.atomic
     def handle_relation(self, validated_data, clear_existing=False):
-        items_data = validated_data.get(self.data_key, [])
-        patient = self.context["request"].user.patient
+        try:
+            items_data = validated_data.get(self.data_key, [])
+            patient = self.context["request"].user.patient
 
-        if clear_existing:
-            self.relation_model.objects.filter(patient=patient).delete()
+            if clear_existing:
+                self.relation_model.objects.filter(patient=patient).delete()
 
+            self._create_relation_objects(items_data, patient)
+
+            message = (
+                "Updated successfully" if clear_existing else "Created successfully"
+            )
+            return {"message": message}
+
+        except Exception as e:
+            logger.error(f"Error in handle_relation: {str(e)}")
+            raise APIException(f"Failed to process {self.data_key}: {str(e)}")
+
+    def _create_relation_objects(self, items_data, patient):
         for item_data in items_data:
             item_obj, _ = self.target_model.objects.get_or_create(
                 name=item_data["name"]
@@ -32,85 +49,102 @@ class PatientRelationHandlerMixin:
                 patient=patient, **{self.related_field_name: item_obj}
             )
 
-        return {
-            "message": (
-                "Updated successfully" if clear_existing else "Created successfully"
-            )
-        }
 
-
-# Handler for Care Providers
 @transaction.atomic
 def handle_care_provider(validated_data, clear_existing=False):
-    care_providers_data = validated_data.get("care_providers", [])
-    patient = validated_data.get("patient")
+    try:
+        care_providers_data = validated_data.get("care_providers", [])
+        patient = validated_data.get("patient")
 
-    if care_providers_data:
+        if not care_providers_data:
+            return {"message": "No care providers data provided."}
+
+        # Clear existing records
         PatientCareProvider.objects.filter(patient=patient).delete()
 
-        for care_provider_data in care_providers_data:
-            care_provider, _ = CareProvider.objects.get_or_create(
-                name=care_provider_data["name"],
-                contact_number=care_provider_data["contact_number"],
-                type=care_provider_data["type"],
-            )
-            PatientCareProvider.objects.create(
-                patient=patient, care_provider=care_provider
-            )
+        # Create new records
+        create_care_provider_relations(care_providers_data, patient)
 
-        return {
-            "message": (
-                "Updated successfully" if clear_existing else "Created successfully"
-            )
-        }
-    else:
-        return {"message": "No care providers data provided."}
+        message = "Updated successfully" if clear_existing else "Created successfully"
+        return {"message": message}
+
+    except Exception as e:
+        logger.error(f"Error in handle_care_provider: {str(e)}")
+        raise APIException(f"Failed to process care providers: {str(e)}")
 
 
-# this will handle one to many relation of cancer history
+def create_care_provider_relations(care_providers_data, patient):
+    for provider_data in care_providers_data:
+        care_provider, _ = CareProvider.objects.get_or_create(
+            name=provider_data["name"],
+            contact_number=provider_data["contact_number"],
+            type=provider_data["type"],
+        )
+        PatientCareProvider.objects.create(patient=patient, care_provider=care_provider)
+
+
 @transaction.atomic
-def handle_cancer_history(validated_data, instance=None):
-    cancer_type_data = validated_data.pop("cancer_type")
-    treatment_data = validated_data.pop("treatment_received", [])
-    patient = validated_data.get("patient")
-    cancer_type, _ = CancerType.objects.get_or_create(**cancer_type_data)
+def handle_cancer_history_list(validated_data, clear_existing=False):
+    """Handle creation/updating of multiple cancer history records."""
+    try:
+        cancer_history_data = validated_data.get("cancer_histories", [])
+        patient = validated_data.get("patient")
 
-    if instance is None:
+        if clear_existing:
+            CancerHistory.objects.filter(patient=patient).delete()
+
+        create_cancer_history_records(cancer_history_data, patient)
+
+        return {"message": "Cancer history updated successfully"}
+
+    except Exception as e:
+        logger.error(f"Error in handle_cancer_history_list: {str(e)}")
+        raise APIException(f"Failed to process cancer history: {str(e)}")
+
+
+def create_cancer_history_records(history_data_list, patient):
+    for history_data in history_data_list:
+        # Extract nested data
+        cancer_type_data = history_data.pop("cancer_type")
+        treatment_data = history_data.pop("treatment_received", [])
+
+        # Create cancer type and history
+        cancer_type, _ = CancerType.objects.get_or_create(**cancer_type_data)
         instance = CancerHistory.objects.create(
             patient=patient,
             cancer_type=cancer_type,
-            year_of_diagnosis=validated_data["year_of_diagnosis"],
-        )
-    else:
-        instance.cancer_type = cancer_type
-        instance.year_of_diagnosis = validated_data["year_of_diagnosis"]
-        instance.save()
-        instance.treatment_received.all().delete()
-
-    for treatment in treatment_data:
-        TreatmentRecieved.objects.create(
-            cancer_history=instance, name=treatment["name"]
+            year_of_diagnosis=history_data["year_of_diagnosis"],
         )
 
-    return instance
+        for treatment in treatment_data:
+            TreatmentRecieved.objects.create(
+                cancer_history=instance, name=treatment["name"]
+            )
 
 
-# this will handle one to many relation of addiction history
 @transaction.atomic
 def handle_addiction_history(validated_data, clear_existing=False):
-    addiction_history_data = validated_data.get("addiction_history", [])
-    patient = validated_data.get("patient")
+    try:
+        addiction_history_data = validated_data.get("addiction_history", [])
+        patient = validated_data.get("patient")
 
-    if clear_existing:
-        AddictionHistory.objects.filter(patient=patient).delete()
+        if clear_existing:
+            AddictionHistory.objects.filter(patient=patient).delete()
 
-    for addiction_data in addiction_history_data:
+        create_addiction_records(addiction_history_data, patient)
+
+        message = "Updated successfully" if clear_existing else "Created successfully"
+        return {"message": message}
+
+    except Exception as e:
+        logger.error(f"Error in handle_addiction_history: {str(e)}")
+        raise APIException(f"Failed to process addiction history: {str(e)}")
+
+
+def create_addiction_records(addiction_data_list, patient):
+    for addiction_data in addiction_data_list:
         AddictionHistory.objects.create(
             patient=patient,
             addiction_type=addiction_data["addiction_type"],
             total_years=addiction_data["total_years"],
         )
-
-    return {
-        "message": "Updated successfully" if clear_existing else "Created successfully"
-    }

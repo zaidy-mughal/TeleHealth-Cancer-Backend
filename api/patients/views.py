@@ -17,6 +17,7 @@ from api.patients.serializers import (
     PatientCareProviderSerializer,
     PatientAddictionHistorySerializer,
     CancerHistorySerializer,
+    CancerHistoryListSerializer,
 )
 from api.patients.models import IodineAllergy, CancerHistory
 from api.patients.permissions import IsPatientOrAdmin
@@ -202,14 +203,36 @@ class PatientCareProviderViewSet(viewsets.ViewSet):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CancerHistoryViewSet(viewsets.ModelViewSet):
-    serializer_class = CancerHistorySerializer
+class CancerHistoryBulkViewSet(viewsets.ViewSet):
+    """
+    Handles creating and updating cancer history for the current user (patient).
+    """
+
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     http_method_names = ["post", "put"]
-    lookup_field = "uuid"
 
-    def get_queryset(self):
-        return CancerHistory.objects.filter(patient=self.request.user.patient)
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    @action(detail=False, methods=["post"], url_path="create")
+    def create_cancer_history(self, request):
+        serializer = CancerHistoryListSerializer(
+            data=request.data, context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        result = serializer.create(serializer.validated_data)
+        return Response(result, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["put"], url_path="update")
+    def update_cancer_history(self, request):
+        serializer = CancerHistoryListSerializer(
+            data=request.data, context=self.get_serializer_context()
+        )
+        serializer.is_valid(raise_exception=True)
+        result = serializer.update(
+            instance=None, validated_data=serializer.validated_data
+        )
+        return Response(result, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")

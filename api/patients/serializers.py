@@ -29,12 +29,13 @@ from api.patients.choices import (
 from api.patients.validators import (
     validate_fields,
     validate_existing_record,
+    validate_addiction_types,
 )
 from api.patients.utils.fields import LabelChoiceField
 from api.patients.utils.relation_handler import (
     PatientRelationHandlerMixin,
+    handle_cancer_history_list,
     handle_care_provider,
-    handle_cancer_history,
     handle_addiction_history,
 )
 
@@ -48,17 +49,32 @@ class IodineAllergySerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "uuid"]
 
     def create(self, validated_data):
-        patient = self.context["request"].user.patient
+        try:
+            patient = self.context["request"].user.patient
 
-        if IodineAllergy.objects.filter(patient=patient).exists():
+            if IodineAllergy.objects.filter(patient=patient).exists():
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Iodine allergy record already exists. Use PUT/PATCH to update."
+                    }
+                )
+
+            validated_data["patient"] = patient
+            return super().create(validated_data)
+        except Exception as e:
             raise serializers.ValidationError(
-                {
-                    "detail": "Iodine allergy record already exists. Use PUT or PATCH to update."
-                }
+                {"detail": f"Failed to create iodine allergy record: {str(e)}"}
             )
 
-        validated_data["patient"] = patient
-        return super().create(validated_data)
+    def update(self, instance, validated_data):
+        try:
+            patient = self.context["request"].user.patient
+            validated_data["patient"] = patient
+            return super().update(instance, validated_data)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to update iodine allergy record: {str(e)}"}
+            )
 
 
 class AllergySerializer(serializers.ModelSerializer):
@@ -237,15 +253,29 @@ class CancerHistorySerializer(serializers.ModelSerializer):
             "treatment_received",
         ]
 
+    # def create(self, validated_data):
+    #     patient = self.context["request"].user.patient
+    #     validated_data["patiecreatent"] = patient
+    #     return handle_cancer_history(validated_data)
+
+    # def update(self, instance, validated_data):
+    #     patient = self.context["request"].user.patient
+    #     validated_data["patient"] = patient
+    #     return handle_cancer_history(validated_data, instance=instance)
+
+
+class CancerHistoryListSerializer(serializers.Serializer):
+    cancer_histories = CancerHistorySerializer(many=True, allow_empty=True)
+
     def create(self, validated_data):
         patient = self.context["request"].user.patient
         validated_data["patient"] = patient
-        return handle_cancer_history(validated_data)
+        return handle_cancer_history_list(validated_data, clear_existing=False)
 
     def update(self, instance, validated_data):
         patient = self.context["request"].user.patient
         validated_data["patient"] = patient
-        return handle_cancer_history(validated_data, instance=instance)
+        return handle_cancer_history_list(validated_data, clear_existing=True)
 
 
 class AddictionHistorySerializer(serializers.ModelSerializer):
@@ -260,6 +290,11 @@ class PatientAddictionHistorySerializer(serializers.Serializer):
     addiction_history = AddictionHistorySerializer(
         many=True, allow_empty=True, required=True
     )
+
+    def validate(self, data):
+        validate_existing_record(self, data)
+        validate_addiction_types(self, data)
+        return super().validate(data)
 
     def create(self, validated_data):
         patient = self.context["request"].user.patient
