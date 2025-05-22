@@ -95,6 +95,26 @@ class TimeSlotListAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+@transaction.atomic
+def build_time_slot_objects(serializer_class, data, request):
+    """
+    Validates input data and builds TimeSlot instances.
+    """
+    time_slot_objects = []
+
+    for item in data:
+        serializer = serializer_class(data=item, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        validated_data = serializer.validated_data
+        time_slot = TimeSlot(
+            doctor=request.user.doctor,
+            start_time=validated_data["start_time"],
+            end_time=validated_data["end_time"],
+        )
+        time_slot_objects.append(time_slot)
+
+    return time_slot_objects
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TimeSlotCreateAPIView(APIView):
@@ -122,7 +142,7 @@ class TimeSlotCreateAPIView(APIView):
             )
 
         try:
-            time_slot_objects = self._build_time_slot_objects(data, request)
+            time_slot_objects = build_time_slot_objects(self.serializer_class, data, request)
 
             created_slots = TimeSlot.objects.bulk_create(
                 time_slot_objects, batch_size=15
@@ -141,27 +161,55 @@ class TimeSlotCreateAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class TimeSlotBulkUpdateView(APIView):
+    """
+    API view to replace all time slots for a doctor.
+    Deletes all existing time slots and creates new ones in a single transaction.
+    """
+    serializer_class = TimeSlotSerializer
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+
     @transaction.atomic
-    def _build_time_slot_objects(self, data, request):
-        """
-        Validates input data and builds TimeSlot instances.
-        """
-        time_slot_objects = []
+    def put(self, request, *args, **kwargs):
+        data = request.data
 
-        for item in data:
-            serializer = self.serializer_class(data=item, context={"request": request})
-            serializer.is_valid(raise_exception=True)
-
-            validated_data = serializer.validated_data
-            time_slot = TimeSlot(
-                doctor=request.user.doctor,
-                start_time=validated_data["start_time"],
-                end_time=validated_data["end_time"],
+        if not isinstance(data, list):
+            return Response(
+                {"detail": "Expected a list of time slots."},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            time_slot_objects.append(time_slot)
 
-        return time_slot_objects
+        if not data:
+            return Response(
+                {"detail": "At least one time slot must be provided."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
+        try:
+            doctor = request.user.doctor
+            
+            TimeSlot.objects.filter(doctor=doctor).delete()
+            
+            time_slot_objects = build_time_slot_objects(self.serializer_class, data, request)
+            created_slots = TimeSlot.objects.bulk_create(time_slot_objects, batch_size=15)
+
+            response_serializer = self.serializer_class(created_slots, many=True)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+
+        except serializers.ValidationError as e:
+            return Response({"detail": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Error updating time slots: {str(e)}")
+            return Response(
+                {"error": f"Failed to update time slots: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    
 
 @method_decorator(csrf_exempt, name="dispatch")
 class LicenseInfoListAPIView(APIView):
