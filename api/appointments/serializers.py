@@ -1,3 +1,4 @@
+from os import read
 from rest_framework import serializers
 from django.db import transaction
 
@@ -24,7 +25,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     time_slot_uuid = serializers.UUIDField(write_only=True)
     time_slot = TimeSlotSerializer(read_only=True)
     patient = PatientSerializer(read_only=True)
-    status = LabelChoiceField(choices=Status.choices, default=Status.PENDING)
+    status = LabelChoiceField(choices=Status.choices, default=Status.PENDING, read_only=True)
     doctor = serializers.SerializerMethodField(read_only=True)
 
     def get_doctor(self, obj):
@@ -59,10 +60,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "uuid",
             "doctor",
             "time_slot",
+            "status",
             "patient",
             "created_at",
             "updated_at",
-            "status",
         ]
 
     @transaction.atomic
