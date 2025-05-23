@@ -1,7 +1,8 @@
+from os import read
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from api.doctors.choices import StateChoices
+from api.doctors.choices import Services, StateChoices
 from api.doctors.models import (
     Doctor,
     Specialization,
@@ -55,55 +56,6 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class DoctorSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Doctor model.
-    """
-
-    first_name = serializers.CharField(source="user.first_name", read_only=True)
-    last_name = serializers.CharField(source="user.last_name", read_only=True)
-
-    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
-    specialization = serializers.PrimaryKeyRelatedField(
-        queryset=Specialization.objects.all(),
-        write_only=True,
-    )
-
-    specialization = SpecializationSerializer(read_only=True)
-
-    time_slots = serializers.SerializerMethodField()
-
-    def get_time_slots(self, obj):
-        return TimeSlotSerializer(obj.time_slots.all(), many=True).data
-
-    def validate_user(self, user):
-        return validate_user_role(self, user)
-
-    class Meta:
-        model = Doctor
-        fields = [
-            "id",
-            "uuid",
-            "user",
-            "first_name",
-            "last_name",
-            "specialization",
-            "time_slots",
-            "date_of_birth",
-            "address",
-            "npi_number",
-        ]
-        read_only_fields = [
-            "id",
-            "uuid",
-            "first_name",
-            "last_name",
-            "time_slots",
-            "created_at",
-            "updated_at",
-        ]
-
-
 class LicenseInfoSerializer(serializers.ModelSerializer):
     """
     Serializer for the LicenseInfo model.
@@ -121,10 +73,8 @@ class LicenseInfoSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class Services(serializers.ModelSerializer):
-    """
-    Serializer for Doctor Services
-    """
+class ServiceSerializer(serializers.ModelSerializer):
+    name = LabelChoiceField(choices=Services.choices)
 
     class Meta:
         model = Service
@@ -139,3 +89,78 @@ class DoctorServiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = DoctorService
         fields = ["doctor", "service"]
+
+    def to_representation(self, instance):
+        service_data = ServiceSerializer(instance.service).data
+        return {
+            "doctor": instance.doctor.uuid,
+            "service": service_data['name']
+        }
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Doctor model.
+    """
+
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+
+    user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    specialization = serializers.PrimaryKeyRelatedField(
+        queryset=Specialization.objects.all(),
+        write_only=True,
+    )
+
+    services = serializers.SerializerMethodField()
+    states = serializers.SerializerMethodField()
+    specialization = SpecializationSerializer(read_only=True)
+    time_slots = serializers.SerializerMethodField()
+
+    def get_services(self, obj):
+        services = obj.doctor_services.all()
+        serializer = DoctorServiceSerializer(services, many=True)
+        print(serializer.data)
+        return [item['service'] for item in serializer.data]
+    
+    def get_states(self, obj):
+        licenses = obj.license_info.all()
+        serializer = LicenseInfoSerializer(licenses, many=True)
+        return [item['state'] for item in serializer.data]
+
+    def get_time_slots(self, obj):
+        return TimeSlotSerializer(obj.time_slots.all(), many=True).data
+
+    def validate_user(self, user):
+        return validate_user_role(self, user)
+
+    class Meta:
+        model = Doctor
+        fields = [
+            "id",
+            "uuid",
+            "user",
+            "first_name",
+            "last_name",
+            "specialization",
+            "states",
+            "services",
+            "date_of_birth",
+            "address",
+            "npi_number",
+            "time_slots"
+        ]
+        read_only_fields = [
+            "id",
+            "uuid",
+            "first_name",
+            "last_name",
+            "states",
+            "services",
+            "time_slots",
+            "created_at",
+            "updated_at",
+        ]
+
+
+
