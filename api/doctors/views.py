@@ -18,6 +18,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from api.doctors.serializers import (
     SpecializationSerializer,
     DoctorSerializer,
+    TimeSlotBulkUpdateSerializer,
     TimeSlotSerializer,
     LicenseInfoSerializer,
 )
@@ -162,42 +163,26 @@ class TimeSlotCreateAPIView(APIView):
             )
 
 
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TimeSlotBulkUpdateView(APIView):
     """
-    API view to replace all time slots for a doctor.
-    Deletes all existing time slots and creates new ones in a single transaction.
+    API view for bulk updating time slots using serializer logic.
     """
-    serializer_class = TimeSlotSerializer
     permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
 
-    @transaction.atomic
     def put(self, request, *args, **kwargs):
-        data = request.data
-
-        if not isinstance(data, list):
-            return Response(
-                {"detail": "Expected a list of time slots."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not data:
-            return Response(
-                {"detail": "At least one time slot must be provided."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         try:
-            doctor = request.user.doctor
+            serializer = TimeSlotBulkUpdateSerializer(
+                data=request.data, 
+                context={'request': request}
+            )
+            serializer.is_valid(raise_exception=True)
+            result = serializer.save()
             
-            TimeSlot.objects.filter(doctor=doctor).delete()
-            
-            time_slot_objects = build_time_slot_objects(self.serializer_class, data, request)
-            created_slots = TimeSlot.objects.bulk_create(time_slot_objects, batch_size=15)
-
-            response_serializer = self.serializer_class(created_slots, many=True)
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                result, 
+                status=status.HTTP_200_OK
+            )
 
         except serializers.ValidationError as e:
             return Response({"detail": e.detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -208,7 +193,6 @@ class TimeSlotBulkUpdateView(APIView):
                 {"error": f"Failed to update time slots: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
     
 
 @method_decorator(csrf_exempt, name="dispatch")
