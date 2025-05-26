@@ -8,10 +8,15 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from drf_spectacular.utils import extend_schema
 
-from api.appointments.serializers import AppointmentSerializer
+from api.appointments.serializers import (
+    AppointmentSerializer,
+    AppointmentDetailSerializer,
+    DoctorAppointmentSerializer,
+)
+from django.shortcuts import get_object_or_404
 from api.appointments.models import Appointment
+from api.doctors.permissions import IsDoctorOrAdmin
 from api.patients.permissions import IsPatientOrAdmin
-
 
 import logging
 
@@ -20,41 +25,79 @@ logger = logging.getLogger(__name__)
 
 @extend_schema(
     tags=["Appointments"],
-    request=AppointmentSerializer,
-    responses=AppointmentSerializer(many=True),
-    description="API for managing appointments.",
+    responses=AppointmentSerializer,
+    description="API for retrieving a single appointment by UUID.",
 )
-@method_decorator(csrf_exempt, name="dispatch")
-class AppointmentRetrieveView(RetrieveAPIView):
+class PatientAppointmentListView(RetrieveAPIView):
     """
-    API view to handle appointment creation and retrieval.
-    Includes validation for appointments and proper error handling.
+    API view to retrieve appointments for a specific patient.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     serializer_class = AppointmentSerializer
 
     def get(self, request, *args, **kwargs):
         try:
-            if request.user.is_patient:
-                patient = request.user.patient
-                appointments = Appointment.objects.filter(patient=patient)
-            elif request.user.is_doctor:
-                doctor = request.user.doctor
-                appointments = Appointment.objects.filter(time_slot__doctor=doctor)
-            elif request.user.is_admin:
-                appointments = Appointment.objects.all()
-
+            patient = request.user.patient
+            appointments = Appointment.objects.filter(patient=patient)
             serializer = self.serializer_class(appointments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except ValidationError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error retrieving patient appointments: {str(e)}")
+            return Response(
+                {"error": f"Failed to retrieve patient appointments: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@extend_schema(
+    tags=["Appointments"],
+    responses=AppointmentDetailSerializer,
+    description="API for retrieving a single appointment by UUID.",
+)
+@method_decorator(csrf_exempt, name="dispatch")
+class AppointmentDetailView(RetrieveAPIView):
+    """
+    API view to retrieve a single appointment by UUID.
+    Returns detailed appointment information including patient data.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentDetailSerializer
+    lookup_field = "uuid"
+
+    def get_object(self):
+        uuid = self.kwargs["uuid"]
+        appointment = get_object_or_404(Appointment, uuid=uuid)
+
+        return appointment
+
+
+@extend_schema(
+    tags=["Appointments"],
+    responses=DoctorAppointmentSerializer,
+    description="API for retrieving a single appointment by UUID.",
+)
+class DoctorAppointmentListView(RetrieveAPIView):
+    """
+    API view to retrieve appointments for a specific doctor.
+    """
+
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    serializer_class = DoctorAppointmentSerializer
+
+    def get(self, request, *args, **kwargs):
+        try:
+            doctor = request.user.doctor
+            appointments = Appointment.objects.filter(time_slot__doctor=doctor)
+            serializer = self.serializer_class(appointments, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Error retrieving appointments: {str(e)}")
+            logger.error(f"Error retrieving doctor appointments: {str(e)}")
             return Response(
-                {"error": f"Failed to retrieve appointments: {str(e)}"},
+                {"error": f"Failed to retrieve doctor appointments: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
