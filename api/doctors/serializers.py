@@ -49,104 +49,61 @@ class TimeSlotSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TimeSlot
-        fields = ["id", "uuid", "start_time", "end_time", "is_booked"]
-        read_only_fields = ["id", "uuid", "is_booked"]
+        fields = ["uuid", "start_time", "end_time", "is_booked"]
+        read_only_fields = ["uuid", "is_booked"]
 
     def create(self, validated_data):
         validated_data["doctor"] = self.context["request"].user.doctor
         return super().create(validated_data)
 
 
-class TimeSlotBulkUpdateSerializer(serializers.Serializer):
+class TimeSlotBulkDeleteSerializer(serializers.Serializer):
     """
-    Serializer for bulk updating time slots creating new ones and deleting the slots marked to_delete = true.
+    Serializer for bulk deleting timeslots.
     """
 
-    time_slots = serializers.ListField(
-        child=serializers.DictField(),
-        write_only=True,
-        help_text="List of time slots to create or delete. "
-        "Each item can have 'uuid' for deletion, 'start_time' and 'end_time' for creation.",
-    )
+    time_slot_uuids = serializers.ListField(child=serializers.UUIDField(), write_only=True)
 
-    def validate_time_slots(self, value):
-        validate_bulk_time_slots(value)
+    def validate_time_slot_uuids(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one UUID must be provided.")
+
+        doctor = self.context["request"].user.doctor
+
+        # Get existing timeslots for this doctor
+        existing_timeslots = TimeSlot.objects.filter(uuid__in=value, doctor=doctor)
+
+        existing_uuids = set(
+            str(uuid) for uuid in existing_timeslots.values_list("uuid", flat=True)
+        )
+        print(existing_uuids, "====")
+        provided_uuids = set(str(uuid) for uuid in value)
+        print(provided_uuids, "=====")
+        # Check for invalid UUIDs
+        invalid_uuids = provided_uuids - existing_uuids
+        print(invalid_uuids, "++++")
+        if invalid_uuids:
+            raise serializers.ValidationError(
+                f"Some UUIDs are invalid or don't exist: {list(invalid_uuids)}"
+            )
+
         return value
 
-    @transaction.atomic
-    def save(self):
-        doctor = self.context["request"].user.doctor
-        time_slots_data = self.validated_data["time_slots"]
-
-        slots_to_delete = []
-        slots_to_create = []
-
-        for slot_data in time_slots_data:
-            # appending the slots for deletion
-            if slot_data.get("to_delete", False):
-                uuid = slot_data.get("uuid")
-                if not uuid:
-                    raise serializers.ValidationError(
-                        "UUID is required for deletion of time slots."
-                    )
-                slots_to_delete.append(uuid)
-
-            else:
-                # Check if the slot already exists OR append to creation
-                uuid = slot_data.get("uuid")
-                if uuid and self._slot_exists_by_uuid(uuid, doctor):
-                    continue
-                else:
-                    slots_to_create.append(slot_data)
-
-        deleted_count = self._delete_slots(slots_to_delete, doctor)
-        created_slots = self._create_slots(slots_to_create, doctor)
-
-        return {
-            "doctor": doctor.uuid,
-            "doctor_name": f"{doctor.user.first_name} {doctor.user.last_name}",
-            "deleted_count": deleted_count,
-            "created_slots": created_slots,
-        }
-
-    def _slot_exists_by_uuid(self, uuid, doctor):
+    def delete_timeslots(self):
+        """
+        Delete the validated timeslots.
+        """
         try:
-            return TimeSlot.objects.filter(uuid=uuid, doctor=doctor).exists()
-        except (ValueError, TypeError):
-            return False
+            uuids = self.validated_data["time_slot_uuids"]
+            doctor = self.context["request"].user.doctor
 
-    def _delete_slots(self, slots_to_delete, doctor):
-        if not slots_to_delete:
-            return 0
+            deleted_count, _ = TimeSlot.objects.filter(
+                uuid__in=uuids, doctor=doctor
+            ).delete()
 
-        deleted_count = 0
-
-        for slot in slots_to_delete:
-            if isinstance(slot, str):
-                deleted_count += TimeSlot.objects.filter(
-                    uuid=slot, doctor=doctor
-                ).delete()[0]
-
-        return deleted_count
-
-    def _create_slots(self, slots_data, doctor):
-        if not slots_data:
-            return []
-
-        created_slots = []
-
-        for slot_data in slots_data:
-            clean_data = {
-                k: v for k, v in slot_data.items() if k in ["start_time", "end_time"]
-            }
-
-            slot_serializer = TimeSlotSerializer(data=clean_data, context=self.context)
-            slot_serializer.is_valid(raise_exception=True)
-            slot_serializer.save()
-
-            created_slots.append(slot_serializer.data)
-
-        return created_slots
+            return deleted_count
+        except Exception as e:
+            raise serializers.ValidationError(f"Error deleting timeslots: {str(e)}")
 
 
 class LicenseInfoSerializer(serializers.ModelSerializer):

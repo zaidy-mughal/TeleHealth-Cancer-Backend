@@ -18,7 +18,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from api.doctors.serializers import (
     SpecializationSerializer,
     DoctorSerializer,
-    TimeSlotBulkUpdateSerializer,
+    TimeSlotBulkDeleteSerializer,
     TimeSlotSerializer,
     LicenseInfoSerializer,
 )
@@ -96,6 +96,7 @@ class TimeSlotListAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
 @transaction.atomic
 def build_time_slot_objects(serializer_class, data, request):
     """
@@ -116,6 +117,7 @@ def build_time_slot_objects(serializer_class, data, request):
         time_slot_objects.append(time_slot)
 
     return time_slot_objects
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TimeSlotCreateAPIView(APIView):
@@ -143,7 +145,9 @@ class TimeSlotCreateAPIView(APIView):
             )
 
         try:
-            time_slot_objects = build_time_slot_objects(self.serializer_class, data, request)
+            time_slot_objects = build_time_slot_objects(
+                self.serializer_class, data, request
+            )
 
             created_slots = TimeSlot.objects.bulk_create(
                 time_slot_objects, batch_size=15
@@ -164,36 +168,28 @@ class TimeSlotCreateAPIView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TimeSlotBulkUpdateView(APIView):
+class TimeSlotBulkDeleteView(APIView):
     """
-    API view for bulk updating time slots using serializer logic.
+    API View to bulk delete timeslots.
     """
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
 
-    def put(self, request, *args, **kwargs):
-        try:
-            serializer = TimeSlotBulkUpdateSerializer(
-                data=request.data, 
-                context={'request': request}
-            )
-            serializer.is_valid(raise_exception=True)
-            result = serializer.save()
-            
+    def delete(self, request):
+        serializer = TimeSlotBulkDeleteSerializer(
+            data=request.data, context={"request": request}
+        )
+
+        if serializer.is_valid():
+            deleted_count = serializer.delete_timeslots()
             return Response(
-                result, 
-                status=status.HTTP_200_OK
+                {
+                    "message": f"Successfully deleted {deleted_count} timeslots",
+                    "deleted_count": deleted_count,
+                },
+                status=status.HTTP_200_OK,
             )
 
-        except serializers.ValidationError as e:
-            return Response({"detail": e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception as e:
-            logger.error(f"Error updating time slots: {str(e)}")
-            return Response(
-                {"error": f"Failed to update time slots: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-    
 
 @method_decorator(csrf_exempt, name="dispatch")
 class LicenseInfoListAPIView(APIView):

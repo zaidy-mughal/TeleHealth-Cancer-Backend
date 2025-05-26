@@ -1,4 +1,3 @@
-from os import read
 from rest_framework import serializers
 from django.db import transaction
 
@@ -19,7 +18,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
     """
     Serializer for the Appointment model.
     This serializer is used to create appointments.
-    It includes the time slot and patient information.
+    It includes limited information.
     """
 
     time_slot_uuid = serializers.UUIDField(write_only=True)
@@ -121,7 +120,6 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
 
     def get_status(self, obj):
         return obj.get_status_display()
-        
 
     def get_doctor(self, obj):
         if obj.time_slot:
