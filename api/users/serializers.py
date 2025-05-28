@@ -1,11 +1,17 @@
 from .models import User
 from rest_framework import serializers
+from api.patients.utils.fields import LabelChoiceField
+from api.users.choices import Role
 
 
 class UserDetailsSerializer(serializers.ModelSerializer):
     """
     User model w/o password
     """
+    role = LabelChoiceField(
+        choices=Role.choices,
+        help_text="Role of the user",
+    )
 
     class Meta:
         model = User
