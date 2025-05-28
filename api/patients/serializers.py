@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from cities_light.models import City, Region
 
 from api.patients.models import (
     Patient,
@@ -375,6 +376,9 @@ class PatientSerializer(serializers.ModelSerializer):
     gender = LabelChoiceField(choices=Gender.choices)
     visit_type = LabelChoiceField(choices=VisitType.choices)
     marital_status = LabelChoiceField(choices=MaritalStatus.choices)
+    
+    city = serializers.SlugRelatedField(slug_field='name', queryset=City.objects.all())
+    state = serializers.SlugRelatedField(slug_field='name', queryset=Region.objects.all())
 
     iodine_allergy = IodineAllergySerializer(read_only=True)
     cancer_history = CancerHistorySerializer(

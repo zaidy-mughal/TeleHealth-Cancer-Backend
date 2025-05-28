@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
@@ -37,7 +38,7 @@ class IodineAllergyViewSet(viewsets.ModelViewSet):
         return IodineAllergy.objects.filter(patient=self.request.user.patient)
 
     def get_object(self):
-        return IodineAllergy.objects.get(patient=self.request.user.patient)
+        return get_object_or_404(IodineAllergy,patient=self.request.user.patient)
 
 
 class PatientAllergyViewSet(viewsets.ViewSet):
@@ -274,4 +275,4 @@ class PatientRetreiveView(RetrieveUpdateAPIView):
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
 
     def get_object(self):
-        return self.request.user.patient
+        return get_object_or_404(self.request.user.patient)

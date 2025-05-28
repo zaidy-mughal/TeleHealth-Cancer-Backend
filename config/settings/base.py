@@ -76,6 +76,7 @@ THIRD_PARTY_APPS = [
     "dj_rest_auth.registration",
     "drf_spectacular",
     "corsheaders",  # Add CORS headers support
+    "cities_light",  # For city and state management
 ]
 
 PROJECT_APPS = [

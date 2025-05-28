@@ -2,6 +2,7 @@ from django.db import models
 from api.base_models import BaseModel
 from api.doctors.models import TimeSlot
 from api.patients.models import Patient
+from api.patients.utils.fields import LabelChoiceField
 from api.appointments.choices import Status
 
 
@@ -18,7 +19,7 @@ class Appointment(BaseModel):
     time_slot = models.OneToOneField(
         TimeSlot, on_delete=models.SET_NULL, related_name="appointments", null=True, blank=True
     )
-    status = models.IntegerField(choices=Status.choices, db_default=Status.PENDING)
+    status = LabelChoiceField(choices=Status.choices, db_default=Status.PENDING)
 
     def __str__(self):
         return f"{self.time_slot.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.time_slot.start_time} - {self.time_slot.end_time}"

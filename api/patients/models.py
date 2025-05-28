@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from phonenumber_field.modelfields import PhoneNumberField
+from cities_light.models import City, Region
+
 
 from api.base_models import BaseModel
 from api.patients.choices import (
@@ -27,8 +29,8 @@ class Patient(BaseModel):
         choices=MaritalStatus.choices, blank=True, null=True
     )
     sex_assigned_at_birth = models.CharField(max_length=20, blank=True)
-    state = models.CharField(max_length=20, blank=True)
-    city = models.CharField(max_length=20, blank=True)
+    city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, blank=True)
+    state = models.ForeignKey(Region, on_delete=models.SET_NULL, null=True, blank=True)
     zip_code = models.CharField(max_length=20, blank=True)
 
     class Meta:
