@@ -163,7 +163,7 @@ class StripeWebhookView(APIView):
         else:
             logger.info(f"Unhandled event type: {event['type']}")
 
-        return HttpResponse(status=200)
+        return Response({"error": "Invalid signature"}, status=200)
 
     def _handle_payment_succeeded(self, payment_intent):
         """Handle successful payment."""
