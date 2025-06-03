@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.core.exceptions import ValidationError
 
 from api.users.models import User
-from api.authentication.models import PasswordResetOTP
+from api.authentication.models import OTP
 
 
 def validate_min_length(password):
@@ -36,12 +36,13 @@ def validate_dob_not_in_future(self, dob):
     return dob
 
 
-# OTP related validator
-def validate_otp_for_email(email, otp):
+def validate_otp(email, otp, purpose):
     """Validate that the OTP is valid for the given email"""
     try:
         user = User.objects.get(email=email)
-        otp_obj = PasswordResetOTP.objects.filter(user=user, otp=otp).latest()
+        otp_obj = OTP.objects.filter(user=user, otp=otp, purpose=purpose).latest(
+            "created_at"
+        )
 
         if otp_obj is None:
             return False, None
@@ -70,7 +71,7 @@ def validate_password_match(self, data):
 
 def validate_email_otp_verified(self, user):
     """Validate that the OTP is verified for the given email"""
-    verified_otp = PasswordResetOTP.objects.filter(user=user, is_used=True).exists()
+    verified_otp = OTP.objects.filter(user=user, is_used=True).exists()
 
     if not verified_otp:
         raise serializers.ValidationError(

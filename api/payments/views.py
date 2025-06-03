@@ -49,7 +49,6 @@ class CreatePaymentIntentView(APIView):
             receipt_email = validated_data.get("receipt_email", None)
 
             # Before the query, add:
-            print(appointment_uuid)
             if not hasattr(request.user, "patient"):
                 return Response({"error": "User has no patient profile"}, status=400)
             appointment = Appointment.objects.get(
@@ -118,6 +117,7 @@ class CreatePaymentIntentView(APIView):
             )
 
         finally:
+            # checks whether an error occurs and cancel the intent.
             if "payment_intent" in locals() and sys.exc_info()[0] is not None:
                 try:
                     stripe.PaymentIntent.cancel(payment_intent.id)
@@ -142,7 +142,6 @@ class StripeWebhookView(APIView):
         endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 
         try:
-            # Verify webhook signature
             event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
         except ValueError:
             logger.error("Invalid payload in Stripe webhook")
@@ -151,7 +150,7 @@ class StripeWebhookView(APIView):
             logger.error("Invalid signature in Stripe webhook")
             return Response({"error": "Invalid signature"}, status=400)
 
-        # Handle the event
+        # Handle events
         if event["type"] == "payment_intent.succeeded":
             self._handle_payment_succeeded(event["data"]["object"])
         elif event["type"] == "payment_intent.payment_failed":
@@ -172,11 +171,9 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
-            # Update payment status
             payment.status = PaymentStatusChoices.SUCCEEDED
             payment.save(update_fields=["status"])
 
-            # Update appointment status to PAID
             if payment.appointment:
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
@@ -195,11 +192,9 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
-            # Update payment status
             payment.status = PaymentStatusChoices.CANCELED
             payment.save(update_fields=["status"])
 
-            # Optionally update appointment status
             if payment.appointment:
                 payment.appointment.status = AppointmentStatus.CANCELLED
                 payment.appointment.save(update_fields=["status"])
@@ -218,11 +213,9 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
-            # Update payment status
             payment.status = PaymentStatusChoices.CANCELED
             payment.save(update_fields=["status"])
 
-            # Update appointment status
             if payment.appointment:
                 payment.appointment.status = AppointmentStatus.CANCELED
                 payment.appointment.save(update_fields=["status"])
@@ -241,7 +234,6 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
-            # Update payment status
             payment.status = PaymentStatusChoices.REQUIRES_ACTION
             payment.save(update_fields=["status"])
 

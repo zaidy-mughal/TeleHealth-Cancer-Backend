@@ -6,6 +6,7 @@ from api.authentication.views import (
     OTPVerificationView,
     PasswordChangeView,
     TeleHealthLogoutView,
+    SendOTPView,
 )
 
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
@@ -15,6 +16,8 @@ urlpatterns = [
     path("register/", TeleHealthRegisterView.as_view(), name="register"),
     path("login/", TeleHealthLoginView.as_view(), name="login"),
     path("logout/", TeleHealthLogoutView.as_view(), name="logout"),
+    path("otp/send/", SendOTPView.as_view(), name="send_otp"),
+    path("email/otp/verify/", OTPVerificationView.as_view(), name="otp_verify"),
     path(
         "password/reset/", TeleHealthPasswordResetView.as_view(), name="password_reset"
     ),

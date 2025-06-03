@@ -1,13 +1,18 @@
-import random
-from api.authentication.models import PasswordResetOTP
+import secrets
+import string
+from api.authentication.models import OTP
+from api.authentication.choices import Purpose
 
 
-def create_otp_for_user(user):
+def generate_otp(length=6):
+    """Generate a cryptographically secure OTP"""
+    alphabet = string.digits
+    return "".join(secrets.choice(alphabet) for _ in range(length))
+
+
+def create_otp_for_user(user, purpose=Purpose.choices.EMAIL_VERIFICATION):
     """Create a new OTP for the user, deleting any existing ones"""
-    # Delete any existing OTPs for this user
-    PasswordResetOTP.objects.filter(user=user).delete()
-
-    # Create random OTP
-    otp = "".join([str(random.randint(0, 9)) for _ in range(6)])
-    otp_obj = PasswordResetOTP.objects.create(user=user, otp=otp)
+    OTP.objects.filter(user=user, purpose=purpose).delete()
+    otp = generate_otp()
+    otp_obj = OTP.objects.create(user=user, otp=otp, purpose=purpose)
     return otp_obj

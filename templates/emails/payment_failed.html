@@ -1,0 +1,29 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Payment Failed - Appointment Pending{% endblock %}
+
+{% block content %}
+<h2>Payment Failed</h2>
+<p>Dear {{ patient_name }},</p>
+
+<p>We attempted to process your payment for the following appointment, but the transaction was unsuccessful:</p>
+
+<ul>
+    <li><strong>Date:</strong> {{ appointment_date }}</li>
+    <li><strong>Time:</strong> {{ appointment_time }}</li>
+    <li><strong>Doctor:</strong> {{ doctor_name }}</li>
+    <li><strong>Type:</strong> {{ consultation_type }}</li>
+    <li><strong>Attempted Payment ID:</strong> {{ payment_id }}</li>
+    <li><strong>Amount:</strong> {{ amount }}</li>
+</ul>
+
+<div style="background: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0; color: #721c24;">
+    <strong>Status:</strong> Payment Failed
+</div>
+
+<p>Your appointment has not been confirmed. Please try to complete the payment again to secure your slot.</p>
+
+<a href="{{ retry_url }}" class="button">Retry Payment</a>
+
+<p>If the issue persists, contact our support team for assistance.</p>
+{% endblock %}

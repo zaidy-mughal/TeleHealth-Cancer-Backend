@@ -1,6 +1,6 @@
 from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
-from dj_rest_auth.serializers import LoginSerializer, PasswordResetSerializer
+from dj_rest_auth.serializers import LoginSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 
@@ -9,14 +9,15 @@ from api.users.models import User
 from api.users.choices import Role
 from api.patients.models import Patient
 from api.patients.utils.fields import LabelChoiceField
+from api.authentication.choices import Purpose
 from api.doctors.choices import Services
 from api.doctors.models import Doctor, Specialization, Service, DoctorService
 from api.authentication.utilities.otp import create_otp_for_user
-from api.authentication.utilities.send_email import send_otp_email
+from api.services.send_email import EmailService
 from api.authentication.validators import (
     validate_email_not_exits,
     validate_dob_not_in_future,
-    validate_otp_for_email,
+    validate_otp,
     validate_password_match,
     validate_email_otp_verified,
     validate_email_exits,
@@ -84,11 +85,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         data["last_name"] = self.validated_data.get("last_name", "")
         data["role"] = self.validated_data.get("role")
 
-        # Patient-specific fields
         data["date_of_birth"] = self.validated_data.get("date_of_birth")
         data["phone_number"] = self.validated_data.get("phone_number", "")
 
-        # Doctor-specific fields
         data["specialization"] = self.validated_data.get("specialization", "")
         data["npi_number"] = self.validated_data.get("npi_number", "")
         data["address"] = self.validated_data.get("address", "")
@@ -103,6 +102,8 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         role = self.validated_data.get("role")
         if role is not None:
             user.role = role
+        # user verify email to login
+        user.is_active = False
         user.save()
 
         if user.role == Role.PATIENT:
@@ -149,6 +150,15 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 {"role": "Role must be 2 (Patient) OR 1 (Doctor)."}
             )
 
+        try:
+            otp_obj = create_otp_for_user(user)
+            EmailService.send_otp_email(user.get_full_name(), user.email, otp_obj.otp)
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to send verification OTP: {str(e)}"}
+            )
+
+
 
 class TeleHealthLoginSerializer(LoginSerializer):
     username = None  # Remove the username
@@ -157,6 +167,14 @@ class TeleHealthLoginSerializer(LoginSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
         user = data.get("user")
+
+        if not user.is_active:
+            raise serializers.ValidationError(
+                {
+                    "detail": "Please verify your email first. Check your inbox/spam for the verification OTP."
+                }
+            )
+
         data["role"] = user.role
         profile_uuid = None
 
@@ -180,22 +198,40 @@ class TeleHealthLoginSerializer(LoginSerializer):
         return data
 
 
-class OTPPasswordResetSerializer(PasswordResetSerializer):
+
+
+class RequestOTPSerializer(serializers.Serializer):
     """
-    Serializer for requesting a password reset via OTP instead of email link.
+    Generic serializer to request or resend OTP for any purpose.
     """
 
-    email = serializers.EmailField(required=True)
+    email = serializers.EmailField()
+    purpose = LabelChoiceField(choices=Purpose.choices)
+
+    def validate_email(self, value):
+        try:
+            User.objects.get(email=value.lower())
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+        return value.lower()
 
     def save(self):
-
         try:
-            email = self.validated_data["email"].lower()
+            email = self.validated_data["email"]
+            purpose = self.validated_data["purpose"]
+
             user = User.objects.get(email=email)
 
-            otp_obj = create_otp_for_user(user)
+            otp_obj = create_otp_for_user(user, purpose=purpose)
 
-            send_otp_email(user, otp_obj.otp)
+            EmailService.send_otp_email(
+                full_name=user.get_full_name(),
+                email=user.email,
+                otp=otp_obj.otp,
+                purpose=purpose,
+            )
+
+            return {"detail": f"OTP sent for {purpose}."}
 
         except User.DoesNotExist:
             raise serializers.ValidationError(
@@ -215,14 +251,28 @@ class OTPVerificationSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get("email").lower()
         otp = attrs.get("otp")
+        purpose = self.context.get("purpose")
 
         try:
-            is_valid, otp_obj = validate_otp_for_email(email, otp)
+            is_valid, otp_obj = validate_otp(email, otp, purpose)
             if not is_valid:
                 raise serializers.ValidationError("Invalid or expired OTP")
 
             otp_obj.is_used = True
             otp_obj.save()
+
+            if purpose == Purpose.choices.EMAIL_VERIFICATION:
+                user = User.objects.get(email=email)
+                user.is_active = True
+                user.save()
+
+                try:
+                    EmailService.send_welcome_email(user.get_full_name(), user.email)
+
+                except Exception as e:
+                    raise serializers.ValidationError(
+                        {"detail": f"Failed to send welcome email: {str(e)}"}
+                    )
 
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email address")
@@ -233,6 +283,11 @@ class OTPVerificationSerializer(serializers.Serializer):
             )
 
         return attrs
+
+    def save(self):
+        """Return appropriate success message based on purpose"""
+
+        return {"detail": "OTP verified successfully!", "verified": True}
 
 
 class PasswordChangeSerializer(serializers.Serializer):
@@ -273,7 +328,6 @@ class PasswordChangeSerializer(serializers.Serializer):
             )
 
 
-# Custom Logout Serializer to bypass the default dj-rest-auth logout
 class TeleHealthLogoutSerializer(serializers.Serializer):
     """
     Serializer for logging out a user.
