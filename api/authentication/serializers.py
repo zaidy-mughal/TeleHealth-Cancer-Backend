@@ -152,12 +152,12 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
 
         try:
             otp_obj = create_otp_for_user(user)
-            EmailService.send_otp_email(user.get_full_name(), user.email, otp_obj.otp)
+            EmailService.send_otp_email(user, otp_obj.otp)
         except Exception as e:
+            user.delete()
             raise serializers.ValidationError(
                 {"detail": f"Failed to send verification OTP: {str(e)}"}
             )
-
 
 
 class TeleHealthLoginSerializer(LoginSerializer):
@@ -198,8 +198,6 @@ class TeleHealthLoginSerializer(LoginSerializer):
         return data
 
 
-
-
 class RequestOTPSerializer(serializers.Serializer):
     """
     Generic serializer to request or resend OTP for any purpose.
@@ -225,10 +223,8 @@ class RequestOTPSerializer(serializers.Serializer):
             otp_obj = create_otp_for_user(user, purpose=purpose)
 
             EmailService.send_otp_email(
-                full_name=user.get_full_name(),
-                email=user.email,
+                user=user,
                 otp=otp_obj.otp,
-                purpose=purpose,
             )
 
             return {"detail": f"OTP sent for {purpose}."}
@@ -261,7 +257,7 @@ class OTPVerificationSerializer(serializers.Serializer):
             otp_obj.is_used = True
             otp_obj.save()
 
-            if purpose == Purpose.choices.EMAIL_VERIFICATION:
+            if purpose == Purpose.EMAIL_VERIFICATION:
                 user = User.objects.get(email=email)
                 user.is_active = True
                 user.save()

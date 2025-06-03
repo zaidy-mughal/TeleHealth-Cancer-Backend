@@ -10,7 +10,7 @@ def generate_otp(length=6):
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
 
-def create_otp_for_user(user, purpose=Purpose.choices.EMAIL_VERIFICATION):
+def create_otp_for_user(user, purpose=Purpose.EMAIL_VERIFICATION):
     """Create a new OTP for the user, deleting any existing ones"""
     OTP.objects.filter(user=user, purpose=purpose).delete()
     otp = generate_otp()

@@ -205,28 +205,34 @@ class VerifyEmailOTPView(APIView):
     def post(self, request):
         try:
             serializer = OTPVerificationSerializer(
-                data=request.data, context={"purpose": Purpose.choices.EMAIL_VERIFICATION}
+                data=request.data, context={"purpose": Purpose.EMAIL_VERIFICATION}
             )
 
             if serializer.is_valid():
                 result = serializer.save()
-                logger.info(f"Email verification successful for email: {request.data.get('email', 'unknown')}")
+                logger.info(
+                    f"Email verification successful for email: {request.data.get('email', 'unknown')}"
+                )
                 return Response(result, status=status.HTTP_200_OK)
 
-            logger.warning(f"Email verification failed - validation errors: {serializer.errors}")
+            logger.warning(
+                f"Email verification failed - validation errors: {serializer.errors}"
+            )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except serializers.ValidationError as e:
             logger.error(f"Validation error in VerifyEmailOTPView: {str(e)}")
             return Response(
-                {"detail": "Invalid data provided for email verification"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Invalid data provided for email verification"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         except Exception as e:
             logger.error(f"Unexpected error in VerifyEmailOTPView: {str(e)}")
             return Response(
-                {"detail": f"An unexpected error occurred during email verification: {str(e)}"},
+                {
+                    "detail": f"An unexpected error occurred during email verification: {str(e)}"
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -242,27 +248,40 @@ class VerifyPasswordResetOTPView(APIView):
     def post(self, request):
         try:
             serializer = OTPVerificationSerializer(
-                data=request.data, context={"purpose": Purpose.choices.PASSWORD_RESET}
+                data=request.data, context={"purpose": Purpose.PASSWORD_RESET}
             )
 
             if serializer.is_valid():
                 result = serializer.save()
-                logger.info(f"Password reset OTP verification successful for email: {request.data.get('email', 'unknown')}")
+                logger.info(
+                    f"Password reset OTP verification successful for email: {request.data.get('email', 'unknown')}"
+                )
                 return Response(result, status=status.HTTP_200_OK)
 
-            logger.warning(f"Password reset OTP verification failed - validation errors: {serializer.errors}")
+            logger.warning(
+                f"Password reset OTP verification failed - validation errors: {serializer.errors}"
+            )
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except serializers.ValidationError as e:
             logger.error(f"Validation error in VerifyPasswordResetOTPView: {str(e)}")
             return Response(
-                {"detail": "Invalid data provided for password reset OTP verification"}, 
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Invalid data provided for password reset OTP verification"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         except Exception as e:
             logger.error(f"Unexpected error in VerifyPasswordResetOTPView: {str(e)}")
             return Response(
-                {"detail": f"An unexpected error occurred during password reset OTP verification: {str(e)}"},
+                {
+                    "detail": f"An unexpected error occurred during password reset OTP verification: {str(e)}"
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+def account_inactive_view(request):
+    return Response(
+        {"detail": "Your account is inactive. Please verify your email."}, status=403
+    )
