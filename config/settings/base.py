@@ -334,7 +334,6 @@ CORS_ALLOW_HEADERS = [
 ]
 
 OTP_EXPIRY_MINUTES = env.int("OTP_EXPIRY_MINUTES", default=2)
-FRONT_END_URL = env("FRONTEND_URL")
 
 # Email settings
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
