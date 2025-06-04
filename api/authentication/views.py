@@ -183,10 +183,11 @@ class VerifyEmailOTPView(APIView):
     """
 
     permission_classes = [AllowAny]
+    serializer_class = OTPVerificationSerializer
 
     def post(self, request):
         try:
-            serializer = OTPVerificationSerializer(
+            serializer = self.serializer_class(
                 data=request.data, context={"purpose": Purpose.EMAIL_VERIFICATION}
             )
 
@@ -226,10 +227,11 @@ class VerifyPasswordResetOTPView(APIView):
     """
 
     permission_classes = [AllowAny]
+    serializer_class = OTPVerificationSerializer
 
     def post(self, request):
         try:
-            serializer = OTPVerificationSerializer(
+            serializer = self.serializer_class(
                 data=request.data, context={"purpose": Purpose.PASSWORD_RESET}
             )
 

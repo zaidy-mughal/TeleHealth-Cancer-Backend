@@ -241,7 +241,7 @@ class RequestOTPSerializer(serializers.Serializer):
                 otp=otp_obj.otp,
             )
 
-            return {"detail": f"OTP sent for {purpose}."}
+            return {"detail": f"One-time Passcode (OTP) has been sent to {email}."}
 
         except User.DoesNotExist:
             raise serializers.ValidationError(
