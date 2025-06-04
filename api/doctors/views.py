@@ -48,13 +48,17 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = DoctorSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = DoctorFilter
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         available_slots = TimeSlot.objects.filter(
             is_booked=False, start_time__gte=timezone.now()
         )
-        return Doctor.objects.prefetch_related(
-            Prefetch("time_slots", queryset=available_slots)
+
+        return (
+            Doctor.objects.filter(time_slots__in=available_slots)
+            .distinct()
+            .prefetch_related(Prefetch("time_slots", queryset=available_slots))
         )
 
     def filter_queryset(self, queryset):
@@ -172,6 +176,8 @@ class TimeSlotBulkDeleteView(APIView):
     """
     API View to bulk delete timeslots.
     """
+
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
 
     def delete(self, request):
         serializer = TimeSlotBulkDeleteSerializer(

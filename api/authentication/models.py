@@ -13,7 +13,6 @@ class OTP(BaseModel):
     is_used = models.BooleanField(db_default=False)
 
     def is_valid(self):
-        """Check if OTP is still valid (2 minutes)"""
         return (timezone.now() - self.created_at) < timezone.timedelta(minutes=2)
 
     class Meta:

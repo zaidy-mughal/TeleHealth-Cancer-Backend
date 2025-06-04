@@ -31,6 +31,7 @@ class TeleHealthRegisterView(RegisterView):
     """
 
     serializer_class = TeleHealthRegisterSerializer
+    permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
 
@@ -57,6 +58,7 @@ class TeleHealthLoginView(LoginView):
     """
 
     serializer_class = TeleHealthLoginSerializer
+    permission_classes = [AllowAny]
 
     def get_response(self):
         response = super().get_response()
@@ -78,12 +80,18 @@ class TeleHealthPasswordResetView(PasswordResetView):
     Custom password reset view that sends OTP instead of reset link
     """
 
+    permission_classes = [AllowAny]
     serializer_class = RequestOTPSerializer
 
     def post(self, request, *args, **kwargs):
         try:
+            print("Request data:", request.data)  # Debugging line to check request data
             serializer = self.get_serializer(data=request.data)
+
             serializer.is_valid(raise_exception=True)
+            print(
+                "Serializer data:", serializer.data
+            )  # Debugging line to check serializer data
             serializer.save()
 
             return Response(
@@ -99,35 +107,12 @@ class TeleHealthPasswordResetView(PasswordResetView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class OTPVerificationView(APIView):
-    """
-    Custom OTP verification view
-    """
-
-    permission_classes = [AllowAny]
-    serializer_class = OTPVerificationSerializer
-
-    def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.serializer_class(data=request.data)
-            if serializer.is_valid():
-                return Response({"detail": "OTP verified successfully"})
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"OTP verification error: {str(e)}")
-            return Response(
-                {"detail": f"Error during OTP verification: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-@method_decorator(csrf_exempt, name="dispatch")
 class PasswordChangeView(APIView):
     """
     Custom password change view
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):
@@ -150,6 +135,7 @@ class PasswordChangeView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthLogoutView(LogoutView):
+    permission_classes = [IsAuthenticated]
     serializer_class = TeleHealthLogoutSerializer
 
     def post(self, request):
@@ -278,10 +264,3 @@ class VerifyPasswordResetOTPView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-def account_inactive_view(request):
-    return Response(
-        {"detail": "Your account is inactive. Please verify your email."}, status=403
-    )

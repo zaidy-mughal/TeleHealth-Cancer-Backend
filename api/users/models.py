@@ -14,6 +14,7 @@ class User(AbstractUser, BaseModel):
     objects = UserManager()
     middle_name = models.CharField(max_length=150, blank=True, default="")
     role = models.IntegerField(choices=Role.choices, default=Role.PATIENT)
+    is_email_verified = models.BooleanField(db_default=False)
 
     class Meta:
         verbose_name = "user"

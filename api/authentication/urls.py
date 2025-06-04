@@ -3,11 +3,11 @@ from api.authentication.views import (
     TeleHealthRegisterView,
     TeleHealthLoginView,
     TeleHealthPasswordResetView,
-    OTPVerificationView,
+    VerifyEmailOTPView,
+    VerifyPasswordResetOTPView,
     PasswordChangeView,
     TeleHealthLogoutView,
     SendOTPView,
-    account_inactive_view,
 )
 
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
@@ -18,17 +18,16 @@ urlpatterns = [
     path("login/", TeleHealthLoginView.as_view(), name="login"),
     path("logout/", TeleHealthLogoutView.as_view(), name="logout"),
     path("otp/send/", SendOTPView.as_view(), name="send_otp"),
-    path("email/otp/verify/", OTPVerificationView.as_view(), name="otp_verify"),
+    path("email/otp/verify/", VerifyEmailOTPView.as_view(), name="otp_verify"),
     path(
         "password/reset/", TeleHealthPasswordResetView.as_view(), name="password_reset"
     ),
     path(
         "password/reset/otp/verify/",
-        OTPVerificationView.as_view(),
+        VerifyPasswordResetOTPView.as_view(),
         name="password_reset_done",
     ),
     path("password/change/", PasswordChangeView.as_view(), name="password_change"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
-    path("accounts/inactive/", account_inactive_view, name="account_inactive"),
 ]

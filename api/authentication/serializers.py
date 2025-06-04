@@ -102,8 +102,6 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
         role = self.validated_data.get("role")
         if role is not None:
             user.role = role
-        # user verify email to login
-        user.is_active = False
         user.save()
 
         if user.role == Role.PATIENT:
@@ -151,7 +149,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
             )
 
         try:
-            otp_obj = create_otp_for_user(user)
+            otp_obj = create_otp_for_user(user, purpose=Purpose.EMAIL_VERIFICATION)
             EmailService.send_otp_email(user, otp_obj.otp)
         except Exception as e:
             user.delete()
@@ -168,7 +166,7 @@ class TeleHealthLoginSerializer(LoginSerializer):
         data = super().validate(attrs)
         user = data.get("user")
 
-        if not user.is_active:
+        if not user.is_email_verified:
             raise serializers.ValidationError(
                 {
                     "detail": "Please verify your email first. Check your inbox/spam for the verification OTP."
@@ -204,14 +202,40 @@ class RequestOTPSerializer(serializers.Serializer):
     """
 
     email = serializers.EmailField()
-    purpose = LabelChoiceField(choices=Purpose.choices)
+    purpose = LabelChoiceField(choices=Purpose.choices, required=True)
 
     def validate_email(self, value):
         try:
-            User.objects.get(email=value.lower())
+            user = User.objects.get(email=value.lower())
+            return value.lower()
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
-        return value.lower()
+
+    def validate(self, attrs):
+        """
+        Validate email and purpose combination
+        """
+        email = attrs.get('email')
+        purpose = attrs.get('purpose')
+        
+        try:
+            user = User.objects.get(email=email)
+            
+            if user.is_email_verified and purpose == Purpose.EMAIL_VERIFICATION:
+                raise serializers.ValidationError({
+                    "email": "User with this email is already verified."
+                })
+            elif not user.is_email_verified and purpose == Purpose.PASSWORD_RESET:
+                raise serializers.ValidationError({
+                    "email": "User with this email must verify their email first."
+                })
+                
+        except User.DoesNotExist:
+            raise serializers.ValidationError({
+                "email": "User with this email does not exist."
+            })
+            
+        return attrs
 
     def save(self):
         try:
@@ -259,11 +283,11 @@ class OTPVerificationSerializer(serializers.Serializer):
 
             if purpose == Purpose.EMAIL_VERIFICATION:
                 user = User.objects.get(email=email)
-                user.is_active = True
+                user.is_email_verified = True
                 user.save()
 
                 try:
-                    EmailService.send_welcome_email(user.get_full_name(), user.email)
+                    EmailService.send_welcome_email(user)
 
                 except Exception as e:
                     raise serializers.ValidationError(
@@ -281,8 +305,6 @@ class OTPVerificationSerializer(serializers.Serializer):
         return attrs
 
     def save(self):
-        """Return appropriate success message based on purpose"""
-
         return {"detail": "OTP verified successfully!", "verified": True}
 
 

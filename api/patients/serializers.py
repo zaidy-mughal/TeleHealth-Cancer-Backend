@@ -370,7 +370,7 @@ class PatientAddictionHistorySerializer(serializers.Serializer):
 class PatientSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(source="user.email")
     first_name = serializers.CharField(source="user.first_name")
-    middle_name = serializers.CharField(source="user.middle_name")
+    middle_name = serializers.CharField(source="user.middle_name", required=False)
     last_name = serializers.CharField(source="user.last_name")
     gender = LabelChoiceField(choices=Gender.choices)
     visit_type = LabelChoiceField(choices=VisitType.choices)

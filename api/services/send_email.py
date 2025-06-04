@@ -1,9 +1,9 @@
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
 import logging
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 logger = logging.getLogger(__name__)
 
@@ -40,14 +40,11 @@ class EmailService:
             context = context or {}
             from_email = from_email or settings.DEFAULT_FROM_EMAIL
 
-            # Render HTML template
             html_template = f"emails/{template_name}.html"
             html_content = render_to_string(html_template, context)
 
-            # Create plain text version by stripping HTML tags
             text_content = strip_tags(html_content)
 
-            # Create email message
             email = EmailMultiAlternatives(
                 subject=subject,
                 body=text_content,
@@ -55,15 +52,12 @@ class EmailService:
                 to=recipient_list,
             )
 
-            # Attach HTML version
             email.attach_alternative(html_content, "text/html")
 
-            # Add attachments if provided
             if attachments:
                 for attachment in attachments:
                     email.attach(*attachment)
 
-            # Send email
             email.send(fail_silently=fail_silently)
 
             logger.info(
@@ -79,7 +73,6 @@ class EmailService:
 
     @staticmethod
     def send_otp_email(user, otp: str) -> bool:
-        """Send OTP email using template"""
         context = {
             "user": user,
             "otp": otp,
@@ -95,15 +88,7 @@ class EmailService:
 
     @staticmethod
     def send_welcome_email(user) -> bool:
-        """Send welcome email to new user"""
-        context = {
-            "user": user,
-            "login_url": (
-                f"{settings.FRONTEND_URL}/login"
-                if hasattr(settings, "FRONTEND_URL")
-                else "#"
-            ),
-        }
+        context = {"user": user}
 
         return EmailService.send_templated_email(
             template_name="welcome",
@@ -113,14 +98,17 @@ class EmailService:
         )
 
     @staticmethod
-    def send_appointment_confirmation_email(user, appointment_details: Dict[str, Any]) -> bool:
-        """Send appointment confirmation email"""
+    def send_appointment_confirmation_email(
+        user, appointment_details: Dict[str, Any], payment_id, amount_paid
+    ) -> bool:
         context = {
             "user": user,
             "appointment": appointment_details,
             "doctor_name": appointment_details.get("doctor_name", "Doctor"),
             "appointment_date": appointment_details.get("date", "Date"),
             "appointment_time": appointment_details.get("time", "Time"),
+            "payment_id": payment_id,
+            "amount_paid": amount_paid,
         }
 
         return EmailService.send_templated_email(
@@ -129,17 +117,19 @@ class EmailService:
             recipient_list=[user.email],
             context=context,
         )
-    
-    
+
     @staticmethod
-    def send_payment_failed_email(user, appointment_details: Dict[str, Any]) -> bool:
-        """Send payment failed email"""
+    def send_payment_failed_email(
+        user, appointment_details: Dict[str, Any], payment_id, amount
+    ) -> bool:
         context = {
             "user": user,
             "appointment": appointment_details,
             "doctor_name": appointment_details.get("doctor_name", "Doctor"),
             "appointment_date": appointment_details.get("date", "Date"),
             "appointment_time": appointment_details.get("time", "Time"),
+            "payment_id": payment_id,
+            "amount": amount,
         }
 
         return EmailService.send_templated_email(

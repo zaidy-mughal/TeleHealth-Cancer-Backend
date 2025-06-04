@@ -49,7 +49,7 @@ def validate_otp(email, otp, purpose):
 
         is_valid = (
             not otp_obj.is_used
-            and otp_obj.created_at >= timezone.now() - timedelta(minutes=2)
+            and otp_obj.is_valid()
         )
         otp_obj.is_used = True
         otp_obj.save()

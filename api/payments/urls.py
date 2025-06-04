@@ -5,6 +5,10 @@ from api.payments.views import (
 )
 
 urlpatterns = [
-    path('stripe/create-payment-intent/', CreatePaymentIntentView.as_view(), name='create-payment-intent'),
-    path('stripe/webhook/', StripeWebhookView.as_view(), name='stripe-webhook'),
+    path(
+        "stripe/create-payment-intent/",
+        CreatePaymentIntentView.as_view(),
+        name="create-payment-intent",
+    ),
+    path("stripe/webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
 ]

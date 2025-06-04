@@ -1,7 +1,10 @@
-{% extends "emails/base_email.html" %} {% block title %}Welcome to TeleHealth{%
-endblock %} {% block content %}
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to TeleHealth{% endblock %}
+
+{% block content %}
 <h2>Welcome to TeleHealth!</h2>
-<p>Dear {{ patient_name }},</p>
+<p>Dear {{ user.get_full_name() }},</p>
 <p>
   Welcome to TeleHealth! We're excited to have you as part of our healthcare
   community.
@@ -14,6 +17,6 @@ endblock %} {% block content %}
   <li>Receive health reminders and tips</li>
 </ul>
 <p>Your account is now active and ready to use.</p>
-<a href="{{ get_started_url }}" class="button">Get Started</a>
+<a href="#" class="button">Get Started</a>
 <p>If you have any questions, our support team is here to help 24/7.</p>
 {% endblock %}

@@ -4,7 +4,6 @@ import logging
 from decimal import Decimal
 from django.db import transaction
 from django.conf import settings
-from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -13,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from api.services.send_email import EmailService
 
 from api.payments.models import AppointmentPayment
 from api.payments.serializers import AppointmentPaymentSerializer
@@ -177,6 +177,19 @@ class StripeWebhookView(APIView):
             if payment.appointment:
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
+            
+            amount_paid = payment.amount/100
+
+            EmailService.send_appointment_confirmation_email(
+                user=payment.appointment.patient.user,
+                appointment_details={
+                    "doctor_name": payment.appointment.time_slot.doctor.name,
+                    "date": payment.appointment.time_slot.start_time.date(),
+                    "time": payment.appointment.time_slot.start_time,
+                },
+                payment_id=payment.id,
+                amount_paid=payment.amount,
+            )
 
             logger.info(f"Payment succeeded: {payment_intent['id']}")
 
@@ -198,6 +211,17 @@ class StripeWebhookView(APIView):
             if payment.appointment:
                 payment.appointment.status = AppointmentStatus.CANCELLED
                 payment.appointment.save(update_fields=["status"])
+
+            EmailService.send_payment_failed_email(
+                user=payment.appointment.patient.user,
+                appointment_details={
+                    "doctor_name": payment.appointment.time_slot.doctor.name,
+                    "date": payment.appointment.time_slot.start_time.date(),
+                    "time": payment.appointment.time_slot.start_time,
+                },
+                payment_id=payment.id,
+                amount=payment.amount,
+            )
 
             logger.info(f"Payment failed: {payment_intent['id']}")
 
