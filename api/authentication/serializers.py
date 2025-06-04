@@ -28,6 +28,7 @@ from api.authentication.validators import (
     validate_name_length,
     validate_doctor_fields,
     validate_patient_fields,
+    validate_email_purpose_for_otp,
 )
 
 
@@ -206,35 +207,24 @@ class RequestOTPSerializer(serializers.Serializer):
 
     def validate_email(self, value):
         try:
-            user = User.objects.get(email=value.lower())
+            user = User.objects.get(email=value)
             return value.lower()
         except User.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
 
     def validate(self, attrs):
-        """
-        Validate email and purpose combination
-        """
-        email = attrs.get('email')
-        purpose = attrs.get('purpose')
-        
+        email = attrs.get("email")
+        purpose = attrs.get("purpose")
+
         try:
             user = User.objects.get(email=email)
-            
-            if user.is_email_verified and purpose == Purpose.EMAIL_VERIFICATION:
-                raise serializers.ValidationError({
-                    "email": "User with this email is already verified."
-                })
-            elif not user.is_email_verified and purpose == Purpose.PASSWORD_RESET:
-                raise serializers.ValidationError({
-                    "email": "User with this email must verify their email first."
-                })
-                
+            validate_email_purpose_for_otp(user, purpose)
+
         except User.DoesNotExist:
-            raise serializers.ValidationError({
-                "email": "User with this email does not exist."
-            })
-            
+            raise serializers.ValidationError(
+                {"email": "User with this email does not exist."}
+            )
+
         return attrs
 
     def save(self):
@@ -314,18 +304,10 @@ class PasswordChangeSerializer(serializers.Serializer):
     new_password2 = serializers.CharField(min_length=8, required=True)
 
     def validate_email(self, email):
-        exist = validate_email_exits(self, email)
-        if not exist:
-            raise serializers.ValidationError(
-                {"email": "User with this email does not exist."}
-            )
+        validate_email_exits(self, email)
 
-        self.user = User.objects.get(email=email.lower())
-        verified_otp = validate_email_otp_verified(self, self.user)
-        if not verified_otp:
-            raise serializers.ValidationError(
-                {"email": "You must verify your OTP before changing password"}
-            )
+        user = User.objects.get(email=email.lower())
+        validate_email_otp_verified(self, user)
 
         return email
 

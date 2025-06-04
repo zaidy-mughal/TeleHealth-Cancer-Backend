@@ -3,6 +3,7 @@ from rest_framework import serializers
 from django.utils import timezone
 from datetime import timedelta
 from django.core.exceptions import ValidationError
+from api.authentication.choices import Purpose
 
 from api.users.models import User
 from api.authentication.models import OTP
@@ -47,10 +48,7 @@ def validate_otp(email, otp, purpose):
         if otp_obj is None:
             return False, None
 
-        is_valid = (
-            not otp_obj.is_used
-            and otp_obj.is_valid()
-        )
+        is_valid = not otp_obj.is_used and otp_obj.is_valid()
         otp_obj.is_used = True
         otp_obj.save()
 
@@ -141,3 +139,14 @@ def validate_patient_fields(self, data):
             {"phone_number": "Phone number cannot be empty"}
         )
     return data
+
+
+def validate_email_purpose_for_otp(user, purpose):
+    if user.is_email_verified and purpose == Purpose.EMAIL_VERIFICATION:
+        raise serializers.ValidationError(
+            {"email": "User with this email is already verified."}
+        )
+    elif not user.is_email_verified and purpose == Purpose.PASSWORD_RESET:
+        raise serializers.ValidationError(
+            {"email": "User with this email must verify their email first."}
+        )

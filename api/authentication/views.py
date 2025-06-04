@@ -85,13 +85,9 @@ class TeleHealthPasswordResetView(PasswordResetView):
 
     def post(self, request, *args, **kwargs):
         try:
-            print("Request data:", request.data)  # Debugging line to check request data
             serializer = self.get_serializer(data=request.data)
 
             serializer.is_valid(raise_exception=True)
-            print(
-                "Serializer data:", serializer.data
-            )  # Debugging line to check serializer data
             serializer.save()
 
             return Response(
