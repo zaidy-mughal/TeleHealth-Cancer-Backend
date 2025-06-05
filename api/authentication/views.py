@@ -131,7 +131,7 @@ class PasswordChangeView(APIView):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthLogoutView(LogoutView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     serializer_class = TeleHealthLogoutSerializer
 
     def post(self, request):

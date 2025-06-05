@@ -81,7 +81,7 @@ class EmailService:
 
         return EmailService.send_templated_email(
             template_name="otp_reset",
-            subject="Password Reset OTP - TeleHealth",
+            subject="One-Time Passcode - TeleHealth",
             recipient_list=[user.email],
             context=context,
         )

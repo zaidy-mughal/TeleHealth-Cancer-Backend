@@ -183,7 +183,7 @@ class StripeWebhookView(APIView):
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,
                 appointment_details={
-                    "doctor_name": payment.appointment.time_slot.doctor.name,
+                    "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
                     "time": payment.appointment.time_slot.start_time,
                 },
@@ -215,7 +215,7 @@ class StripeWebhookView(APIView):
             EmailService.send_payment_failed_email(
                 user=payment.appointment.patient.user,
                 appointment_details={
-                    "doctor_name": payment.appointment.time_slot.doctor.name,
+                    "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
                     "time": payment.appointment.time_slot.start_time,
                 },

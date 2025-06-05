@@ -22,8 +22,7 @@ class MaritalStatus(models.IntegerChoices):
 class Gender(models.IntegerChoices):
     MALE = 0, "Male"
     FEMALE = 1, "Female"
-    NON_BINARY = 2, "Non-binary"
-    PREFER_NOT_TO_SAY = 3, "Prefer not to say"
+    OTHER = 2, "Other"
 
 
 class TreatmentType(models.IntegerChoices):
