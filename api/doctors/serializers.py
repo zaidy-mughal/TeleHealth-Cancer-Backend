@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.db import transaction
+from django.utils import timezone
 
 from api.doctors.choices import Services, StateChoices
 from api.doctors.models import (
@@ -62,7 +63,9 @@ class TimeSlotBulkDeleteSerializer(serializers.Serializer):
     Serializer for bulk deleting timeslots.
     """
 
-    time_slot_uuids = serializers.ListField(child=serializers.UUIDField(), write_only=True)
+    time_slot_uuids = serializers.ListField(
+        child=serializers.UUIDField(), write_only=True
+    )
 
     def validate_time_slot_uuids(self, value):
         if not value:
@@ -76,15 +79,19 @@ class TimeSlotBulkDeleteSerializer(serializers.Serializer):
         existing_uuids = set(
             str(uuid) for uuid in existing_timeslots.values_list("uuid", flat=True)
         )
-        print(existing_uuids, "====")
         provided_uuids = set(str(uuid) for uuid in value)
-        print(provided_uuids, "=====")
         # Check for invalid UUIDs
         invalid_uuids = provided_uuids - existing_uuids
-        print(invalid_uuids, "++++")
         if invalid_uuids:
             raise serializers.ValidationError(
                 f"Some UUIDs are invalid or don't exist: {list(invalid_uuids)}"
+            )
+
+        booked_timeslots = existing_timeslots.filter(is_booked=True)
+        if booked_timeslots.exists():
+            raise serializers.ValidationError(
+                "Cannot delete timeslots that are already booked."
+                " Some of the provided timeslots are already booked."
             )
 
         return value
@@ -98,7 +105,7 @@ class TimeSlotBulkDeleteSerializer(serializers.Serializer):
             doctor = self.context["request"].user.doctor
 
             deleted_count, _ = TimeSlot.objects.filter(
-                uuid__in=uuids, doctor=doctor
+                uuid__in=uuids, doctor=doctor, is_booked=False
             ).delete()
 
             return deleted_count
@@ -176,7 +183,12 @@ class DoctorSerializer(serializers.ModelSerializer):
         return [item["state"] for item in serializer.data]
 
     def get_time_slots(self, obj):
-        return TimeSlotSerializer(obj.time_slots.all(), many=True).data
+        available_slots = obj.time_slots.filter(
+            is_booked=False,
+            start_time__gte=timezone.now()
+        ).order_by("start_time")
+        
+        return TimeSlotSerializer(available_slots, many=True).data
 
     def validate_user(self, user):
         return validate_user_role(self, user)

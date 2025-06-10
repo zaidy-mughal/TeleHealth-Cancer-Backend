@@ -83,7 +83,7 @@ class TimeSlotListAPIView(APIView):
             doctor_uuid = kwargs.get("doctor_uuid")
             doctor = Doctor.objects.get(uuid=doctor_uuid)
 
-            time_slots = TimeSlot.objects.filter(doctor=doctor, is_booked=False)
+            time_slots = TimeSlot.objects.filter(doctor=doctor)
             serializer = self.serializer_class(time_slots, many=True)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
