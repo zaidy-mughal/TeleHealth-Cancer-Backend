@@ -29,6 +29,15 @@ def validate_user_role(self, user):
     return user
 
 
+def validate_booked_slot(value):
+    """
+    Validate that the time slot is not already booked.
+    """
+    if value.is_booked:
+        raise serializers.ValidationError("This time slot is already booked.")
+    return value
+
+
 def validate_bulk_time_slots(value):
     if not value:
         raise serializers.ValidationError("At least one time slot must be provided.")

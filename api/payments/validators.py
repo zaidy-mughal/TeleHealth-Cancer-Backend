@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from api.appointments.models import Appointment
+from api.payments.models import AppointmentPayment
+from api.payments.choices import PaymentStatusChoices
 
 
 def validate_currency(value):
@@ -27,3 +29,22 @@ def validate_appointment(appointment_uuid):
         return appointment
     except Appointment.DoesNotExist:
         raise serializers.ValidationError("Appointment does not exist.")
+
+
+def validate_pending_payments(timeslot):
+    """Check if there are pending payments for the timeslot."""
+
+    pending_payments = AppointmentPayment.objects.filter(
+        time_slot=timeslot,
+        status__in=[
+            PaymentStatusChoices.REQUIRES_PAYMENT_METHOD,
+            PaymentStatusChoices.REQUIRES_CONFIRMATION,
+            PaymentStatusChoices.PROCESSING,
+        ],
+    )
+
+    if pending_payments.exists():
+        raise serializers.ValidationError(
+            "There's already a pending payment for this timeslot."
+        )
+    return timeslot

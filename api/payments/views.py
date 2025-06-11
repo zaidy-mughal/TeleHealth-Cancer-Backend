@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
+from api.doctors.models import TimeSlot
 from api.services.send_email import EmailService
 
 from api.payments.models import AppointmentPayment
@@ -41,19 +42,16 @@ class CreatePaymentIntentView(APIView):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            # Extract data from serializer
             validated_data = serializer.validated_data
-            appointment_uuid = validated_data.get("appointment_uuid")
+            time_slot_uuid = validated_data.get("time_slot_uuid")
             amount = validated_data.get("amount")
             currency = validated_data.get("currency", "usd")
             receipt_email = validated_data.get("receipt_email", None)
 
-            # Before the query, add:
             if not hasattr(request.user, "patient"):
                 return Response({"error": "User has no patient profile"}, status=400)
-            appointment = Appointment.objects.get(
-                uuid=appointment_uuid, patient=request.user.patient
-            )
+            
+            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
             # Convert amount to cents (Stripe requirement)
             amount_decimal = Decimal(str(amount))
@@ -64,13 +62,10 @@ class CreatePaymentIntentView(APIView):
                 amount=amount_cents,
                 currency=currency,
                 metadata={
-                    "appointment_uuid": str(appointment_uuid),
-                    "patient_id": str(appointment.patient.id),
-                    "doctor_id": (
-                        str(appointment.time_slot.doctor.id)
-                        if appointment.time_slot
-                        else None
-                    ),
+                    "time_slot_uuid": str(time_slot_uuid),
+                    "patient_id": str(request.user.patient.id),
+                    "doctor_id": str(time_slot.doctor.id),
+                    "time_slot_start": time_slot.start_time.isoformat(),
                 },
                 receipt_email=receipt_email,
                 automatic_payment_methods={
@@ -79,7 +74,6 @@ class CreatePaymentIntentView(APIView):
             )
 
             payment = serializer.save(
-                appointment=appointment,
                 stripe_payment_intent_id=payment_intent.id,
                 stripe_client_secret=payment_intent.client_secret,
                 amount=amount_decimal,
@@ -150,7 +144,6 @@ class StripeWebhookView(APIView):
             logger.error("Invalid signature in Stripe webhook")
             return Response({"error": "Invalid signature"}, status=400)
 
-        # Handle events
         if event["type"] == "payment_intent.succeeded":
             self._handle_payment_succeeded(event["data"]["object"])
         elif event["type"] == "payment_intent.payment_failed":
@@ -174,11 +167,24 @@ class StripeWebhookView(APIView):
             payment.status = PaymentStatusChoices.SUCCEEDED
             payment.save(update_fields=["status"])
 
-            if payment.appointment:
+            if not payment.appointment:
+                time_slot = payment.time_slot
+                time_slot.is_booked = True
+
+                time_slot.save()
+
+                appointment = Appointment.objects.create(
+                    patient=payment.patient,
+                    time_slot=time_slot,
+                    status=AppointmentStatus.CONFIRMED
+                )
+
+                payment.appointment = appointment
+                payment.save()
+
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
-            
-            amount_paid = payment.amount/100
+
 
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,

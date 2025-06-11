@@ -19,11 +19,24 @@ class AppointmentPayment(BaseModel):
         default=PaymentStatusChoices.REQUIRES_PAYMENT_METHOD,
     )
 
-    # appointment association
+    time_slot = models.ForeignKey(
+        "doctors.TimeSlot",
+        on_delete=models.CASCADE,
+        related_name="payment_reservations",
+        help_text="Reserved timeslot for this payment",
+        null=True,
+        blank=True,
+    )
+
+    patient = models.ForeignKey(
+        "patients.Patient", on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+    )
+
     appointment = models.ForeignKey(
         "appointments.Appointment",
         on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         related_name="payments",
     )
 
