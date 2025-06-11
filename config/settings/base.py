@@ -304,7 +304,9 @@ REST_AUTH_SERIALIZERS = {
 CSRF_TRUSTED_ORIGINS = [
     "https://telehealth-cancer-backend-production-d04a.up.railway.app",
     "https://silver-gnome-a981ca.netlify.app",
-    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
     "http://localhost:8000",
 ]
 
@@ -346,8 +348,11 @@ STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
-    "https://telehealth-cancer-backend-production.up.railway.app",
-    "http://localhost:3000",
+    "https://telehealth-cancer-backend-production-d04a.up.railway.app",
+    "https://silver-gnome-a981ca.netlify.app",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
     "http://localhost:8000",
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = []

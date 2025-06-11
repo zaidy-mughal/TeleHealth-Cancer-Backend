@@ -16,7 +16,7 @@ class Appointment(BaseModel):
         Patient, on_delete=models.RESTRICT, related_name="appointments"
     )
     time_slot = models.OneToOneField(
-        TimeSlot, on_delete=models.RESTRICT, related_name="appointments"
+        TimeSlot, on_delete=models.RESTRICT, related_name="appointments", null=True, blank=True
     )
     status = models.IntegerField(choices=Status.choices, db_default=Status.PENDING)
 
