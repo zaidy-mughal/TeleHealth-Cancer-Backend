@@ -5,6 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
+from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf import settings
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -129,25 +131,50 @@ class PasswordChangeView(APIView):
             )
 
 
+# @method_decorator(csrf_exempt, name="dispatch")
+# class TeleHealthLogoutView(LogoutView):
+#     permission_classes = [AllowAny]
+#     serializer_class = TeleHealthLogoutSerializer
+
+#     def post(self, request):
+#         try:
+#             serializer = self.serializer_class(data=request.data)
+#             serializer.is_valid(raise_exception=True)
+
+#             response = super().logout(request)
+#             return response
+
+#         except serializers.ValidationError as e:
+#             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+#         except Exception as e:
+#             return Response(
+#                 {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
+
+
 @method_decorator(csrf_exempt, name="dispatch")
 class TeleHealthLogoutView(LogoutView):
+    """
+    Custom logout view that clears JWT cookies
+    """
     permission_classes = [AllowAny]
-    serializer_class = TeleHealthLogoutSerializer
 
-    def post(self, request):
+    def logout(self, request):
         try:
-            serializer = self.serializer_class(data=request.data)
-            serializer.is_valid(raise_exception=True)
-
             response = super().logout(request)
+            
+            response.delete_cookie("telehealth-access-token")
+            response.delete_cookie("telehealth-refresh-token")
+            
+            response.data = {"detail": "Successfully logged out."}
             return response
-
-        except serializers.ValidationError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+            
         except Exception as e:
             return Response(
-                {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                {"detail": f"Logout error: {str(e)}"}, 
+                status=status.HTTP_400_BAD_REQUEST
             )
 
 
@@ -262,3 +289,24 @@ class VerifyPasswordResetOTPView(APIView):
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        
+
+
+class CookieTokenRefreshView(TokenRefreshView):
+    """
+    Custom token refresh view that uses cookies
+    """
+    
+    def post(self, request, *args, **kwargs):
+        refresh_token = request.COOKIES.get(settings.REST_AUTH["JWT_AUTH_REFRESH_COOKIE"])
+        
+        if refresh_token:
+            request.data["refresh"] = refresh_token
+            
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            # New access token is automatically set in cookie by dj-rest-auth
+            response.data = {"detail": "Token refreshed successfully"}
+            
+        return response

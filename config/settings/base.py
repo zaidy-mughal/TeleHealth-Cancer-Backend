@@ -217,8 +217,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Rest framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
-        # "rest_framework.authentication.SessionAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -250,37 +250,68 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
+    "AUTH_TOKEN_CLASSES": (
+        "rest_framework_simplejwt.tokens.AccessToken",),
 }
 
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_HTTPONLY": True,
     "JWT_AUTH_COOKIE": "core-app-auth",
+
     "JWT_AUTH_REFRESH_COOKIE": "core-app-refresh",
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
+
+    "USE_JWT": True,
+    "JWT_AUTH_HTTPONLY": True,  # Enable HTTP-only cookies
+    "JWT_AUTH_SECURE": True,    # Use secure cookies in production
+    "JWT_AUTH_COOKIE": "telehealth-access-token",
+    "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
+    "JWT_AUTH_SAMESITE": "Lax",  # or "Strict" for more security
+    "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
+    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
+    "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
+    "REGISTER_SERIALIZER": "api.authentication.serializers.TeleHealthRegisterSerializer",
+    "JWT_AUTH_RETURN_EXPIRATION": True,
 }
 
-REST_AUTH_REGISTER_SERIALIZERS = {
-    "REGISTER_SERIALIZER": "api.authentication.serializers.CustomRegisterSerializer",
-}
+
+# REST_AUTH_REGISTER_SERIALIZERS = {
+    
+# }
 
 REST_AUTH_SERIALIZERS = {
     "LOGIN_SERIALIZER": "api.authentication.serializers.CustomLoginSerializer",
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
+    "REGISTER_SERIALIZER": "api.authentication.serializers.CustomRegisterSerializer",
 }
+
+
+# # For development, set these to False
+# if DEBUG:
+#     SESSION_COOKIE_SECURE = False
+#     CSRF_COOKIE_SECURE = False
+#     REST_AUTH["JWT_AUTH_SECURE"] = False
+
+
+
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [
-    "https://telehealth-cancer-backend-production.up.railway.app",
+    "https://telehealth-cancer-backend-production-d04a.up.railway.app",
+    "https://silver-gnome-a981ca.netlify.app",
     "http://localhost:3000",
     "http://localhost:8000",
 ]
 
 CSRF_COOKIE_NAME = "csrftoken"
 CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
+CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = True
 CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = "None"
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
@@ -295,14 +326,21 @@ CSRF_EXEMPT_PATHS = [
 ]
 
 # Security settings
+# Cookie settings
+SESSION_COOKIE_SECURE = True  # Use HTTPS in production
+CSRF_COOKIE_SECURE = True    # Use HTTPS in production
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # CSRF token needs to be accessible to JS
+
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = False
+
 
 # Static files configuration
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
@@ -331,6 +369,7 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    "cookie",
 ]
 
 OTP_EXPIRY_MINUTES = env.int("OTP_EXPIRY_MINUTES", default=2)
