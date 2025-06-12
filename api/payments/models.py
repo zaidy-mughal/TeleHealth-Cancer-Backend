@@ -1,6 +1,5 @@
 from django.db import models
 from api.base_models import BaseModel
-from api.appointments.models import Appointment
 from api.payments.choices import PaymentStatusChoices
 
 

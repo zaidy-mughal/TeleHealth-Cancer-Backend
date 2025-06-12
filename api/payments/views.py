@@ -41,7 +41,7 @@ class CreatePaymentIntentView(APIView):
         try:
             if not hasattr(request.user, "patient"):
                 return Response({"error": "User has no patient profile"}, status=400)
-            
+
             serializer = AppointmentPaymentSerializer(
                 data=request.data, context={"request": request}
             )
@@ -163,8 +163,9 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
+            payment.payment_method_id = payment_intent.get("payment_method", None)
             payment.status = PaymentStatusChoices.SUCCEEDED
-            payment.save(update_fields=["status"])
+            payment.save(update_fields=["status", "payment_method_id"])
 
             if not payment.appointment:
                 time_slot = payment.time_slot
@@ -191,7 +192,7 @@ class StripeWebhookView(APIView):
                     "date": payment.appointment.time_slot.start_time.date(),
                     "time": payment.appointment.time_slot.start_time,
                 },
-                payment_id=payment.id,
+                payment_id=payment.payment_method_id,
                 amount_paid=payment.amount,
             )
 
