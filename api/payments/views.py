@@ -38,7 +38,9 @@ class CreatePaymentIntentView(APIView):
     @transaction.atomic
     def post(self, request):
         try:
-            serializer = AppointmentPaymentSerializer(data=request.data)
+            serializer = AppointmentPaymentSerializer(
+                data=request.data, context={"request": request}
+            )
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -50,7 +52,7 @@ class CreatePaymentIntentView(APIView):
 
             if not hasattr(request.user, "patient"):
                 return Response({"error": "User has no patient profile"}, status=400)
-            
+
             time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
             # Convert amount to cents (Stripe requirement)
@@ -127,6 +129,7 @@ class StripeWebhookView(APIView):
     """
     Handle Stripe webhooks for payment status updates.
     """
+
     authentication_classes = []
     permission_classes = []
 
@@ -176,7 +179,7 @@ class StripeWebhookView(APIView):
                 appointment = Appointment.objects.create(
                     patient=payment.patient,
                     time_slot=time_slot,
-                    status=AppointmentStatus.CONFIRMED
+                    status=AppointmentStatus.CONFIRMED,
                 )
 
                 payment.appointment = appointment
@@ -184,7 +187,6 @@ class StripeWebhookView(APIView):
 
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
-
 
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,
