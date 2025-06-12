@@ -231,7 +231,7 @@ REST_AUTH = {
     "JWT_AUTH_SECURE": True,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
-    # "JWT_AUTH_SAMESITE": "Lax",  # or "Strict" for more security
+    "JWT_AUTH_SAMESITE": "None",  # or "Strict" for more security
     "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
