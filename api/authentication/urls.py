@@ -8,11 +8,10 @@ from api.authentication.views import (
     PasswordChangeView,
     TeleHealthLogoutView,
     SendOTPView,
-    CookieTokenRefreshView,
 )
 
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-
+from rest_framework_simplejwt.views import TokenVerifyView
+from dj_rest_auth.jwt_auth import get_refresh_view
 
 urlpatterns = [
     path("register/", TeleHealthRegisterView.as_view(), name="register"),
@@ -29,6 +28,6 @@ urlpatterns = [
         name="password_reset_done",
     ),
     path("password/change/", PasswordChangeView.as_view(), name="password_change"),
-    path("token/refresh/", CookieTokenRefreshView.as_view(), name="token_refresh"),
+    path("token/refresh/", get_refresh_view().as_view(), name="token_refresh"),
     path("token/verify/", TokenVerifyView.as_view(), name="token_verify"),
 ]

@@ -30,28 +30,6 @@ SECRET_KEY = env("DJANGO_SECRET_KEY")
 RAILWAY_STATIC_URL = env("RAILWAY_STATIC_URL", default=None)
 # Be careful with this in production
 
-# Configure CORS
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOW_METHODS = [
-    "DELETE",
-    "GET",
-    "OPTIONS",
-    "PATCH",
-    "POST",
-    "PUT",
-]
-CORS_ALLOW_HEADERS = [
-    "accept",
-    "accept-encoding",
-    "authorization",
-    "content-type",
-    "dnt",
-    "origin",
-    "user-agent",
-    "x-csrftoken",
-    "x-requested-with",
-]
 
 # Application definition
 DJANGO_APPS = [
@@ -61,7 +39,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "django.contrib.postgres",  # <-- needed for RandomUUID & other PG-specific features
+    "django.contrib.postgres",  # needed for RandomUUID & other PG-specific features
 ]
 
 THIRD_PARTY_APPS = [
@@ -75,7 +53,7 @@ THIRD_PARTY_APPS = [
     "dj_rest_auth",
     "dj_rest_auth.registration",
     "drf_spectacular",
-    "corsheaders",  # Add CORS headers support
+    "corsheaders",
 ]
 
 PROJECT_APPS = [
@@ -87,32 +65,20 @@ PROJECT_APPS = [
     "api.payments",
 ]
 
-# dj-rest-auth
-SITE_ID = 1
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "corsheaders.middleware.CorsMiddleware",  # Add CORS middleware
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    # "api.middleware.csrf.CustomCsrfMiddleware",  # Replace default CSRF middleware
+    "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-]
-
-# API CSRF Settings
-API_CSRF_EXEMPT_PATHS = [
-    "/admin/",
-    "/api/auth/",
-    "/api/users/",
-    "/api/patients/",
-    "/api/doctors/",
-    "/api/appointments/",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -207,8 +173,10 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
+# Static files configuration
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
@@ -253,42 +221,25 @@ SIMPLE_JWT = {
     "ALGORITHM": "HS256",
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
-    "AUTH_TOKEN_CLASSES": (
-        "rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
     "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_COOKIE": "core-app-auth",
-
-    "JWT_AUTH_REFRESH_COOKIE": "core-app-refresh",
-    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
-
-    "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": True,  # Enable HTTP-only cookies
-    "JWT_AUTH_SECURE": True,    # Use secure cookies in production
+    "JWT_AUTH_SECURE": True,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
-    "JWT_AUTH_SAMESITE": "Lax",  # or "Strict" for more security
+    # "JWT_AUTH_SAMESITE": "Lax",  # or "Strict" for more security
     "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
     "REGISTER_SERIALIZER": "api.authentication.serializers.TeleHealthRegisterSerializer",
-    "JWT_AUTH_RETURN_EXPIRATION": True,
+    "JWT_AUTH_RETURN_EXPIRATION": False,  # this will not return expiration time in the response of login
 }
 
-
-# REST_AUTH_REGISTER_SERIALIZERS = {
-    
-# }
-
-REST_AUTH_SERIALIZERS = {
-    "LOGIN_SERIALIZER": "api.authentication.serializers.CustomLoginSerializer",
-    "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
-    "REGISTER_SERIALIZER": "api.authentication.serializers.CustomRegisterSerializer",
-}
+SITE_ID = 1
 
 
 # # For development, set these to False
@@ -296,8 +247,6 @@ REST_AUTH_SERIALIZERS = {
 #     SESSION_COOKIE_SECURE = False
 #     CSRF_COOKIE_SECURE = False
 #     REST_AUTH["JWT_AUTH_SECURE"] = False
-
-
 
 
 # CSRF settings
@@ -320,6 +269,7 @@ CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 # Disable CSRF for API endpoints
 CSRF_EXEMPT_PATHS = [
+    "/admin/",
     "/api/auth/",
     "/api/users/",
     "/api/patients/",
@@ -330,22 +280,12 @@ CSRF_EXEMPT_PATHS = [
 # Security settings
 # Cookie settings
 SESSION_COOKIE_SECURE = True  # Use HTTPS in production
-CSRF_COOKIE_SECURE = True    # Use HTTPS in production
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = False  # CSRF token needs to be accessible to JS
-
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = False
 
 
-# Static files configuration
-STATIC_URL = "/static/"
-STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-
-
-# CORS settings
-CORS_ALLOW_ALL_ORIGINS = True
+# Configure CORS
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://telehealth-cancer-backend-production-d04a.up.railway.app",

@@ -194,8 +194,6 @@ class TeleHealthLoginSerializer(LoginSerializer):
             raise serializers.ValidationError({"detail": f"Error Logging in {e}."})
 
         data["profile_uuid"] = profile_uuid
-        data.pop("access", None)
-        data.pop("refresh", None)
 
         return data
 
