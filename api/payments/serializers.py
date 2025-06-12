@@ -21,7 +21,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
     stripe_client_secret = serializers.CharField(read_only=True)
     payment_status = serializers.CharField(source="get_status_display", read_only=True)
 
-    time_slot_uuid = serializers.UUIDField(required=True)
+    time_slot_uuid = serializers.UUIDField(required=True, write_only=True)
 
     currency = serializers.CharField(max_length=3, default="usd")
     amount = serializers.DecimalField(

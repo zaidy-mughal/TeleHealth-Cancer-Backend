@@ -34,6 +34,7 @@ class CreatePaymentIntentView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentPaymentSerializer
 
     @transaction.atomic
     def post(self, request):
@@ -76,9 +77,6 @@ class CreatePaymentIntentView(APIView):
             payment = serializer.save(
                 stripe_payment_intent_id=payment_intent.id,
                 stripe_client_secret=payment_intent.client_secret,
-                amount=amount_decimal,
-                currency=currency,
-                receipt_email=receipt_email or "",
             )
 
             return Response(AppointmentPaymentSerializer(payment).data)
