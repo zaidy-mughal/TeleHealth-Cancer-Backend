@@ -38,6 +38,9 @@ class CreatePaymentIntentView(APIView):
     @transaction.atomic
     def post(self, request):
         try:
+            if not hasattr(request.user, "patient"):
+                return Response({"error": "User has no patient profile"}, status=400)
+            
             serializer = AppointmentPaymentSerializer(
                 data=request.data, context={"request": request}
             )
@@ -50,16 +53,11 @@ class CreatePaymentIntentView(APIView):
             currency = validated_data.get("currency", "usd")
             receipt_email = validated_data.get("receipt_email", None)
 
-            if not hasattr(request.user, "patient"):
-                return Response({"error": "User has no patient profile"}, status=400)
-
             time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
-            # Convert amount to cents (Stripe requirement)
             amount_decimal = Decimal(str(amount))
             amount_cents = int(amount_decimal * 100)
 
-            # Create Stripe Payment Intent
             payment_intent = stripe.PaymentIntent.create(
                 amount=amount_cents,
                 currency=currency,
