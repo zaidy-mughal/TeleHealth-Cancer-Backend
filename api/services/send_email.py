@@ -138,3 +138,45 @@ class EmailService:
             recipient_list=[user.email],
             context=context,
         )
+
+    @staticmethod
+    def send_refund_success_email(
+        user, appointment_details, refund_amount, original_amount
+    ):
+        context = {
+            "user": user,
+            "appointment": appointment_details,
+            "doctor_name": appointment_details.get("doctor_name", "Doctor"),
+            "appointment_date": appointment_details.get("date", "Date"),
+            "appointment_time": appointment_details.get("time", "Time"),
+            "refund_amount": refund_amount,
+            "original_amount": original_amount,
+        }
+
+        return EmailService.send_templated_email(
+            template_name="refund_success",
+            subject="Refund Successful - TeleHealth",
+            recipient_list=[user.email],
+            context=context,
+        )
+
+    @staticmethod
+    def send_refund_failed_email(
+        user, appointment_details, refund_amount, failure_reason
+    ):
+        context = {
+            "user": user,
+            "appointment": appointment_details,
+            "doctor_name": appointment_details.get("doctor_name", "Doctor"),
+            "appointment_date": appointment_details.get("date", "Date"),
+            "appointment_time": appointment_details.get("time", "Time"),
+            "refund_amount": refund_amount,
+            "failure_reason": failure_reason,
+        }
+
+        return EmailService.send_templated_email(
+            template_name="refund_failed",
+            subject="Refund Failed - TeleHealth",
+            recipient_list=[user.email],
+            context=context,
+        )

@@ -16,8 +16,11 @@ from api.doctors.models import TimeSlot
 from api.services.send_email import EmailService
 
 from api.payments.models import AppointmentPayment
-from api.payments.serializers import AppointmentPaymentSerializer
-from api.payments.choices import PaymentStatusChoices
+from api.payments.serializers import (
+    AppointmentPaymentSerializer,
+    AppointmentRefundSerializer,
+)
+from api.payments.choices import PaymentStatusChoices, RefundPaymentChoices
 from api.appointments.models import Appointment
 from api.appointments.choices import Status as AppointmentStatus
 
@@ -121,6 +124,88 @@ class CreatePaymentIntentView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
+class AppointmentRefundView(APIView):
+    """
+    Create refund for appointment payment with policy validation.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = AppointmentRefundSerializer
+
+    @transaction.atomic
+    def post(self, request):
+        try:
+            serializer = AppointmentRefundSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            appointment_payment_uuid = serializer.validated_data[
+                "appointment_payment_uuid"
+            ]
+            payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
+
+            refund_record = serializer.save()
+
+            refund_amount_cents = int(refund_record.amount * 100)
+
+            stripe_refund = stripe.Refund.create(
+                payment_intent=payment.stripe_payment_intent_id,
+                amount=refund_amount_cents,
+                reason="requested_by_customer",
+                metadata={
+                    "refund_id": str(refund_record.uuid),
+                    "appointment_id": str(payment.appointment.uuid),
+                    "patient_id": str(payment.patient.uuid),
+                },
+            )
+
+            refund_record.status = RefundPaymentChoices.REQUIRES_ACTION
+            refund_record.save(update_fields=["status"])
+
+            if not payment.appointment or not payment.time_slot:
+                return Response(
+                    {
+                        "error": "Payment does not have an associated appointment or time slot"
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            payment.appointment.status = AppointmentStatus.CANCELLED
+            payment.appointment.save(update_fields=["status"])
+            payment.time_slot.is_booked = False
+            payment.time_slot.save(update_fields=["is_booked"])
+
+            return Response(
+                {
+                    "message": "Refund processed successfully",
+                    "refund_details": AppointmentRefundSerializer(refund_record).data,
+                    "stripe_refund_id": stripe_refund.id,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except AppointmentPayment.DoesNotExist:
+            return Response(
+                {"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND
+            )
+        except stripe.error.StripeError as e:
+            if "refund_record" in locals():
+                refund_record.status = PaymentStatusChoices.CANCELED
+                refund_record.save(update_fields=["status"])
+            logger.error(f"Stripe refund error: {str(e)}")
+            return Response(
+                {"error": f"Refund failed: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            logger.error(f"Unexpected error in refund processing: {str(e)}")
+            return Response(
+                {"error": "An unexpected error occurred"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
 class StripeWebhookView(APIView):
     """
     Handle Stripe webhooks for payment status updates.
@@ -141,20 +226,58 @@ class StripeWebhookView(APIView):
             return Response({"error": "Value error in construct_event"}, status=400)
         except stripe.error.SignatureVerificationError:
             logger.error("Invalid signature in Stripe webhook")
-            return Response({"error": "Invalid signature"}, status=400)
+            return Response(
+                {"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if event["type"] == "payment_intent.succeeded":
+        if event["type"] == "payment_intent.requires_action":
+            self._handle_payment_requires_action(event["data"]["object"])
+        elif event["type"] == "payment_intent.succeeded":
             self._handle_payment_succeeded(event["data"]["object"])
         elif event["type"] == "payment_intent.payment_failed":
             self._handle_payment_failed(event["data"]["object"])
         elif event["type"] == "payment_intent.canceled":
             self._handle_payment_canceled(event["data"]["object"])
-        elif event["type"] == "payment_intent.requires_action":
-            self._handle_payment_requires_action(event["data"]["object"])
+
+        # Refund Events
+        elif event["type"] == "refund.created":
+            self._handle_refund_created(event["data"]["object"])
+        elif event["type"] == "refund.updated":
+            self._handle_refund_updated(event["data"]["object"])
+        elif event["type"] == "charge.refunded":
+            self._handle_charge_refunded(event["data"]["object"])
+        elif event["type"] == "refund.failed":
+            self._handle_refund_failed(event["data"]["object"])
+
+        # TODO: Dispute Events (related to refunds/chargebacks)
+        # elif event["type"] == "charge.dispute.created":
+        #     self._handle_dispute_created(event["data"]["object"])
+        # elif event["type"] == "charge.dispute.updated":
+        #     self._handle_dispute_updated(event["data"]["object"])
+        # elif event["type"] == "charge.dispute.closed":
+        #     self._handle_dispute_closed(event["data"]["object"])
+
         else:
             logger.info(f"Unhandled event type: {event['type']}")
 
-        return Response({"error": "Invalid signature"}, status=200)
+        return Response({"status": "success"}, status=status.HTTP_200_OK)
+
+    def _handle_payment_requires_action(self, payment_intent):
+        """Handle payment that requires additional action."""
+        try:
+            payment = AppointmentPayment.objects.get(
+                stripe_payment_intent_id=payment_intent["id"]
+            )
+
+            payment.status = PaymentStatusChoices.REQUIRES_ACTION
+            payment.save(update_fields=["status"])
+
+            logger.info(f"Payment requires action: {payment_intent['id']}")
+
+        except AppointmentPayment.DoesNotExist:
+            logger.error(
+                f"Payment not found for payment_intent: {payment_intent['id']}"
+            )
 
     def _handle_payment_succeeded(self, payment_intent):
         """Handle successful payment."""
@@ -170,7 +293,6 @@ class StripeWebhookView(APIView):
             if not payment.appointment:
                 time_slot = payment.time_slot
                 time_slot.is_booked = True
-
                 time_slot.save()
 
                 appointment = Appointment.objects.create(
@@ -210,11 +332,11 @@ class StripeWebhookView(APIView):
                 stripe_payment_intent_id=payment_intent["id"]
             )
 
-            payment.status = PaymentStatusChoices.CANCELED
+            payment.status = PaymentStatusChoices.FAILED
             payment.save(update_fields=["status"])
 
             if payment.appointment:
-                payment.appointment.status = AppointmentStatus.CANCELLED
+                payment.appointment.status = AppointmentStatus.FAILED
                 payment.appointment.save(update_fields=["status"])
 
             EmailService.send_payment_failed_email(
@@ -256,19 +378,128 @@ class StripeWebhookView(APIView):
                 f"Payment not found for payment_intent: {payment_intent['id']}"
             )
 
-    def _handle_payment_requires_action(self, payment_intent):
-        """Handle payment that requires additional action."""
+    # REFUND HANDLING METHODS
+    def _handle_charge_refunded(self, charge_obj):
+        """Handle when a charge is refunded - main refund event."""
+        logger.info(f"Handling charge.refunded for charge: {charge_obj['id']}")
+
         try:
+            payment_intent_id = charge_obj.get("payment_intent")
+            if not payment_intent_id:
+                logger.error("No payment_intent found in charge object")
+                return
+
             payment = AppointmentPayment.objects.get(
-                stripe_payment_intent_id=payment_intent["id"]
+                stripe_payment_intent_id=payment_intent_id
             )
 
-            payment.status = PaymentStatusChoices.REQUIRES_ACTION
-            payment.save(update_fields=["status"])
+            refunds = charge_obj.get("refunds", {}).get("data", [])
+            if not refunds:
+                logger.warning(f"No refunds found in charge object: {charge_obj['id']}")
+                return
 
-            logger.info(f"Payment requires action: {payment_intent['id']}")
+            refund_data = refunds[0]
+            refund_status = refund_data["status"]
+
+            status_mapping = {
+                "pending": RefundPaymentChoices.REQUIRES_ACTION,
+                "succeeded": RefundPaymentChoices.SUCCEEDED,
+                "failed": RefundPaymentChoices.FAILED,
+                "canceled": RefundPaymentChoices.CANCELED,
+            }
+
+            mapped_status = status_mapping.get(
+                refund_status, RefundPaymentChoices.REQUIRES_ACTION
+            )
+
+            # there should be only one refund per charge
+            refund_record = payment.refunds.first()
+
+            if refund_record:
+                refund_record.status = mapped_status
+                refund_record.save(update_fields=["status"])
+
+                logger.info(
+                    f"Updated refund record {refund_record.id} to status: {mapped_status}"
+                )
+
+                # Handle successful refund
+                if mapped_status == RefundPaymentChoices.SUCCEEDED:
+                    payment.status = PaymentStatusChoices.REFUNDED
+                    payment.save(update_fields=["status"])
+                    logger.info(
+                        f"Payment {payment.id} marked as refunded due to charge refund"
+                    )
+                    # Send confirmation email
+                    EmailService.send_refund_success_email(
+                        user=payment.appointment.patient.user,
+                        appointment_details={
+                            "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                            "date": payment.appointment.time_slot.start_time.date(),
+                            "time": payment.appointment.time_slot.start_time,
+                        },
+                        refund_amount=refund_record.amount,
+                        original_amount=payment.amount,
+                    )
+            else:
+                logger.error(f"No refund record found for payment {payment.id}")
 
         except AppointmentPayment.DoesNotExist:
-            logger.error(
-                f"Payment not found for payment_intent: {payment_intent['id']}"
+            logger.error(f"Payment not found for payment_intent: {payment_intent_id}")
+        except Exception as e:
+            logger.error(f"Error in _handle_charge_refunded: {str(e)}")
+
+    def _handle_refund_created(self, refund_obj):
+        """Handle refund creation."""
+        logger.info(f"Handling refund.created for refund: {refund_obj['id']}")
+
+    def _handle_refund_updated(self, refund_obj):
+        """Handle refund status updates."""
+        logger.info(f"Handling refund.updated for refund: {refund_obj['id']}")
+
+    def _handle_refund_failed(self, refund_obj):
+        """Handle failed refund."""
+        logger.info(f"Handling refund.failed for refund: {refund_obj['id']}")
+
+        try:
+            charge_id = refund_obj.get("charge")
+            if not charge_id:
+                logger.error("No charge found in refund object")
+                return
+
+            charge = stripe.Charge.retrieve(charge_id)
+            payment_intent_id = charge.payment_intent
+
+            payment = AppointmentPayment.objects.get(
+                stripe_payment_intent_id=payment_intent_id
             )
+
+            if payment.refunds.exists():
+                refund_record = payment.refunds.first()
+                refund_record.status = RefundPaymentChoices.FAILED
+                refund_record.save(update_fields=["status"])
+
+                if payment.appointment:
+                    EmailService.send_refund_failed_email(
+                        user=payment.appointment.patient.user,
+                        appointment_details={
+                            "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                            "date": payment.appointment.time_slot.start_time.date(),
+                            "time": payment.appointment.time_slot.start_time,
+                        },
+                        refund_amount=refund_record.amount,
+                        failure_reason=refund_obj.get(
+                            "failure_reason", "Unknown error in while refunding payment"
+                        ),
+                    )
+            else:
+                logger.error(f"No refund record found for payment {payment.id}")
+
+        except AppointmentPayment.DoesNotExist:
+            logger.error(f"Payment not found for refund {refund_obj['id']}")
+        except stripe.error.StripeError as e:
+            logger.error(
+                f"Error retrieving charge for refund {refund_obj['id']}: {str(e)}"
+            )
+        except Exception as e:
+            logger.error(f"Error in _handle_refund_failed: {str(e)}")

@@ -1,0 +1,29 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Refund Successful - TeleHealth{% endblock %}
+
+{% block content %}
+<h2>Refund Processed Successfully</h2>
+<p>Dear {{ user.get_full_name }},</p>
+<p>Your refund has been successfully processed for the following appointment:</p>
+
+<ul>
+    <li><strong>Date:</strong> {{ appointment_date }}</li>
+    <li><strong>Time:</strong> {{ appointment_time }}</li>
+    <li><strong>Doctor:</strong> {{ doctor_name }}</li>
+    <li><strong>Original Payment:</strong> ${{ original_amount }}</li>
+    <li><strong>Refund Amount:</strong> ${{ refund_amount }}</li>
+</ul>
+
+<div style="background: #d4edda; padding: 15px; border: 1px solid #c3e6cb; border-radius: 4px; margin: 20px 0; color: #155724;">
+    <strong>Status:</strong> Refund Successful
+</div>
+
+<p>The refund will appear in your original payment method within 5-10 business days.</p>
+
+<p>Your appointment has been cancelled and the time slot is now available for other patients.</p>
+
+<p>If you have any questions about this refund, please contact our support team.</p>
+
+<p>We hope to serve you again in the future!</p>
+{% endblock %}
