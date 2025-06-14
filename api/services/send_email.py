@@ -1,5 +1,6 @@
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.core.mail import send_mail
 from django.conf import settings
 from django.utils.html import strip_tags
 import logging
@@ -138,3 +139,20 @@ class EmailService:
             recipient_list=[user.email],
             context=context,
         )
+
+    
+    @staticmethod
+    def send_appointment_reschedule_email(user, appointment_details, fee_paid):
+        """
+        Send an email when an appointment is rescheduled.
+        """
+        subject = "Appointment Rescheduled Successfully"
+        message = f"""
+        Dear {user.get_full_name()},
+        Your appointment with {appointment_details.get('doctor_name', 'Doctor')} has been rescheduled to {appointment_details.get('date', 'Date')} at {appointment_details.get('time', 'Time')}.
+        A rescheduling fee of ${fee_paid} has been charged.
+        Thank you!
+        """
+        from_email = getattr(settings, "DEFAULT_FROM_EMAIL", "from@example.com")
+        send_mail(subject, message, from_email, [user.email], fail_silently=False)
+        return True

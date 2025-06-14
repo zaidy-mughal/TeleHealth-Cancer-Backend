@@ -1,17 +1,18 @@
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.generics import CreateAPIView, RetrieveAPIView
+from rest_framework.generics import CreateAPIView, RetrieveAPIView, UpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 
 from django.core.exceptions import ValidationError
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from drf_spectacular.utils import extend_schema
+
 
 from api.appointments.serializers import (
     AppointmentSerializer,
     AppointmentDetailSerializer,
     DoctorAppointmentSerializer,
+    RescheduleAppointmentSerializer,
 )
 from django.shortcuts import get_object_or_404
 from api.appointments.models import Appointment
@@ -19,6 +20,7 @@ from api.doctors.permissions import IsDoctorOrAdmin
 from api.patients.permissions import IsPatientOrAdmin
 
 import logging
+from drf_spectacular.utils import extend_schema
 
 logger = logging.getLogger(__name__)
 
@@ -100,3 +102,31 @@ class DoctorAppointmentListView(RetrieveAPIView):
                 {"error": f"Failed to retrieve doctor appointments: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+@extend_schema(
+    tags=["Appointments"],
+    responses=RescheduleAppointmentSerializer,
+    description="API for rescheduling an appointment by UUID.",
+)
+class RescheduleAppointmentView(UpdateAPIView):
+    """
+    API view to reschedule an existing appointment by UUID.
+    """
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    serializer_class = RescheduleAppointmentSerializer
+    lookup_field = "uuid"
+
+    def get_object(self):
+        uuid = self.kwargs["uuid"]
+        return get_object_or_404(Appointment, uuid=uuid)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        logger.info(f"Rescheduling completed for appointment {instance.uuid}: {serializer.data}")
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def perform_update(self, serializer):
+        serializer.save()

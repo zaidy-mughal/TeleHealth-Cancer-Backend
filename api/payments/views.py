@@ -170,20 +170,30 @@ class StripeWebhookView(APIView):
             if not payment.appointment:
                 time_slot = payment.time_slot
                 time_slot.is_booked = True
-
                 time_slot.save()
-
                 appointment = Appointment.objects.create(
                     patient=payment.patient,
                     time_slot=time_slot,
                     status=AppointmentStatus.CONFIRMED,
                 )
-
                 payment.appointment = appointment
                 payment.save()
-
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
+            # Handle rescheduling payment success
+            elif payment.appointment.reschedule_fee_paid and payment.amount == payment.appointment.reschedule_fee_paid:
+                payment.appointment.status = AppointmentStatus.CONFIRMED
+                payment.appointment.save(update_fields=["status"])
+                EmailService.send_appointment_reschedule_email(
+                    user=payment.appointment.patient.user,
+                    appointment_details={
+                        "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                        "date": payment.appointment.time_slot.start_time.date(),
+                        "time": payment.appointment.time_slot.start_time,
+                    },
+                    fee_paid=payment.amount,
+                )
+                logger.info(f"Rescheduling payment succeeded for appointment {payment.appointment.uuid}")
 
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,
