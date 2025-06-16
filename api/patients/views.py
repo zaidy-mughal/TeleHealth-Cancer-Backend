@@ -276,3 +276,6 @@ class PatientRetreiveView(RetrieveUpdateAPIView):
 
     def get_object(self):
         return self.request.user.patient
+
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
