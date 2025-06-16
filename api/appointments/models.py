@@ -20,7 +20,6 @@ class Appointment(BaseModel):
     )
     status = models.IntegerField(choices=Status.choices, db_default=Status.PENDING)
 
-    reschedule_fee_paid = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=None)
 
     def __str__(self):
         return f"{self.time_slot.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.time_slot.start_time} - {self.time_slot.end_time}"
