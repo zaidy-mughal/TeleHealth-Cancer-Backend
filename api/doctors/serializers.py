@@ -174,7 +174,6 @@ class DoctorSerializer(serializers.ModelSerializer):
     def get_services(self, obj):
         services = obj.doctor_services.all()
         serializer = DoctorServiceSerializer(services, many=True)
-        print(serializer.data)
         return [item["service"] for item in serializer.data]
 
     def get_states(self, obj):
