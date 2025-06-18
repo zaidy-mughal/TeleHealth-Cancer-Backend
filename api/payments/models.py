@@ -60,7 +60,7 @@ class RefundPolicy(BaseModel):
 
     name = models.CharField(max_length=100)
     refund_type = models.IntegerField(
-        max_length=20, choices=RefundPolicyChoices.choices
+        choices=RefundPolicyChoices.choices
     )
     hours_before_min = models.PositiveIntegerField(
         help_text="Minimum hours before the appointment to apply this refund policy"
