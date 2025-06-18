@@ -1,6 +1,10 @@
 from django.db import models
 from api.base_models import BaseModel
-from api.payments.choices import PaymentStatusChoices
+from api.payments.choices import (
+    PaymentStatusChoices,
+    RefundPolicyChoices,
+    RefundPaymentChoices,
+)
 
 
 class AppointmentPayment(BaseModel):
@@ -22,13 +26,16 @@ class AppointmentPayment(BaseModel):
         "doctors.TimeSlot",
         on_delete=models.CASCADE,
         related_name="payment_reservations",
-        help_text="Reserved timeslot for this payment",
         null=True,
         blank=True,
     )
 
     patient = models.ForeignKey(
-        "patients.Patient", on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+        "patients.Patient",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True,
     )
 
     appointment = models.ForeignKey(
@@ -44,3 +51,60 @@ class AppointmentPayment(BaseModel):
 
     def __str__(self):
         return f"Payment for Appointment {self.appointment} - {self.status}"
+
+
+class RefundPolicy(BaseModel):
+    """
+    Refund policy for appointments
+    """
+
+    name = models.CharField(max_length=100)
+    refund_type = models.IntegerField(
+        max_length=20, choices=RefundPolicyChoices.choices
+    )
+    hours_before_min = models.PositiveIntegerField(
+        help_text="Minimum hours before the appointment to apply this refund policy"
+    )
+    hours_before_max = models.PositiveIntegerField(
+        help_text="Maximum hours before the appointment to apply this refund policy"
+    )
+    refund_percentage = models.DecimalField(
+        max_digits=5, decimal_places=2, default=100.00
+    )
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.get_refund_type_display()}"
+
+
+class AppointmentPaymentRefund(BaseModel):
+    """
+    Model to store appointment payment refund details.
+    """
+
+    appointment_payment = models.ForeignKey(
+        AppointmentPayment,
+        on_delete=models.CASCADE,
+        related_name="refunds",
+        help_text="The payment that is being refunded",
+    )
+
+    refund_policy = models.ForeignKey(
+        RefundPolicy,
+        on_delete=models.SET_NULL,
+        related_name="refunds",
+        help_text="Refund policy applied to this refund",
+        null=True,
+        blank=True,
+    )
+
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.IntegerField(
+        choices=RefundPaymentChoices.choices,
+        default=RefundPaymentChoices.REQUIRES_ACTION,
+    )
+
+    reason = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"Refund for Payment {self.appointment_payment} - {self.status}"

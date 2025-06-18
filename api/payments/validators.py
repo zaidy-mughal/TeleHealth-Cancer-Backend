@@ -48,3 +48,22 @@ def validate_pending_payments(timeslot):
             "There's already a pending payment for this timeslot."
         )
     return timeslot
+
+
+def validate_appointment_payment(payment_uuid):
+    """Validate that the payment exists and is valid for the appointment."""
+
+    try:
+        payment = AppointmentPayment.objects.get(uuid=payment_uuid)
+
+        if payment.status != PaymentStatusChoices.SUCCEEDED:
+            raise serializers.ValidationError("Only succeeded payments can be refunded")
+
+        if not payment.appointment:
+            raise serializers.ValidationError("Payment has no associated appointment")
+
+        if payment.refunds.filter(status=PaymentStatusChoices.SUCCEEDED).exists():
+            raise serializers.ValidationError("Payment already has a succeeded refund")
+
+    except AppointmentPayment.DoesNotExist:
+        raise serializers.ValidationError("Payment not found")
