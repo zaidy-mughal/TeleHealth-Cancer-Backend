@@ -514,3 +514,12 @@ class StripeWebhookView(APIView):
             )
         except Exception as e:
             logger.error(f"Error in _handle_refund_failed: {str(e)}")
+
+
+class AppointmentPaymentUUIDView(APIView):
+    def get(self, request, appointment_uuid):
+        try:
+            payment = AppointmentPayment.objects.get(appointment_uuid=appointment_uuid)
+            return Response({"appointment_payment_uuid": str(payment.uuid)})
+        except AppointmentPayment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)

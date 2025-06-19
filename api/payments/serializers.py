@@ -58,6 +58,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "uuid",
+            "appointment_uuid",
             "stripe_payment_intent_id",
             "stripe_client_secret",
             "amount",

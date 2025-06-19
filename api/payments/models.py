@@ -5,7 +5,8 @@ from api.payments.choices import (
     RefundPolicyChoices,
     RefundPaymentChoices,
 )
-
+from django.core.exceptions import ObjectDoesNotExist
+from api.appointments.models import Appointment
 
 class AppointmentPayment(BaseModel):
     """
@@ -46,12 +47,38 @@ class AppointmentPayment(BaseModel):
         related_name="payments",
     )
 
+    appointment_uuid = models.UUIDField(
+        null=True,
+        blank=True,
+        help_text="UUID of the related appointment",
+        db_index=True,
+    )    
+    
     payment_method_id = models.CharField(max_length=255, blank=True)
     receipt_email = models.EmailField(blank=True)
 
     def __str__(self):
         return f"Payment for Appointment {self.appointment} - {self.status}"
 
+    def save(self, *args, **kwargs):
+        if self.appointment_id and not self.appointment_uuid:
+            try:
+                # Load appointment using appointment_id if not already set
+                if not self.appointment:
+                    self.appointment = Appointment.objects.get(id=self.appointment_id)
+                if self.appointment and hasattr(self.appointment, 'uuid'):
+                    self.appointment_uuid = self.appointment.uuid
+                else:
+                    # Debugging: Log if appointment or uuid is missing
+                    print(f"Warning: No appointment or uuid for appointment_id {self.appointment_id}")
+            except ObjectDoesNotExist:
+                print(f"Warning: Appointment with id {self.appointment_id} does not exist")
+        elif self.appointment and (self.appointment_uuid is None or self.appointment_uuid != self.appointment.uuid):
+            if hasattr(self.appointment, 'uuid'):
+                self.appointment_uuid = self.appointment.uuid
+            else:
+                print(f"Warning: Appointment object has no uuid attribute")
+        super().save(*args, **kwargs)
 
 class RefundPolicy(BaseModel):
     """
