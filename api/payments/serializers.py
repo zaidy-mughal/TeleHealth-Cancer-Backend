@@ -1,3 +1,6 @@
+import logging
+
+
 from rest_framework import serializers
 from decimal import Decimal
 from datetime import timedelta
@@ -8,7 +11,12 @@ from api.payments.models import (
     AppointmentPayment,
     RefundPolicy,
     AppointmentPaymentRefund,
+    Appointment,
 )
+
+
+
+logger = logging.getLogger(__name__)
 
 from api.patients.utils.fields import LabelChoiceField
 from api.payments.validators import (
@@ -73,6 +81,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "uuid",
+            "appointment_uuid",
             "stripe_payment_intent_id",
             "stripe_client_secret",
             "payment_status",
@@ -113,8 +122,48 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             time_slot=time_slot, patient=patient, **validated_data
         )
 
+        try:
+            appointment = Appointment.objects.get(time_slot=time_slot, patient=patient)
+            if hasattr(appointment, 'uuid'):
+                appointment_payment.appointment_uuid = appointment.uuid
+            else:
+                logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
+        except Appointment.DoesNotExist:
+            appointment = Appointment.objects.create(time_slot=time_slot, patient=patient, status=1)
+            if hasattr(appointment, 'uuid'):
+                appointment_payment.appointment_uuid = appointment.uuid
+            else:
+                logger.warning("Appointment object has no uuid attribute for new appointment_id: %s", appointment.id)
+        appointment_payment.save(update_fields=['appointment_uuid'])
+
         return appointment_payment
 
+    def update(self, instance, validated_data):
+        time_slot_uuid = validated_data.get("time_slot_uuid", instance.time_slot.uuid)
+        if time_slot_uuid != instance.time_slot.uuid:
+            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
+            instance.time_slot = time_slot
+    
+        request = self.context.get("request")
+        if request and hasattr(request.user, "patient"):
+            instance.patient = request.user.patient
+    
+        from api.appointments.models import Appointment
+        try:
+            appointment = Appointment.objects.get(time_slot=instance.time_slot, patient=instance.patient)
+            if hasattr(appointment, 'uuid'):
+                instance.appointment_uuid = appointment.uuid
+            else:
+                logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
+        except Appointment.DoesNotExist:
+            logger.warning("Appointment not found for time_slot and patient")
+    
+        instance.amount = validated_data.get('amount', instance.amount)
+        instance.currency = validated_data.get('currency', instance.currency)
+        instance.receipt_email = validated_data.get('receipt_email', instance.receipt_email)
+        instance.payment_method_id = validated_data.get('payment_method_id', instance.payment_method_id)
+        instance.save(update_fields=['appointment_uuid', 'time_slot', 'patient', 'amount', 'currency', 'receipt_email', 'payment_method_id'])
+        return instance
 
 class AppointmentRefundSerializer(serializers.ModelSerializer):
     """

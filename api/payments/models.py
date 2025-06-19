@@ -69,8 +69,7 @@ class AppointmentPayment(BaseModel):
                 if self.appointment and hasattr(self.appointment, 'uuid'):
                     self.appointment_uuid = self.appointment.uuid
                 else:
-                    # Debugging: Log if appointment or uuid is missing
-                    print(f"Warning: No appointment or uuid for appointment_id {self.appointment_id}")
+                    logger.warning("No appointment or uuid found for appointment_id: %s", self.appointment_id)
             except ObjectDoesNotExist:
                 print(f"Warning: Appointment with id {self.appointment_id} does not exist")
         elif self.appointment and (self.appointment_uuid is None or self.appointment_uuid != self.appointment.uuid):
