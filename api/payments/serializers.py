@@ -38,6 +38,7 @@ from api.doctors.validators import (
 class AppointmentPaymentSerializer(serializers.ModelSerializer):
     """
     Serializer for AppointmentPayment without nested details.
+    Added a create and update method for the appointment_uuid field.
     """
 
     stripe_payment_intent_id = serializers.CharField(read_only=True)
@@ -134,7 +135,8 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
                 appointment_payment.appointment_uuid = appointment.uuid
             else:
                 logger.warning("Appointment object has no uuid attribute for new appointment_id: %s", appointment.id)
-        appointment_payment.save(update_fields=['appointment_uuid'])
+        appointment_payment.appointment = appointment  
+        appointment_payment.save(update_fields=['appointment', 'appointment_uuid'])
 
         return appointment_payment
 
@@ -143,11 +145,11 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
         if time_slot_uuid != instance.time_slot.uuid:
             time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
             instance.time_slot = time_slot
-    
+
         request = self.context.get("request")
         if request and hasattr(request.user, "patient"):
             instance.patient = request.user.patient
-    
+
         from api.appointments.models import Appointment
         try:
             appointment = Appointment.objects.get(time_slot=instance.time_slot, patient=instance.patient)
@@ -157,7 +159,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
                 logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
         except Appointment.DoesNotExist:
             logger.warning("Appointment not found for time_slot and patient")
-    
+
         instance.amount = validated_data.get('amount', instance.amount)
         instance.currency = validated_data.get('currency', instance.currency)
         instance.receipt_email = validated_data.get('receipt_email', instance.receipt_email)
