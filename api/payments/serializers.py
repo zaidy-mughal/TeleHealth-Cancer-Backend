@@ -165,7 +165,7 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
         else:
             # 100% refund
             return RefundPolicy.objects.filter(
-                is_active=True, hours_before_min=24, hours_before_max__isnull=True
+                is_active=True, hours_before_min=24, hours_before_max=99999 # is_null
             ).first()
 
     def validate(self, attrs):
