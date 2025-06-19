@@ -143,9 +143,6 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def validate_appointment_payment_uuid(self, value):
-        validate_appointment_payment(value)
-
     def _get_applicable_refund_policy(self, appointment_time):
         now = timezone.now()
         time_until_appointment = appointment_time - now
@@ -169,29 +166,34 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         """Validate refund eligibility and find applicable policy"""
-        appointment_payment_uuid = attrs["appointment_payment_uuid"]
-        payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
+        try:
+            appointment_payment_uuid = attrs["appointment_payment_uuid"]
+            validate_appointment_payment(appointment_payment_uuid)
 
-        if not payment.appointment or not payment.appointment.time_slot:
-            raise serializers.ValidationError("Invalid appointment or time slot")
+            payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
 
-        appointment_time = payment.appointment.time_slot.start_time
+            if not payment.appointment or not payment.appointment.time_slot:
+                raise serializers.ValidationError("Invalid appointment or time slot")
 
-        applicable_policy = self._get_applicable_refund_policy(appointment_time)
+            appointment_time = payment.appointment.time_slot.start_time
 
-        if not applicable_policy:
-            raise serializers.ValidationError("No active refund policy found")
+            applicable_policy = self._get_applicable_refund_policy(appointment_time)
 
-        refund_amount = payment.amount * (applicable_policy.refund_percentage / 100)
+            if not applicable_policy:
+                raise serializers.ValidationError("No active refund policy found")
 
-        if refund_amount <= 0:
-            raise serializers.ValidationError("No refund available based on policy")
+            refund_amount = payment.amount * (applicable_policy.refund_percentage / 100)
 
-        attrs["_payment"] = payment
-        attrs["_applicable_policy"] = applicable_policy
-        attrs["_refund_amount"] = refund_amount
+            if refund_amount <= 0:
+                raise serializers.ValidationError("No refund available based on policy")
 
-        return attrs
+            attrs["_payment"] = payment
+            attrs["_applicable_policy"] = applicable_policy
+            attrs["_refund_amount"] = refund_amount
+
+            return attrs
+        except AppointmentPayment.DoesNotExist:
+            raise serializers.ValidationError("Appointment payment not found.")
 
     def create(self, validated_data):
         """Create refund record with applicable policy"""
