@@ -21,6 +21,7 @@ from api.doctors.serializers import (
     TimeSlotBulkDeleteSerializer,
     TimeSlotSerializer,
     LicenseInfoSerializer,
+    BulkTimeSlotCreateSerializer,
 )
 from api.doctors.filters import DoctorFilter
 from api.doctors.permissions import IsDoctorOrAdmin
@@ -253,5 +254,42 @@ class LicenseInfoCreateAPIView(APIView):
             logger.error(f"Error creating license information: {str(e)}")
             return Response(
                 {"error": f"Failed to create License Info: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class BulkTimeSlotCreateAPIView(APIView):
+    """
+    API view to handle bulk time slot creation for multiple months.
+    """
+
+    permission_classes = [IsDoctorOrAdmin]
+    serializer_class = BulkTimeSlotCreateSerializer
+
+    def post(self, request, *args, **kwargs):
+        try:
+            serializer = BulkTimeSlotCreateSerializer(
+                data=request.data, context={"request": request}
+            )
+
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+            created_slots = serializer.create_time_slots()
+
+            return Response(
+                {
+                    "message": f"Successfully created {len(created_slots)} time slots",
+                    "created_count": len(created_slots),
+                    "months_generated": serializer.validated_data["no_of_months"],
+                },
+                status=status.HTTP_201_CREATED,
+            )
+
+        except Exception as e:
+            logger.error(f"Error creating bulk time slots: {str(e)}")
+            return Response(
+                {"error": f"Failed to create time slots: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
