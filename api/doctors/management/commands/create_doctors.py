@@ -40,6 +40,11 @@ def generate_license_number(state):
 class Command(BaseCommand):
     help = 'Creates doctor accounts for all U.S. states with different services'
 
+        
+    def add_arguments(self, parser):
+        parser.add_argument('--noinput', action='store_false', help='Ignore user prompts')
+
+    
     @transaction.atomic
     def handle(self, *args, **options):
         counter = 1
