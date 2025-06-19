@@ -157,6 +157,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
                 instance.appointment_uuid = appointment.uuid
             else:
                 logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
+            instance.appointment = appointment
         except Appointment.DoesNotExist:
             logger.warning("Appointment not found for time_slot and patient")
 
@@ -164,7 +165,8 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
         instance.currency = validated_data.get('currency', instance.currency)
         instance.receipt_email = validated_data.get('receipt_email', instance.receipt_email)
         instance.payment_method_id = validated_data.get('payment_method_id', instance.payment_method_id)
-        instance.save(update_fields=['appointment_uuid', 'time_slot', 'patient', 'amount', 'currency', 'receipt_email', 'payment_method_id'])
+        instance.save(update_fields=['appointment', 'appointment_uuid', 'time_slot', 'patient',
+                                     'amount', 'currency', 'receipt_email', 'payment_method_id'])
         return instance
 
 class AppointmentRefundSerializer(serializers.ModelSerializer):
