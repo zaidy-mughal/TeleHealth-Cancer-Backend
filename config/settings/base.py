@@ -63,6 +63,7 @@ PROJECT_APPS = [
     "api.doctors",
     "api.appointments",
     "api.payments",
+    'api.medical_records',
 ]
 
 
