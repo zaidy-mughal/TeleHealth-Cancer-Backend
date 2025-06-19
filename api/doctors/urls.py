@@ -9,6 +9,7 @@ from api.doctors.views import (
     LicenseInfoCreateAPIView,
     TimeSlotCreateAPIView,
     TimeSlotBulkDeleteView,
+    BulkTimeSlotCreateAPIView,
 )
 
 
@@ -27,6 +28,7 @@ urlpatterns = [
         name="time-slot-list-create",
     ),
     path("timeslots/create/", TimeSlotCreateAPIView.as_view(), name="time-slot-create"),
+    path("timeslots/bulk-create/", BulkTimeSlotCreateAPIView.as_view(), name="time-slot-bulk-create"),
     path(
         "timeslots/delete/", TimeSlotBulkDeleteView.as_view(), name="time-slot-delete"
     ),
