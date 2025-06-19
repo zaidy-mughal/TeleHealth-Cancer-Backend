@@ -143,8 +143,9 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def validate_appointment_payment_uuid(self, value):
-        validate_appointment_payment(value)
+    # def validate_appointment_payment_uuid(self, value):
+    #     pass
+    #     # 
 
     def _get_applicable_refund_policy(self, appointment_time):
         now = timezone.now()
@@ -170,6 +171,7 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Validate refund eligibility and find applicable policy"""
         appointment_payment_uuid = attrs["appointment_payment_uuid"]
+        validate_appointment_payment(appointment_payment_uuid)
         payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
 
         if not payment.appointment or not payment.appointment.time_slot:

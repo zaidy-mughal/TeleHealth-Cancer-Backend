@@ -21,7 +21,7 @@ def validate_appointment(appointment_uuid):
         appointment = Appointment.objects.get(uuid=appointment_uuid)
 
         if (
-            appointment.status == 1 or appointment.status == 2
+            appointment.status == 1 or appointment.status == 2 
         ):  # 1 is confirmed and 2 is completed
             raise serializers.ValidationError(
                 "Cannot create payment for an appointment that is not confirmed."
