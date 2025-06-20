@@ -294,6 +294,8 @@ class StripeWebhookView(APIView):
                 time_slot = payment.time_slot
                 time_slot.is_booked = True
                 time_slot.save()
+                print(f"Time slot {time_slot.uuid} booked successfully.")
+                print(f"time_slot.is_booked: {time_slot.is_booked}")
                 appointment = Appointment.objects.create(
                     patient=payment.patient,
                     time_slot=time_slot,
