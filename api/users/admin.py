@@ -14,6 +14,7 @@ class UserAdmin(BaseUserAdmin):
         "last_name",
         "get_role_display",
         "is_active",
+        "is_email_verified",
         "is_staff",
         "created_at",
     )

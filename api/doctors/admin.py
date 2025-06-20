@@ -27,8 +27,8 @@ class TimeSlotAdmin(admin.ModelAdmin):
 
     search_fields = ("doctor__user__first_name", "doctor__user__last_name")
     ordering = ("-created_at",)
-
-
+    list_filter = ["is_booked", "doctor"]
+   
 @admin.register(Doctor)
 class DoctorAdmin(admin.ModelAdmin):
     list_display = ["id", "uuid", "get_name", "get_email", "get_specialization"]

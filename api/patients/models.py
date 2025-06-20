@@ -290,3 +290,25 @@ class PatientCareProvider(models.Model):
         verbose_name = "Patient Care Provider"
         verbose_name_plural = "Patient Care Providers"
         db_table = "patient_care_provider"
+
+
+# TODO class PatientMedicalRecord(BaseModel):
+#     """
+#     Patient Medical Record model to store patient's medical records.
+#     """
+
+#     patient = models.ForeignKey(
+#         Patient, on_delete=models.CASCADE, related_name="medical_records"
+#     )
+
+#     iodine_allergy = models.JSONField()
+    
+
+
+#     def __str__(self):
+#         return f"{self.patient.user.get_full_name()} - {self.record.name}"
+
+#     class Meta:
+#         verbose_name = "Patient Medical Record"
+#         verbose_name_plural = "Patient Medical Records"
+#         db_table = "patient_medical_record"
