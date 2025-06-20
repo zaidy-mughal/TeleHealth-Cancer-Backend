@@ -78,16 +78,16 @@ class AppointmentSerializer(serializers.ModelSerializer):
     @transaction.atomic
     def create(self, validated_data):
         try:
-            request = self.context.get("request")
+            request = self.context["request"]
             patient = Patient.objects.get(user=request.user)
             validated_data["patient"] = patient
             time_slot_uuid = validated_data.pop("time_slot_uuid")
             # mark the time slot as booked
-            time_slot = TimeSlot.objects.select_for_update().get(uuid=time_slot_uuid)
+            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
             validated_data["time_slot"] = time_slot
             time_slot.is_booked = True
             time_slot.save()
-            validated_data["patient_snapshot"] = PatientSerializer(patient, context=self.context).data
+            # validated_data["patient_snapshot"] = PatientSerializer(patient, context=self.context).data
             return super().create(validated_data)
 
         except Patient.DoesNotExist:
@@ -104,10 +104,10 @@ class AppointmentDetailSerializer(AppointmentSerializer):
     It includes the time slot and patient information.
     """
 
-    patient = serializers.SerializerMethodField(read_only=True)
+    patient = PatientSerializer(read_only=True)
 
-    def get_patient(self, obj):
-        return obj.patient_snapshot or {}
+    # def get_patient(self, obj):
+    #     return obj.patient_snapshot or {}
     
     class Meta(AppointmentSerializer.Meta):
         fields = AppointmentSerializer.Meta.fields + ["patient"]
@@ -137,7 +137,7 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
         return None
 
     def get_patient(self, obj):
-        if obj.patient_snapshot:
+        if obj.patient:
             return {
                 "first_name": obj.patient.user.first_name,
                 "middle_name": obj.patient.user.middle_name,
