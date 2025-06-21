@@ -263,7 +263,7 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
 
     def _validate_custom_schedule(self, custom_schedule):
         """Validate custom schedule format and data"""
-        valid_days = ["monday", "tuesday", "wednesday", "thursday", "friday"]
+        valid_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "Saturday", "sunday"]
 
         for day_schedule in custom_schedule:
             # Validate day_name
