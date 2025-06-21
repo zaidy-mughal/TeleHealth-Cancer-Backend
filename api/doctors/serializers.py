@@ -403,8 +403,8 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
                 date = datetime(target_year, target_month, day).date()
 
                 # Skip weekends (Monday=0, Sunday=6)
-                if date.weekday() >= 5:  # Saturday=5, Sunday=6
-                    continue
+                # if date.weekday() >= 5:  # Saturday=5, Sunday=6
+                #     continue
 
                 # Skip past dates
                 if date < current_date:
