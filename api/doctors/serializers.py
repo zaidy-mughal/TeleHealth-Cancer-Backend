@@ -55,6 +55,10 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         model = TimeSlot
         fields = ["uuid", "start_time", "end_time", "is_booked"]
         read_only_fields = ["uuid", "is_booked"]
+        
+    def to_representation(self, instance):
+        instance.refresh_from_db(fields=["is_booked"])
+        return super().to_representation(instance)
 
     def create(self, validated_data):
         validated_data["doctor"] = self.context["request"].user.doctor
