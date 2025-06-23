@@ -240,8 +240,8 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
 
         refund_amount = payment.amount * (applicable_policy.refund_percentage / 100)
 
-        if refund_amount <= 0:
-            raise serializers.ValidationError("No refund available based on policy")
+        if refund_amount < 0:
+            raise serializers.ValidationError("No Negative refund available based on policy")
 
         attrs["_payment"] = payment
         attrs["_applicable_policy"] = applicable_policy
