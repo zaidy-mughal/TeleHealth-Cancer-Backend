@@ -295,15 +295,9 @@ class StripeWebhookView(APIView):
             time_slot.is_booked = True
             time_slot.save()
                 
-# make the time slot book out of the if and issue will be resolved
-
             if not payment.appointment:
-                # time_slot = payment.time_slot
-                print("DEBUG before save:", time_slot.is_booked, time_slot.pk)
                 time_slot.is_booked = True
                 time_slot.save()
-                print("DEBUG after save:", TimeSlot.objects.get(pk=time_slot.pk).is_booked)
-                print("DEBUG: is_booked after save:", TimeSlot.objects.get(pk=time_slot.pk).is_booked)
                 appointment = Appointment.objects.create(
                     patient=payment.patient,
                     time_slot=time_slot,
