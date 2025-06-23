@@ -290,8 +290,15 @@ class StripeWebhookView(APIView):
             payment.status = PaymentStatusChoices.SUCCEEDED
             payment.save(update_fields=["status", "payment_method_id"])
 
+            time_slot = payment.time_slot
+            print("DEBUG before save:", time_slot.is_booked, time_slot.pk)
+            time_slot.is_booked = True
+            time_slot.save()
+                
+# make the time slot book out of the if and issue will be resolved
+
             if not payment.appointment:
-                time_slot = payment.time_slot
+                # time_slot = payment.time_slot
                 print("DEBUG before save:", time_slot.is_booked, time_slot.pk)
                 time_slot.is_booked = True
                 time_slot.save()
