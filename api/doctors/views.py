@@ -30,6 +30,8 @@ from drf_spectacular.utils import extend_schema
 
 import logging
 
+from api.patients.permissions import IsPatientOrAdmin
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,6 +70,31 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
         except DjangoValidationError as e:
             detail = e.message_dict if hasattr(e, "message_dict") else str(e)
             raise DRFValidationError(detail=detail)
+
+
+class AvailableDoctorDatesAPIView(APIView):
+    permission_classes = [IsPatientOrAdmin]
+
+    def get(self, request, *args, **kwargs):
+        try:
+            available_slot_dates = (
+                TimeSlot.objects.filter(is_booked=False, start_time__gte=timezone.now())
+                .values_list("start_time__date", flat=True)
+                .distinct()
+            )
+
+            return Response(
+                {
+                    "available_dates": available_slot_dates,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to retrieve available dates: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
