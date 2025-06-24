@@ -355,7 +355,7 @@ class PatientAddictionHistorySerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"detail": f"Failed to create addiction history: {str(e)}"}
             )
-        
+
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
@@ -435,7 +435,8 @@ class PatientSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        validate_fields(self, attrs)
+        if not self.partial:
+            validate_fields(self, attrs)
         return super().validate(attrs)
 
     def update(self, instance, validated_data):

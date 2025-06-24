@@ -55,7 +55,6 @@ class CreatePaymentIntentView(APIView):
             time_slot_uuid = validated_data.get("time_slot_uuid")
             amount = validated_data.get("amount")
             currency = validated_data.get("currency", "usd")
-            receipt_email = validated_data.get("receipt_email", None)
 
             time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
@@ -71,7 +70,6 @@ class CreatePaymentIntentView(APIView):
                     "doctor_id": str(time_slot.doctor.id),
                     "time_slot_start": time_slot.start_time.isoformat(),
                 },
-                receipt_email=receipt_email,
                 automatic_payment_methods={
                     "enabled": True,
                 },
@@ -305,7 +303,6 @@ class StripeWebhookView(APIView):
                 payment.save()
                 payment.appointment.status = AppointmentStatus.CONFIRMED
                 payment.appointment.save(update_fields=["status"])
-            
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,
                 appointment_details={
@@ -411,7 +408,6 @@ class StripeWebhookView(APIView):
                 refund_status, RefundPaymentChoices.REQUIRES_ACTION
             )
 
-            # there should be only one refund per charge
             refund_record = payment.refunds.first()
 
             if refund_record:
@@ -422,14 +418,13 @@ class StripeWebhookView(APIView):
                     f"Updated refund record {refund_record.id} to status: {mapped_status}"
                 )
 
-                # Handle successful refund
                 if mapped_status == RefundPaymentChoices.SUCCEEDED:
                     payment.status = PaymentStatusChoices.REFUNDED
                     payment.save(update_fields=["status"])
                     logger.info(
                         f"Payment {payment.id} marked as refunded due to charge refund"
                     )
-                    # Send confirmation email
+
                     EmailService.send_refund_success_email(
                         user=payment.appointment.patient.user,
                         appointment_details={
@@ -510,4 +505,6 @@ class AppointmentPaymentUUIDView(APIView):
             payment = AppointmentPayment.objects.get(appointment_uuid=appointment_uuid)
             return Response({"appointment_payment_uuid": str(payment.uuid)})
         except AppointmentPayment.DoesNotExist:
-            return Response({"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND
+            )

@@ -20,6 +20,8 @@ from api.doctors.validators import (
     validate_user_role,
     validate_start_time_lt_end_time,
     future_start_time,
+    validate_custom_schedule,
+    validate_time_range,
 )
 from api.patients.utils.fields import LabelChoiceField
 
@@ -242,11 +244,7 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
         is_custom_days = attrs.get("is_custom_days", False)
 
         if is_custom_days:
-            if not attrs.get("custom_schedule"):
-                raise serializers.ValidationError(
-                    "custom_schedule is required when is_custom_days is True"
-                )
-            self._validate_custom_schedule(attrs["custom_schedule"])
+            validate_custom_schedule(attrs.get("custom_schedule"))
         else:
             if not attrs.get("time_range"):
                 raise serializers.ValidationError(
@@ -256,67 +254,10 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     "break_time_range is required when is_custom_days is False"
                 )
-            self._validate_time_range(attrs["time_range"], "time_range")
-            self._validate_time_range(attrs["break_time_range"], "break_time_range")
+            validate_time_range(attrs["time_range"], "time_range")
+            validate_time_range(attrs["break_time_range"], "break_time_range")
 
         return attrs
-
-    def _validate_custom_schedule(self, custom_schedule):
-        """Validate custom schedule format and data"""
-        valid_days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-
-        for day_schedule in custom_schedule:
-            # Validate day_name
-            day_name = day_schedule.get("day_name", "").lower()
-            if day_name not in valid_days:
-                raise serializers.ValidationError(
-                    f"Invalid day_name: {day_name}. Must be one of {valid_days}"
-                )
-
-            # Validate time_range
-            if "time_range" not in day_schedule:
-                raise serializers.ValidationError(
-                    f"time_range is required for {day_name}"
-                )
-            self._validate_time_range(
-                day_schedule["time_range"], f"{day_name} time_range"
-            )
-
-            # Validate break_time_range
-            if "break_time_range" not in day_schedule:
-                raise serializers.ValidationError(
-                    f"break_time_range is required for {day_name}"
-                )
-            self._validate_time_range(
-                day_schedule["break_time_range"], f"{day_name} break_time_range"
-            )
-
-    def _validate_time_range(self, time_range, field_name):
-        """Validate time range format"""
-        if not isinstance(time_range, dict):
-            raise serializers.ValidationError(f"{field_name} must be a dictionary")
-
-        start_time = time_range.get("start_time")
-        end_time = time_range.get("end_time")
-
-        if not start_time or not end_time:
-            raise serializers.ValidationError(
-                f"{field_name} must contain start_time and end_time"
-            )
-
-        try:
-            # Parse and validate time format (HH:MM)
-            start_parsed = datetime.strptime(start_time, "%H:%M").time()
-            end_parsed = datetime.strptime(end_time, "%H:%M").time()
-
-            if start_parsed >= end_parsed:
-                raise serializers.ValidationError(
-                    f"{field_name}: start_time must be less than end_time"
-                )
-        except ValueError:
-            raise serializers.ValidationError(
-                f"{field_name}: Invalid time format. Use HH:MM format"
-            )
 
     def _generate_time_slots(self, date, time_range, break_time_range, doctor):
         """Generate 30-minute time slots for a given date"""
