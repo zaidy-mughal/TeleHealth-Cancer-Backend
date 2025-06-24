@@ -1,15 +1,6 @@
 from django.db import models
 
 
-class VisitType(models.IntegerChoices):
-    CANCER_SCREENING = 0, "Cancer Screening"
-    SECOND_OPINION = 1, "Cancer Treatment Second Opinion"
-    SURVEILLANCE = 2, "Cancer Surveillance"
-    NURSE_SUPPORT = 3, "Oncology Nurse Support"
-    FOLLOW_UP = 4, "Follow-Up Visit"
-    INITIAL_CONSULT = 5, "Initial Consultation"
-
-
 class MaritalStatus(models.IntegerChoices):
     MARRIED = 0, "Married"
     SINGLE = 1, "Single"

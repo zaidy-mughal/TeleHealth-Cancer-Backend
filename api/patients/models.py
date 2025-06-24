@@ -5,7 +5,6 @@ from phonenumber_field.modelfields import PhoneNumberField
 from api.base_models import BaseModel
 from api.patients.choices import (
     Gender,
-    VisitType,
     MaritalStatus,
     TreatmentType,
     AddictionType,
@@ -22,7 +21,6 @@ class Patient(BaseModel):
     date_of_birth = models.DateField()
     gender = models.IntegerField(choices=Gender.choices, blank=True, null=True)
     phone_number = PhoneNumberField()
-    visit_type = models.IntegerField(choices=VisitType.choices, blank=True, null=True)
     marital_status = models.IntegerField(
         choices=MaritalStatus.choices, blank=True, null=True
     )
@@ -36,7 +34,6 @@ class Patient(BaseModel):
         verbose_name_plural = "Patients"
         db_table = "patient"
         indexes = [
-            models.Index(fields=["visit_type"]),
             models.Index(fields=["state"]),
         ]
 
