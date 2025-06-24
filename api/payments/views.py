@@ -55,7 +55,6 @@ class CreatePaymentIntentView(APIView):
             time_slot_uuid = validated_data.get("time_slot_uuid")
             amount = validated_data.get("amount")
             currency = validated_data.get("currency", "usd")
-            receipt_email = validated_data.get("receipt_email", None)
 
             time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
@@ -71,7 +70,6 @@ class CreatePaymentIntentView(APIView):
                     "doctor_id": str(time_slot.doctor.id),
                     "time_slot_start": time_slot.start_time.isoformat(),
                 },
-                receipt_email=receipt_email,
                 automatic_payment_methods={
                     "enabled": True,
                 },

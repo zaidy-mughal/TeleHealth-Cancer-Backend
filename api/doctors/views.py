@@ -25,12 +25,11 @@ from api.doctors.serializers import (
 )
 from api.doctors.filters import DoctorFilter
 from api.doctors.permissions import IsDoctorOrAdmin
+from api.patients.permissions import IsPatientOrAdmin
 from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
 from drf_spectacular.utils import extend_schema
 
 import logging
-
-from api.patients.permissions import IsPatientOrAdmin
 
 logger = logging.getLogger(__name__)
 
@@ -77,10 +76,18 @@ class AvailableDoctorDatesAPIView(APIView):
 
     def get(self, request, *args, **kwargs):
         try:
+
+            filter_kwargs = {"is_booked": False, "start_time__gte": timezone.now()}
+
+            doctor_uuid = request.query_params.get("doctor_uuid", None)
+            if doctor_uuid:
+                filter_kwargs["doctor__uuid"] = doctor_uuid
+
             available_slot_dates = (
-                TimeSlot.objects.filter(is_booked=False, start_time__gte=timezone.now())
+                TimeSlot.objects.filter(**filter_kwargs)
                 .values_list("start_time__date", flat=True)
                 .distinct()
+                .order_by("start_time__date")
             )
 
             return Response(

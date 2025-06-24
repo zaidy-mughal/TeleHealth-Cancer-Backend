@@ -8,11 +8,12 @@ from api.doctors.models import Doctor, Service
 class DoctorFilter(filters.FilterSet):
     state = filters.CharFilter(method="filter_by_state")
     service = filters.CharFilter(method="filter_by_service")
-    date = filters.DateFilter(method="filter_by_date")
+    date = filters.DateFilter(field_name="time_slots__start_time__date")
+    doctor_uuid = filters.UUIDFilter(field_name="doctor__uuid")
 
     class Meta:
         model = Doctor
-        fields = ["state", "service", "date"]
+        fields = ["state", "service", "date", "doctor_uuid"]
 
     def filter_by_state(self, queryset, name, value):
         try:
@@ -23,7 +24,7 @@ class DoctorFilter(filters.FilterSet):
             )
         except StopIteration:
             raise ValidationError(f"Invalid state: {value}")
-        return queryset.filter(license_info__state=state_value).distinct()
+        return queryset.filter(license_info__state=state_value)
 
     def filter_by_service(self, queryset, name, value):
         try:
@@ -34,12 +35,7 @@ class DoctorFilter(filters.FilterSet):
             )
             service = Service.objects.filter(name=service_value).first()
             if service:
-                return queryset.filter(doctor_services__service=service).distinct()
-            return queryset.none()
+                return queryset.filter(doctor_services__service=service)
+            return queryset
         except StopIteration:
             raise ValidationError(f"Invalid service: {value}")
-
-    def filter_by_date(self, queryset, name, value):
-        if value:
-            return queryset.filter(time_slots__start_time__date=value).distinct()
-        return queryset
