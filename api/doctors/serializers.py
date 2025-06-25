@@ -187,10 +187,7 @@ class DoctorSerializer(serializers.ModelSerializer):
         return [item["state"] for item in serializer.data]
 
     def get_time_slots(self, obj):
-        available_slots = obj.time_slots.filter(
-            is_booked=False, start_time__gte=timezone.now()
-        ).order_by("start_time")
-
+        available_slots = list(obj.time_slots.all())
         return TimeSlotSerializer(available_slots, many=True).data
 
     def validate_user(self, user):
