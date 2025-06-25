@@ -50,13 +50,27 @@ class PatientMedicalRecord(BaseModel):
         Patient, on_delete=models.CASCADE, related_name="medical_records"
     )
 
-    iodine_allergy = models.JSONField()
-    allergies = models.JSONField()
-    medications = models.JSONField()
-    medical_histories = models.JSONField()
-    surgical_histories = models.JSONField()
-    cancer_history = models.JSONField()
-
+    iodine_allergy = models.JSONField(
+        default=dict,
+        help_text="Iodine allergy information: {'is_iodine_allergic':bool}",
+    )
+    allergies = models.JSONField(
+        default=dict, help_text="All allergies: [{'name':str}, ...]"
+    )
+    medications = models.JSONField(
+        default=dict, help_text="All medications: [{'name':str}, ...]"
+    )
+    medical_histories = models.JSONField(
+        default=dict, help_text="All medical histories: [{'name':str}, ...]"
+    )
+    surgical_histories = models.JSONField(
+        default=dict, help_text="All surgical histories: [{'name':str}, ...]"
+    )
+    cancer_history = models.JSONField(
+        default=dict,
+        help_text="Patient's Cancer History: [{'cancer_type':choice, 'year_of_diagnosis':year, 'treatment_received':[{'name':choice},...],},]",
+    )
+    care_providers = models.JSONField(default=dict, help_text="Patient Care Providers: []")
 
     def __str__(self):
         return f"{self.patient.user.get_full_name()}"
