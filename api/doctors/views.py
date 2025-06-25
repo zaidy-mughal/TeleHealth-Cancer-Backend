@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.db import transaction
 from django.db.models import Prefetch
 from django.utils import timezone
@@ -53,20 +54,39 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        available_slots = TimeSlot.objects.filter(
-            is_booked=False, start_time__gte=timezone.now()
-        )
+        try:
 
-        return (
-            Doctor.objects.filter(time_slots__in=available_slots)
-            .distinct()
-            .prefetch_related(Prefetch("time_slots", queryset=available_slots))
-        )
+            date_str = self.request.query_params.get("date")
+            date_filter = None
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["date"] = self.request.query_params.get("date")
-        return context
+            if date_str:
+                date_filter = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+            available_slots = TimeSlot.objects.filter(
+                is_booked=False, start_time__gte=timezone.now()
+            )
+
+            if date_filter:
+                available_slots = available_slots.filter(start_time__date=date_filter)
+
+            return (
+                Doctor.objects.filter(time_slots__in=available_slots)
+                .distinct()
+                .prefetch_related(Prefetch("time_slots", queryset=available_slots))
+            )
+
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        except Exception as e:
+            logger.error(f"Error retrieving doctors: {str(e)}")
+            return Response(
+                {"error": f"Failed to retrieve doctors: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class AvailableDoctorDatesAPIView(APIView):

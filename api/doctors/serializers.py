@@ -187,13 +187,7 @@ class DoctorSerializer(serializers.ModelSerializer):
         return [item["state"] for item in serializer.data]
 
     def get_time_slots(self, obj):
-        date = self.context.get("date")
-        available_slots = obj.time_slots.all().filter(
-            is_booked=False, start_time__gte=timezone.now()
-        )
-
-        if date:
-            available_slots = available_slots.filter(start_time__date=date)
+        available_slots = obj.time_slots.all()
         return TimeSlotSerializer(
             available_slots.order_by("start_time"), many=True
         ).data

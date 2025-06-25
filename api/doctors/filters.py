@@ -8,7 +8,7 @@ from api.doctors.models import Doctor, Service
 class DoctorFilter(filters.FilterSet):
     state = filters.CharFilter(method="filter_by_state")
     service = filters.CharFilter(method="filter_by_service")
-    date = filters.DateFilter(field_name="time_slots__start_time__date")
+    date = filters.DateFilter(field_name="time_slots__end_time__date")
     doctor_uuid = filters.UUIDFilter(field_name="uuid")
 
     class Meta:
