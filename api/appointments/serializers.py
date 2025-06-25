@@ -31,12 +31,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
         choices=Status.choices, default=Status.PENDING, read_only=True
     )
     doctor = serializers.SerializerMethodField(read_only=True)
-    visit_type = serializers.SerializerMethodField(read_only=True)
+    appointment_type = serializers.SerializerMethodField(read_only=True)
 
-    def get_visit_type(self, obj):
-        if obj.patient:
-            return obj.patient.get_visit_type_display()
-        return None
+    def get_appointment_type(self, obj):
+        pass  # TODO add fetching appointment type
 
     def get_doctor(self, obj):
         if obj.time_slot:
@@ -60,7 +58,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "doctor",
             "time_slot_uuid",
             "time_slot",
-            "visit_type",
+            "appointment_type",
             "status",
             "created_at",
             "updated_at",
@@ -87,7 +85,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             validated_data["time_slot"] = time_slot
             time_slot.is_booked = True
             time_slot.save()
-            # validated_data["patient_snapshot"] = PatientSerializer(patient, context=self.context).data
             return super().create(validated_data)
 
         except Patient.DoesNotExist:
@@ -106,9 +103,6 @@ class AppointmentDetailSerializer(AppointmentSerializer):
 
     patient = PatientSerializer(read_only=True)
 
-    # def get_patient(self, obj):
-    #     return obj.patient_snapshot or {}
-    
     class Meta(AppointmentSerializer.Meta):
         fields = AppointmentSerializer.Meta.fields + ["patient"]
         read_only_fields = AppointmentSerializer.Meta.read_only_fields
@@ -142,7 +136,7 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
                 "first_name": obj.patient.user.first_name,
                 "middle_name": obj.patient.user.middle_name,
                 "last_name": obj.patient.user.last_name,
-                "visit_type": obj.patient.get_visit_type_display(),
+                # add appointment_type here
                 "state": obj.patient.state,
                 "gender": obj.patient.get_gender_display(),
             }
@@ -168,7 +162,3 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-
-
-#checking deployment comment

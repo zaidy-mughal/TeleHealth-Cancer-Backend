@@ -23,7 +23,6 @@ from api.patients.choices import (
     CareProviderType,
     TreatmentType,
     AddictionType,
-    VisitType,
     MaritalStatus,
 )
 from api.patients.validators import (
@@ -373,7 +372,6 @@ class PatientSerializer(serializers.ModelSerializer):
     middle_name = serializers.CharField(source="user.middle_name", allow_blank=True)
     last_name = serializers.CharField(source="user.last_name")
     gender = LabelChoiceField(choices=Gender.choices)
-    visit_type = LabelChoiceField(choices=VisitType.choices)
     marital_status = LabelChoiceField(choices=MaritalStatus.choices)
 
     iodine_allergy = IodineAllergySerializer(read_only=True)
@@ -402,7 +400,6 @@ class PatientSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "gender",
             "phone_number",
-            "visit_type",
             "marital_status",
             "sex_assigned_at_birth",
             "state",

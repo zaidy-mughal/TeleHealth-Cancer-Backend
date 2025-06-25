@@ -3,6 +3,7 @@ from api.base_models import BaseModel
 from api.doctors.models import TimeSlot
 from api.patients.models import Patient
 from api.appointments.choices import Status
+from api.doctors.choices import Services
 
 
 class Appointment(BaseModel):
@@ -16,10 +17,15 @@ class Appointment(BaseModel):
         Patient, on_delete=models.RESTRICT, related_name="appointments"
     )
     time_slot = models.OneToOneField(
-        TimeSlot, on_delete=models.RESTRICT, related_name="appointments", null=True, blank=True
+        TimeSlot,
+        on_delete=models.RESTRICT,
+        related_name="appointments",
+        null=True,
+        blank=True,
     )
     status = models.IntegerField(choices=Status.choices, db_default=Status.PENDING)
-    # patient_snapshot = models.JSONField(null=True, blank=True)  
+
+    appointment_type = models.IntegerField(choices=Services.choices)
 
     def __str__(self):
         return f"{self.time_slot.doctor.user.get_full_name()} - {self.patient.user.get_full_name()} - {self.time_slot.start_time} - {self.time_slot.end_time}"
