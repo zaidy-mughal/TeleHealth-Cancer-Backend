@@ -63,12 +63,10 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
             .prefetch_related(Prefetch("time_slots", queryset=available_slots))
         )
 
-    def filter_queryset(self, queryset):
-        try:
-            return super().filter_queryset(queryset)
-        except DjangoValidationError as e:
-            detail = e.message_dict if hasattr(e, "message_dict") else str(e)
-            raise DRFValidationError(detail=detail)
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["date"] = self.request.query_params.get("date")
+        return context
 
 
 class AvailableDoctorDatesAPIView(APIView):
