@@ -112,6 +112,10 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                     date_of_birth=self.validated_data.get("date_of_birth"),
                     phone_number=self.validated_data.get("phone_number"),
                 )
+                medical_record = patient.medical_records.create(
+                    is_main_record=True,
+                )
+                medical_record.save()
                 self.profile_uuid = patient.uuid
 
             except Exception as e:

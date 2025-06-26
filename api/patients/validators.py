@@ -13,25 +13,6 @@ def validate_fields(self, attrs):
         )
 
 
-def validate_existing_record(serializer, model_class):
-    """
-    Validate if a patient record already exists.
-    """
-    if serializer.instance:
-        return
-
-    request = serializer.context.get("request")
-    if not request or not hasattr(request, "user"):
-        return
-
-    patient = request.user.patient
-    if model_class.objects.filter(patient=patient).exists():
-        model_name = model_class.__name__
-        raise serializers.ValidationError(
-            {"detail": f"{model_name} record already exists. Use PUT to update."}
-        )
-
-
 def validate_addiction_types(self, data):
     """
     Validate that exactly two addiction history records are provided:

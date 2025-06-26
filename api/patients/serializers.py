@@ -14,7 +14,6 @@ from api.patients.choices import (
 )
 from api.patients.validators import (
     validate_fields,
-    validate_existing_record,
     validate_addiction_types,
     validate_care_providers_types,
 )
@@ -24,13 +23,18 @@ from api.patients.utils.update_handler import (
 )
 
 
+# TODO: add validation if Is_appointment_update, appointment_uuid is required
 class IodineAllergySerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     is_iodine_allergic = LabelChoiceField(choices=IsIodineAllergic.choices)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "iodine_allergy", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "iodine_allergy", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update iodine allergy: {str(e)}"}
@@ -44,12 +48,16 @@ class AllergySerializer(serializers.Serializer):
 
 
 class AllergyListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     allergies = AllergySerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "allergies", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "allergies", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update allergies: {str(e)}"}
@@ -63,12 +71,16 @@ class MedicationSerializer(serializers.Serializer):
 
 
 class MedicationListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medications = MedicationSerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "medications", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "medications", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update medications: {str(e)}"}
@@ -82,12 +94,16 @@ class MedicalHistorySerializer(serializers.Serializer):
 
 
 class MedicalHistoryListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medical_histories = MedicalHistorySerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "medical_histories", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "medical_histories", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update Medical Histories: {str(e)}"}
@@ -101,12 +117,16 @@ class SurgicalHistorySerializer(serializers.Serializer):
 
 
 class SurgicalHistoryListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     surgical_histories = SurgicalHistorySerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "surgical_histories", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "surgical_histories", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update Surgical Histories: {str(e)}"}
@@ -124,6 +144,7 @@ class CareProviderSerializer(serializers.Serializer):
 
 
 class CareProviderListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     care_providers = CareProviderSerializer(many=True, allow_empty=True)
 
     def validate(self, data):
@@ -133,7 +154,10 @@ class CareProviderListSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "care_providers", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "care_providers", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update Care Providers: {str(e)}"}
@@ -151,19 +175,23 @@ class CancerHistorySerializer(serializers.Serializer):
 
 
 class CancerHistoryListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "cancer_history", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "cancer_history", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update Cancer History: {str(e)}"}
             )
 
 
-class AddictionHistorySerializer(serializers.ModelSerializer):
+class AddictionHistorySerializer(serializers.Serializer):
     addiction_type = LabelChoiceField(choices=AddictionType.choices)
     total_years = serializers.IntegerField(
         min_value=0,
@@ -172,9 +200,9 @@ class AddictionHistorySerializer(serializers.ModelSerializer):
 
 
 class AddictionHistoryListSerializer(serializers.Serializer):
+    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     addiction_history = AddictionHistorySerializer(
         many=True,
-        allow_empty=True,
         required=True,
     )
 
@@ -185,7 +213,10 @@ class AddictionHistoryListSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            return update_json_field(patient, "addiction_history", validated_data)
+            is_appointment_update = self.context.get("is_appointment_update", False)
+            return update_json_field(
+                patient, "addiction_history", validated_data, is_appointment_update
+            )
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update addiction history: {str(e)}"}
@@ -201,6 +232,21 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
     cancer_history = CancerHistoryListSerializer(read_only=True)
     care_providers = CareProviderListSerializer(read_only=True)
     addiction_history = AddictionHistoryListSerializer(read_only=True)
+
+    def validate(self, attrs):
+        # TODO: Implement validation for the fields in validators.py later
+        request = self.context.get("request")
+        patient = getattr(request.user, "patient", None)
+
+        if attrs.get("is_main_record", False):
+            if PatientMedicalRecord.objects.filter(
+                patient=patient, is_main_record=True
+            ).exists():
+                raise serializers.ValidationError(
+                    {"is_main_record": "Main medical record already exists."}
+                )
+
+        return attrs
 
     def create(self, validated_data):
         try:

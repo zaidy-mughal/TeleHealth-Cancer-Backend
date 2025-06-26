@@ -1,27 +1,23 @@
-from django.shortcuts import get_object_or_404
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets
+from api.patients.permissions import IsPatientOrAdmin
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.decorators import action
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 from api.patients.serializers import (
     PatientSerializer,
     IodineAllergySerializer,
-    PatientAllergySerializer,
-    PatientMedicationSerializer,
-    PatientMedicalHistorySerializer,
-    PatientSurgicalHistorySerializer,
-    PatientCareProviderSerializer,
-    PatientAddictionHistorySerializer,
-    CancerHistorySerializer,
+    AllergyListSerializer,
+    MedicationListSerializer,
+    MedicalHistoryListSerializer,
+    SurgicalHistoryListSerializer,
+    CareProviderListSerializer,
+    AddictionHistoryListSerializer,
     CancerHistoryListSerializer,
 )
-from api.patients.models import IodineAllergy, CancerHistory
-from api.patients.permissions import IsPatientOrAdmin
 
 import logging
 
@@ -29,244 +25,76 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class IodineAllergyViewSet(viewsets.ModelViewSet):
+class BaseMedicalRecordFieldUpdateView(APIView):
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    serializer_class = None
+    is_appointment_update = False
+
+    def get_serializer_context(self, request):
+        return {
+            "request": request,
+            "is_appointment_update": self.is_appointment_update,
+        }
+
+    def patch(self, request):
+        try:
+            serializer = self.serializer_class(
+                data=request.data,
+                context=self.get_serializer_context(request),
+            )
+            serializer.is_valid(raise_exception=True)
+
+            updated_record = serializer.update(None, serializer.validated_data)
+
+            return Response(
+                {f"Successfully Updated: {updated_record}"}, status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            logger.error(f"Error updating medical record field: {str(e)}")
+            return Response(
+                {"detail": f"Failed to update medical record field: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class IodineAllergyUpdateView(BaseMedicalRecordFieldUpdateView):
     serializer_class = IodineAllergySerializer
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_queryset(self):
-        return IodineAllergy.objects.filter(patient=self.request.user.patient)
-
-    def get_object(self):
-        return get_object_or_404(IodineAllergy, patient=self.request.user.patient)
-
-
-class PatientAllergyViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating allergies for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_allergies(self, request):
-        serializer = PatientAllergySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_allergies(self, request):
-        serializer = PatientAllergySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class PatientMedicationViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating medications for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_medications(self, request):
-        serializer = PatientMedicationSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_medications(self, request):
-        serializer = PatientMedicationSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
+class AllergyBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = AllergyListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class PatientMedicalHistoryViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating medical history for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_medical_history(self, request):
-        serializer = PatientMedicalHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_medical_history(self, request):
-        serializer = PatientMedicalHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
-
-
-class PatientSurgicalHistoryViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating surgical history for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_surgical_history(self, request):
-        serializer = PatientSurgicalHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_surgical_history(self, request):
-        serializer = PatientSurgicalHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
-
-
-class PatientCareProviderViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating care providers for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_care_providers(self, request):
-        serializer = PatientCareProviderSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_care_providers(self, request):
-        serializer = PatientCareProviderSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
+class MedicationBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = MedicationListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CancerHistoryBulkViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating cancer history for the current user (patient).
-    """
-
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
-
-    def get_serializer_context(self):
-        return {"request": self.request}
-
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_cancer_history(self, request):
-        serializer = CancerHistoryListSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
-
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_cancer_history(self, request):
-        serializer = CancerHistoryListSerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
+class MedicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = MedicalHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class PatientAddictionHistoryViewSet(viewsets.ViewSet):
-    """
-    Handles creating and updating addiction history for the current user (patient).
-    """
+class SurgicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = SurgicalHistoryListSerializer
 
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
-    http_method_names = ["post", "put"]
 
-    def get_serializer_context(self):
-        return {"request": self.request}
+@method_decorator(csrf_exempt, name="dispatch")
+class CareProviderBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = CareProviderListSerializer
 
-    @action(detail=False, methods=["post"], url_path="create")
-    def create_addiction_history(self, request):
-        serializer = PatientAddictionHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.create(serializer.validated_data)
-        return Response(result, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=["put"], url_path="update")
-    def update_addiction_history(self, request):
-        serializer = PatientAddictionHistorySerializer(
-            data=request.data, context=self.get_serializer_context()
-        )
-        serializer.is_valid(raise_exception=True)
-        result = serializer.update(
-            instance=None, validated_data=serializer.validated_data
-        )
-        return Response(result, status=status.HTTP_200_OK)
+@method_decorator(csrf_exempt, name="dispatch")
+class AddictionHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = AddictionHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CancerHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+    serializer_class = CancerHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -279,3 +107,51 @@ class PatientRetreiveView(RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class IodineAllergyAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = IodineAllergySerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class AllergyBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = AllergyListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MedicationBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = MedicationListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MedicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = MedicalHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SurgicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = SurgicalHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CareProviderBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = CareProviderListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class AddictionHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = AddictionHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CancerHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = CancerHistoryListSerializer

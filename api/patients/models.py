@@ -49,6 +49,7 @@ class PatientMedicalRecord(BaseModel):
     is_main_record = models.BooleanField(default=False)
 
     appointment_uuid = models.UUIDField(
+        unique=True,
         null=True,
         blank=True,
         help_text="UUID of the appointment to update the seperate fields consistently.",
