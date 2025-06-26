@@ -2,20 +2,7 @@ from rest_framework import serializers
 
 from api.patients.models import (
     Patient,
-    IodineAllergy,
-    Allergy,
-    Medication,
-    MedicalHistory,
-    SurgicalHistory,
-    CancerType,
-    CancerHistory,
-    TreatmentRecieved,
-    AddictionHistory,
-    CareProvider,
-    PatientAllergy,
-    PatientMedication,
-    PatientMedicalHistory,
-    PatientSurgicalHistory,
+    PatientMedicalRecord,
 )
 from api.patients.choices import (
     Gender,
@@ -29,341 +16,262 @@ from api.patients.validators import (
     validate_fields,
     validate_existing_record,
     validate_addiction_types,
+    validate_care_providers_types,
 )
 from api.patients.utils.fields import LabelChoiceField
-from api.patients.utils.relation_handler import (
-    PatientRelationHandlerMixin,
-    handle_cancer_history_list,
-    handle_care_provider,
-    handle_addiction_history,
+from api.patients.utils.update_handler import (
+    update_json_field,
 )
 
 
-class IodineAllergySerializer(serializers.ModelSerializer):
+class IodineAllergySerializer(serializers.Serializer):
     is_iodine_allergic = LabelChoiceField(choices=IsIodineAllergic.choices)
 
-    class Meta:
-        model = IodineAllergy
-        fields = ["id", "uuid", "is_iodine_allergic"]
-        read_only_fields = ["id", "uuid"]
-
-    def create(self, validated_data):
-        try:
-            patient = self.context["request"].user.patient
-
-            if IodineAllergy.objects.filter(patient=patient).exists():
-                raise serializers.ValidationError(
-                    {
-                        "detail": "Iodine allergy record already exists. Use PUT/PATCH to update."
-                    }
-                )
-
-            validated_data["patient"] = patient
-            return super().create(validated_data)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create iodine allergy record: {str(e)}"}
-            )
-
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return super().update(instance, validated_data)
+            return update_json_field(patient, "iodine_allergy", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
-                {"detail": f"Failed to update iodine allergy record: {str(e)}"}
+                {"detail": f"Failed to update iodine allergy: {str(e)}"}
             )
 
 
-class AllergySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Allergy
-        fields = ["id", "uuid", "name"]
-        read_only_fields = ["id", "uuid"]
+class AllergySerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255,
+    )
 
 
-class PatientAllergySerializer(serializers.Serializer, PatientRelationHandlerMixin):
+class AllergyListSerializer(serializers.Serializer):
     allergies = AllergySerializer(many=True, allow_empty=True)
 
-    relation_model = PatientAllergy
-    target_model = Allergy
-    related_field_name = "allergy"
-    data_key = "allergies"
-
-    def create(self, validated_data):
-        try:
-            return self.handle_relation(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create allergies: {str(e)}"}
-            )
-
     def update(self, instance, validated_data):
         try:
-            return self.handle_relation(validated_data, clear_existing=True)
+            patient = self.context["request"].user.patient
+            return update_json_field(patient, "allergies", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update allergies: {str(e)}"}
             )
 
-    def to_representation(self, instance):
-        allergies = Allergy.objects.filter(allergy_patients__patient=instance)
-        return {"allergies": AllergySerializer(allergies, many=True).data}
+
+class MedicationSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255,
+    )
 
 
-class MedicationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Medication
-        fields = ["id", "uuid", "name"]
-        read_only_fields = ["id", "uuid"]
-
-
-class PatientMedicationSerializer(serializers.Serializer, PatientRelationHandlerMixin):
+class MedicationListSerializer(serializers.Serializer):
     medications = MedicationSerializer(many=True, allow_empty=True)
-
-    relation_model = PatientMedication
-    target_model = Medication
-    related_field_name = "medication"
-    data_key = "medications"
-
-    def create(self, validated_data):
-        try:
-            return self.handle_relation(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create medications: {str(e)}"}
-            )
 
     def update(self, instance, validated_data):
         try:
-            return self.handle_relation(validated_data, clear_existing=True)
+            patient = self.context["request"].user.patient
+            return update_json_field(patient, "medications", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update medications: {str(e)}"}
             )
 
-    def to_representation(self, instance):
-        medications = Medication.objects.filter(medication_patients__patient=instance)
-        return {"medications": MedicationSerializer(medications, many=True).data}
+
+class MedicalHistorySerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255,
+    )
 
 
-class MedicalHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = MedicalHistory
-        fields = ["id", "uuid", "name"]
-
-
-class PatientMedicalHistorySerializer(
-    serializers.Serializer, PatientRelationHandlerMixin
-):
+class MedicalHistoryListSerializer(serializers.Serializer):
     medical_histories = MedicalHistorySerializer(many=True, allow_empty=True)
 
-    relation_model = PatientMedicalHistory
-    target_model = MedicalHistory
-    related_field_name = "medical_history"
-    data_key = "medical_histories"
-
-    def create(self, validated_data):
-        try:
-            return self.handle_relation(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create medical histories: {str(e)}"}
-            )
-
     def update(self, instance, validated_data):
         try:
-            return self.handle_relation(validated_data, clear_existing=True)
+            patient = self.context["request"].user.patient
+            return update_json_field(patient, "medical_histories", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
-                {"detail": f"Failed to update medical histories: {str(e)}"}
+                {"detail": f"Failed to update Medical Histories: {str(e)}"}
             )
 
-    def to_representation(self, instance):
-        medical_histories = MedicalHistory.objects.filter(
-            medical_history_patients__patient=instance
-        )
-        return {
-            "medical_histories": MedicalHistorySerializer(
-                medical_histories, many=True
-            ).data
-        }
+
+class SurgicalHistorySerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255,
+    )
 
 
-class SurgicalHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = SurgicalHistory
-        fields = ["id", "uuid", "name"]
-
-
-class PatientSurgicalHistorySerializer(
-    serializers.Serializer, PatientRelationHandlerMixin
-):
+class SurgicalHistoryListSerializer(serializers.Serializer):
     surgical_histories = SurgicalHistorySerializer(many=True, allow_empty=True)
 
-    relation_model = PatientSurgicalHistory
-    target_model = SurgicalHistory
-    related_field_name = "surgical_history"
-    data_key = "surgical_histories"
-
-    def create(self, validated_data):
-        try:
-            return self.handle_relation(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create surgical histories: {str(e)}"}
-            )
-
     def update(self, instance, validated_data):
         try:
-            return self.handle_relation(validated_data, clear_existing=True)
+            patient = self.context["request"].user.patient
+            return update_json_field(patient, "surgical_histories", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
-                {"detail": f"Failed to update surgical histories: {str(e)}"}
+                {"detail": f"Failed to update Surgical Histories: {str(e)}"}
             )
 
-    def to_representation(self, instance):
-        surgical_histories = SurgicalHistory.objects.filter(
-            surgical_history_patients__patient=instance
-        )
-        return {
-            "surgical_histories": MedicalHistorySerializer(
-                surgical_histories, many=True
-            ).data
-        }
 
-
-class CareProviderSerializer(serializers.ModelSerializer):
+class CareProviderSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255,
+    )
+    contact_number = serializers.CharField(
+        max_length=15,
+    )
     type = LabelChoiceField(choices=CareProviderType.choices)
 
-    class Meta:
-        model = CareProvider
-        fields = ["id", "uuid", "name", "contact_number", "type"]
 
-
-class PatientCareProviderSerializer(serializers.Serializer):
+class CareProviderListSerializer(serializers.Serializer):
     care_providers = CareProviderSerializer(many=True, allow_empty=True)
 
-    def create(self, validated_data):
-        try:
-            patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_care_provider(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create care providers: {str(e)}"}
-            )
+    def validate(self, data):
+        validate_care_providers_types(self, data)
+        return super().validate(data)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_care_provider(validated_data, clear_existing=True)
+            return update_json_field(patient, "care_providers", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
-                {"detail": f"Failed to update care providers: {str(e)}"}
+                {"detail": f"Failed to update Care Providers: {str(e)}"}
             )
 
-    def to_representation(self, instance):
-        care_providers = SurgicalHistory.objects.filter(
-            care_provider_patients__patient=instance
-        )
-        return {
-            "care_providers": MedicalHistorySerializer(care_providers, many=True).data
-        }
 
-
-class CancerTypeSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CancerType
-        fields = ["id", "uuid", "name"]
-
-
-class TreatmentReceivedSerializer(serializers.ModelSerializer):
+class TreatmentReceivedSerializer(serializers.Serializer):
     name = LabelChoiceField(choices=TreatmentType.choices)
 
-    class Meta:
-        model = TreatmentRecieved
-        fields = ["id", "uuid", "name"]
 
-
-class CancerHistorySerializer(serializers.ModelSerializer):
-    cancer_type = CancerTypeSerializer()
+class CancerHistorySerializer(serializers.Serializer):
+    cancer_type = serializers.CharField(max_length=255)
+    year_of_diagnosis = serializers.IntegerField(min_value=1900, max_value=2100)
     treatment_received = TreatmentReceivedSerializer(many=True)
-
-    class Meta:
-        model = CancerHistory
-        fields = [
-            "id",
-            "uuid",
-            "cancer_type",
-            "year_of_diagnosis",
-            "treatment_received",
-        ]
 
 
 class CancerHistoryListSerializer(serializers.Serializer):
-    cancer_histories = CancerHistorySerializer(many=True, allow_empty=True)
-
-    def create(self, validated_data):
-        try:
-            patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_cancer_history_list(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create cancer history: {str(e)}"}
-            )
+    cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
 
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_cancer_history_list(validated_data, clear_existing=True)
+            return update_json_field(patient, "cancer_history", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
-                {"detail": f"Failed to update cancer history: {str(e)}"}
+                {"detail": f"Failed to update Cancer History: {str(e)}"}
             )
 
 
 class AddictionHistorySerializer(serializers.ModelSerializer):
     addiction_type = LabelChoiceField(choices=AddictionType.choices)
+    total_years = serializers.IntegerField(
+        min_value=0,
+        help_text="Total years of addiction. Use 0 for no addiction.",
+    )
 
-    class Meta:
-        model = AddictionHistory
-        fields = ["id", "uuid", "addiction_type", "total_years"]
 
-
-class PatientAddictionHistorySerializer(serializers.Serializer):
+class AddictionHistoryListSerializer(serializers.Serializer):
     addiction_history = AddictionHistorySerializer(
-        many=True, allow_empty=True, required=True
+        many=True,
+        allow_empty=True,
+        required=True,
     )
 
     def validate(self, data):
         validate_addiction_types(self, data)
         return super().validate(data)
 
-    def create(self, validated_data):
-        try:
-            validate_existing_record(self, AddictionHistory)
-            patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_addiction_history(validated_data, clear_existing=False)
-        except Exception as e:
-            raise serializers.ValidationError(
-                {"detail": f"Failed to create addiction history: {str(e)}"}
-            )
-
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
-            validated_data["patient"] = patient
-            return handle_addiction_history(validated_data, clear_existing=True)
+            return update_json_field(patient, "addiction_history", validated_data)
         except Exception as e:
             raise serializers.ValidationError(
                 {"detail": f"Failed to update addiction history: {str(e)}"}
             )
+
+
+class PatientMedicalRecordSerializer(serializers.ModelSerializer):
+    iodine_allergy = IodineAllergySerializer(read_only=True)
+    allergies = AllergyListSerializer(read_only=True)
+    medications = MedicationListSerializer(read_only=True)
+    medical_histories = MedicalHistoryListSerializer(read_only=True)
+    surgical_histories = SurgicalHistoryListSerializer(read_only=True)
+    cancer_history = CancerHistoryListSerializer(read_only=True)
+    care_providers = CareProviderListSerializer(read_only=True)
+    addiction_history = AddictionHistoryListSerializer(read_only=True)
+
+    def create(self, validated_data):
+        try:
+            patient = self.context["request"].user.patient
+            return PatientMedicalRecord.objects.create(
+                patient=patient, **validated_data
+            )
+        except Exception as e:
+            raise serializers.ValidationError(
+                {"detail": f"Failed to create medical record: {str(e)}"}
+            )
+
+    # def create(self, validated_data):
+    #     try:
+    #         patient = self.context["request"].user.patient
+
+    #         iodine_allergy = validated_data.pop("iodine_allergy", {})
+    #         allergies = validated_data.pop("allergies", {})
+    #         medications = validated_data.pop("medications", {})
+    #         medical_histories = validated_data.pop("medical_histories", {})
+    #         surgical_histories = validated_data.pop("surgical_histories", {})
+    #         cancer_history = validated_data.pop("cancer_history", {})
+    #         care_providers = validated_data.pop("care_providers", {})
+    #         addiction_history = validated_data.pop("addiction_history", {})
+
+    #         record = PatientMedicalRecord.objects.create(
+    #             patient=patient,
+    #             iodine_allergy=iodine_allergy,
+    #             allergies=allergies,
+    #             medications=medications,
+    #             medical_histories=medical_histories,
+    #             surgical_histories=surgical_histories,
+    #             cancer_history=cancer_history,
+    #             care_providers=care_providers,
+    #             addiction_history=addiction_history,
+    #         )
+    #         return record
+
+    #     except Exception as e:
+    #         raise serializers.ValidationError(
+    #             {"detail": f"Failed to create medical record: {str(e)}"}
+    #         )
+
+    class Meta:
+        model = PatientMedicalRecord
+        fields = [
+            "uuid",
+            "is_main_record",
+            "appointment_uuid",
+            "iodine_allergy",
+            "allergies",
+            "medications",
+            "medical_histories",
+            "surgical_histories",
+            "cancer_history",
+            "addiction_history",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "uuid",
+            "iodine_allergy",
+            "allergies",
+            "medications",
+            "medical_histories",
+            "surgical_histories",
+            "cancer_history",
+            "addiction_history",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -373,25 +281,18 @@ class PatientSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(source="user.last_name")
     gender = LabelChoiceField(choices=Gender.choices)
     marital_status = LabelChoiceField(choices=MaritalStatus.choices)
+    medical_record = serializers.SerializerMethodField()
 
-    iodine_allergy = IodineAllergySerializer(read_only=True)
-    cancer_history = CancerHistorySerializer(
-        many=True, allow_empty=True, read_only=True
-    )
-    addiction_history = AddictionHistorySerializer(
-        many=True, allow_empty=True, read_only=True
-    )
-
-    surgical_histories = serializers.SerializerMethodField(read_only=True)
-    allergies = serializers.SerializerMethodField(read_only=True)
-    medications = serializers.SerializerMethodField(read_only=True)
-    medical_histories = serializers.SerializerMethodField(read_only=True)
-    care_providers = serializers.SerializerMethodField(read_only=True)
+    def get_medical_record(self, obj):
+        try:
+            medical_record = obj.medical_records.first()
+            return PatientMedicalRecordSerializer(medical_record).data
+        except PatientMedicalRecord.DoesNotExist:
+            return None
 
     class Meta:
         model = Patient
         fields = [
-            "id",
             "uuid",
             "email",
             "first_name",
@@ -415,7 +316,6 @@ class PatientSerializer(serializers.ModelSerializer):
             "addiction_history",
         ]
         read_only_fields = [
-            "id",
             "uuid",
             "email",
             "first_name",
@@ -450,32 +350,3 @@ class PatientSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"detail": f"Failed to update patient: {str(e)}"}
             )
-
-    def get_allergies(self, obj):
-        patient_allergies = obj.allergies.all()
-        allergy_objects = [pa.allergy for pa in patient_allergies]
-        return AllergySerializer(allergy_objects, many=True).data
-
-    def get_surgical_histories(self, obj):
-        patient_surgical_histories = obj.surgical_histories.all()
-        surgical_history_objects = [
-            psh.surgical_history for psh in patient_surgical_histories
-        ]
-        return SurgicalHistorySerializer(surgical_history_objects, many=True).data
-
-    def get_medical_histories(self, obj):
-        patient_medical_histories = obj.medical_histories.all()
-        medical_history_objects = [
-            pmh.medical_history for pmh in patient_medical_histories
-        ]
-        return MedicalHistorySerializer(medical_history_objects, many=True).data
-
-    def get_medications(self, obj):
-        patient_medications = obj.medications.all()
-        medication_objects = [pm.medication for pm in patient_medications]
-        return MedicationSerializer(medication_objects, many=True).data
-
-    def get_care_providers(self, obj):
-        patient_care_providers = obj.care_providers.all()
-        care_provider_objects = [pcp.care_provider for pcp in patient_care_providers]
-        return CareProviderSerializer(care_provider_objects, many=True).data

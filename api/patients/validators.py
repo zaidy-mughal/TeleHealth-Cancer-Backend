@@ -38,7 +38,7 @@ def validate_addiction_types(self, data):
     - One for smoking
     - One for alcohol
     """
-    
+
     addiction_history = data.get("addiction_history", [])
 
     if len(addiction_history) != 2:
@@ -59,13 +59,13 @@ def validate_addiction_types(self, data):
     return data
 
 
-def validate_careprovider_types(self, data):
+def validate_care_providers_types(self, data):
     """
     Validate that exactly two addiction history records are provided:
     - One for smoking
     - One for alcohol
     """
-    
+
     care_providers_data = data.get("care_providers", [])
 
     if len(care_providers_data) != 2:

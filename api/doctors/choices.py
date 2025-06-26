@@ -59,3 +59,5 @@ class Services(models.IntegerChoices):
     DIAGNOSIS = 1, "Diagnosis"
     SCREENING = 2, "Screening"
     SECOND_OPINION = 3, "Second Opinion"
+    GENERAL = 4, "General"
+    FOLLOW_UP = 5, "Follow Up"
