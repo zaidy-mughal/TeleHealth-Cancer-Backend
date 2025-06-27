@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from api.patients.models import PatientMedicalRecord
 
 
 def validate_fields(self, attrs):
@@ -65,3 +66,30 @@ def validate_care_providers_types(self, data):
         )
 
     return data
+
+
+def validate_is_appointment_update(self, attrs):
+    """
+    Validate that appointment_uuid is provided when updating an appointment.
+    """
+    is_appointment_update = self.context.get("is_appointment_update", False)
+    if is_appointment_update and not attrs.get("appointment_uuid"):
+        raise serializers.ValidationError(
+            {"appointment_uuid": "This field is required for appointment updates."}
+        )
+    return attrs
+
+
+def validate_only_one_main_record(self, attrs):
+    request = self.context.get("request")
+    patient = getattr(request.user, "patient", None)
+
+    if attrs.get("is_main_record", False):
+        if PatientMedicalRecord.objects.filter(
+            patient=patient, is_main_record=True
+        ).exists():
+            raise serializers.ValidationError(
+                {"is_main_record": "Main medical record already exists."}
+            )
+
+        return attrs

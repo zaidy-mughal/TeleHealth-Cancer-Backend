@@ -16,6 +16,8 @@ from api.patients.validators import (
     validate_fields,
     validate_addiction_types,
     validate_care_providers_types,
+    validate_is_appointment_update,
+    validate_only_one_main_record,
 )
 from api.patients.utils.fields import LabelChoiceField
 from api.patients.utils.update_handler import (
@@ -23,10 +25,13 @@ from api.patients.utils.update_handler import (
 )
 
 
-# TODO: add validation if Is_appointment_update, appointment_uuid is required
 class IodineAllergySerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     is_iodine_allergic = LabelChoiceField(choices=IsIodineAllergic.choices)
+
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -51,6 +56,10 @@ class AllergyListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     allergies = AllergySerializer(many=True, allow_empty=True)
 
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
+
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
@@ -73,6 +82,10 @@ class MedicationSerializer(serializers.Serializer):
 class MedicationListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medications = MedicationSerializer(many=True, allow_empty=True)
+
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -97,6 +110,10 @@ class MedicalHistoryListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medical_histories = MedicalHistorySerializer(many=True, allow_empty=True)
 
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
+
     def update(self, instance, validated_data):
         try:
             patient = self.context["request"].user.patient
@@ -119,6 +136,10 @@ class SurgicalHistorySerializer(serializers.Serializer):
 class SurgicalHistoryListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     surgical_histories = SurgicalHistorySerializer(many=True, allow_empty=True)
+
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -147,9 +168,10 @@ class CareProviderListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     care_providers = CareProviderSerializer(many=True, allow_empty=True)
 
-    def validate(self, data):
-        validate_care_providers_types(self, data)
-        return super().validate(data)
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        validate_care_providers_types(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -177,6 +199,10 @@ class CancerHistorySerializer(serializers.Serializer):
 class CancerHistoryListSerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
+
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -206,9 +232,10 @@ class AddictionHistoryListSerializer(serializers.Serializer):
         required=True,
     )
 
-    def validate(self, data):
-        validate_addiction_types(self, data)
-        return super().validate(data)
+    def validate(self, attrs):
+        validate_is_appointment_update(self, attrs)
+        validate_addiction_types(self, attrs)
+        return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
@@ -224,29 +251,10 @@ class AddictionHistoryListSerializer(serializers.Serializer):
 
 
 class PatientMedicalRecordSerializer(serializers.ModelSerializer):
-    iodine_allergy = IodineAllergySerializer(read_only=True)
-    allergies = AllergyListSerializer(read_only=True)
-    medications = MedicationListSerializer(read_only=True)
-    medical_histories = MedicalHistoryListSerializer(read_only=True)
-    surgical_histories = SurgicalHistoryListSerializer(read_only=True)
-    cancer_history = CancerHistoryListSerializer(read_only=True)
-    care_providers = CareProviderListSerializer(read_only=True)
-    addiction_history = AddictionHistoryListSerializer(read_only=True)
 
     def validate(self, attrs):
-        # TODO: Implement validation for the fields in validators.py later
-        request = self.context.get("request")
-        patient = getattr(request.user, "patient", None)
-
-        if attrs.get("is_main_record", False):
-            if PatientMedicalRecord.objects.filter(
-                patient=patient, is_main_record=True
-            ).exists():
-                raise serializers.ValidationError(
-                    {"is_main_record": "Main medical record already exists."}
-                )
-
-        return attrs
+        validate_only_one_main_record(self, attrs)
+        return super().validate(attrs)
 
     def create(self, validated_data):
         try:
@@ -258,37 +266,6 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"detail": f"Failed to create medical record: {str(e)}"}
             )
-
-    # def create(self, validated_data):
-    #     try:
-    #         patient = self.context["request"].user.patient
-
-    #         iodine_allergy = validated_data.pop("iodine_allergy", {})
-    #         allergies = validated_data.pop("allergies", {})
-    #         medications = validated_data.pop("medications", {})
-    #         medical_histories = validated_data.pop("medical_histories", {})
-    #         surgical_histories = validated_data.pop("surgical_histories", {})
-    #         cancer_history = validated_data.pop("cancer_history", {})
-    #         care_providers = validated_data.pop("care_providers", {})
-    #         addiction_history = validated_data.pop("addiction_history", {})
-
-    #         record = PatientMedicalRecord.objects.create(
-    #             patient=patient,
-    #             iodine_allergy=iodine_allergy,
-    #             allergies=allergies,
-    #             medications=medications,
-    #             medical_histories=medical_histories,
-    #             surgical_histories=surgical_histories,
-    #             cancer_history=cancer_history,
-    #             care_providers=care_providers,
-    #             addiction_history=addiction_history,
-    #         )
-    #         return record
-
-    #     except Exception as e:
-    #         raise serializers.ValidationError(
-    #             {"detail": f"Failed to create medical record: {str(e)}"}
-    #         )
 
     class Meta:
         model = PatientMedicalRecord
@@ -303,16 +280,20 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
             "surgical_histories",
             "cancer_history",
             "addiction_history",
+            "care_providers",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
             "uuid",
+            "is_main_record",
+            "appointment_uuid",
             "iodine_allergy",
             "allergies",
             "medications",
             "medical_histories",
             "surgical_histories",
+            "care_providers",
             "cancer_history",
             "addiction_history",
             "created_at",
@@ -331,8 +312,9 @@ class PatientSerializer(serializers.ModelSerializer):
 
     def get_medical_record(self, obj):
         try:
-            medical_record = obj.medical_records.first()
+            medical_record = obj.medical_records.get(is_main_record=True)
             return PatientMedicalRecordSerializer(medical_record).data
+
         except PatientMedicalRecord.DoesNotExist:
             return None
 
@@ -352,14 +334,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "state",
             "city",
             "zip_code",
-            "iodine_allergy",
-            "allergies",
-            "medications",
-            "medical_histories",
-            "surgical_histories",
-            "care_providers",
-            "cancer_history",
-            "addiction_history",
+            "medical_record",
         ]
         read_only_fields = [
             "uuid",
@@ -367,14 +342,7 @@ class PatientSerializer(serializers.ModelSerializer):
             "first_name",
             "middle_name",
             "last_name",
-            "iodine_allergy",
-            "allergies",
-            "medications",
-            "medical_histories",
-            "surgical_histories",
-            "care_providers",
-            "cancer_history",
-            "addiction_history",
+            "medical_record",
         ]
 
     def validate(self, attrs):

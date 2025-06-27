@@ -87,7 +87,6 @@ class AppointmentSerializer(serializers.ModelSerializer):
             validated_data["time_slot"] = time_slot
             time_slot.is_booked = True
             time_slot.save()
-            # validated_data["patient_snapshot"] = PatientSerializer(patient, context=self.context).data
             return super().create(validated_data)
 
         except Patient.DoesNotExist:
@@ -106,9 +105,6 @@ class AppointmentDetailSerializer(AppointmentSerializer):
 
     patient = PatientSerializer(read_only=True)
 
-    # def get_patient(self, obj):
-    #     return obj.patient_snapshot or {}
-    
     class Meta(AppointmentSerializer.Meta):
         fields = AppointmentSerializer.Meta.fields + ["patient"]
         read_only_fields = AppointmentSerializer.Meta.read_only_fields
@@ -170,5 +166,4 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
         ]
 
 
-
-#checking deployment comment
+# checking deployment comment

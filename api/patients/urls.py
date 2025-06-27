@@ -1,82 +1,48 @@
 from django.urls import path, include
 
 from .views import (
-    IodineAllergyViewSet,
-    PatientAllergyViewSet,
-    PatientMedicationViewSet,
-    PatientMedicalHistoryViewSet,
-    PatientSurgicalHistoryViewSet,
-    PatientCareProviderViewSet,
-    CancerHistoryBulkViewSet,
-    PatientAddictionHistoryViewSet,
+    IodineAllergyUpdateView,
+    AllergyBulkUpdateView,
+    CancerHistoryBulkUpdateView,
+    MedicationBulkUpdateView,
+    MedicalHistoryBulkUpdateView,
+    SurgicalHistoryBulkUpdateView,
+    CareProviderBulkUpdateView,
+    AddictionHistoryBulkUpdateView,
     PatientRetreiveView,
 )
 
 
 urlpatterns = [
     path(
-        "iodine-allergy/create/",
-        IodineAllergyViewSet.as_view({"post": "create"}),
-    ),
-    path(
         "iodine-allergy/update/",
-        IodineAllergyViewSet.as_view({"put": "update"}),
-    ),
-    path(
-        "cancer-history/create/",
-        CancerHistoryBulkViewSet.as_view({"post": "create_cancer_history"}),
-        name="cancer-history-create",
+        IodineAllergyUpdateView.as_view(),
     ),
     path(
         "cancer-history/update/",
-        CancerHistoryBulkViewSet.as_view({"put": "update_cancer_history"}),
+        CancerHistoryBulkUpdateView.as_view(),
         name="cancer-history-update",
     ),
-    path(
-        "allergies/create/", PatientAllergyViewSet.as_view({"post": "create_allergies"})
-    ),
-    path(
-        "allergies/update/", PatientAllergyViewSet.as_view({"put": "update_allergies"})
-    ),
-    path(
-        "medications/create/",
-        PatientMedicationViewSet.as_view({"post": "create_medications"}),
-    ),
+    path("allergies/update/", AllergyBulkUpdateView.as_view()),
     path(
         "medications/update/",
-        PatientMedicationViewSet.as_view({"put": "update_medications"}),
-    ),
-    path(
-        "medical-history/create/",
-        PatientMedicalHistoryViewSet.as_view({"post": "create_medical_history"}),
+        MedicationBulkUpdateView.as_view(),
     ),
     path(
         "medical-history/update/",
-        PatientMedicalHistoryViewSet.as_view({"put": "update_medical_history"}),
-    ),
-    path(
-        "surgical-history/create/",
-        PatientSurgicalHistoryViewSet.as_view({"post": "create_surgical_history"}),
+        MedicalHistoryBulkUpdateView.as_view(),
     ),
     path(
         "surgical-history/update/",
-        PatientSurgicalHistoryViewSet.as_view({"put": "update_surgical_history"}),
-    ),
-    path(
-        "care-providers/create/",
-        PatientCareProviderViewSet.as_view({"post": "create_care_providers"}),
+        SurgicalHistoryBulkUpdateView.as_view(),
     ),
     path(
         "care-providers/update/",
-        PatientCareProviderViewSet.as_view({"put": "update_care_providers"}),
-    ),
-    path(
-        "addiction-history/create/",
-        PatientAddictionHistoryViewSet.as_view({"post": "create_addiction_history"}),
+        CareProviderBulkUpdateView.as_view(),
     ),
     path(
         "addiction-history/update/",
-        PatientAddictionHistoryViewSet.as_view({"put": "update_addiction_history"}),
+        AddictionHistoryBulkUpdateView.as_view(),
     ),
     path("me/", PatientRetreiveView.as_view(), name="patient-retrieve"),
 ]
