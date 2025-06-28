@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from api.appointments.models import Appointment
+from api.appointments.choices import Status
 from api.payments.models import AppointmentPayment
 from api.payments.choices import PaymentStatusChoices
 
@@ -21,7 +22,7 @@ def validate_appointment(appointment_uuid):
         appointment = Appointment.objects.get(uuid=appointment_uuid)
 
         if (
-            appointment.status == 1 or appointment.status == 2 
+            appointment.status == 1 or appointment.status == 2
         ):  # 1 is confirmed and 2 is completed
             raise serializers.ValidationError(
                 "Cannot create payment for an appointment that is not confirmed."
@@ -50,11 +51,11 @@ def validate_pending_payments(timeslot):
     return timeslot
 
 
-def validate_appointment_payment(payment_uuid):
+def validate_appointment_payment(appointment_uuid):
     """Validate that the payment exists and is valid for the appointment."""
 
     try:
-        payment = AppointmentPayment.objects.get(uuid=payment_uuid)
+        payment = AppointmentPayment.objects.get(appointment__uuid=appointment_uuid)
 
         if payment.status != PaymentStatusChoices.SUCCEEDED:
             raise serializers.ValidationError("Only succeeded payments can be refunded")

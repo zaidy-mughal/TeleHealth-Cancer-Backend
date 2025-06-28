@@ -52,11 +52,9 @@ class CreatePaymentIntentView(APIView):
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             validated_data = serializer.validated_data
-            time_slot_uuid = validated_data.get("time_slot_uuid")
+            appointment_uuid = validated_data.get("appointment_uuid")
             amount = validated_data.get("amount")
             currency = validated_data.get("currency", "usd")
-
-            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
 
             amount_decimal = Decimal(str(amount))
             amount_cents = int(amount_decimal * 100)
@@ -65,10 +63,7 @@ class CreatePaymentIntentView(APIView):
                 amount=amount_cents,
                 currency=currency,
                 metadata={
-                    "time_slot_uuid": str(time_slot_uuid),
-                    "patient_id": str(request.user.patient.id),
-                    "doctor_id": str(time_slot.doctor.id),
-                    "time_slot_start": time_slot.start_time.isoformat(),
+                    "appointment_uuid": str(appointment_uuid),
                 },
                 automatic_payment_methods={
                     "enabled": True,
@@ -137,10 +132,8 @@ class AppointmentRefundView(APIView):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-            appointment_payment_uuid = serializer.validated_data[
-                "appointment_payment_uuid"
-            ]
-            payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
+            appointment_uuid = serializer.validated_data["appointment_uuid"]
+            payment = AppointmentPayment.objects.get(appointment__uuid=appointment_uuid)
 
             refund_record = serializer.save()
 
@@ -153,29 +146,15 @@ class AppointmentRefundView(APIView):
                 metadata={
                     "refund_id": str(refund_record.uuid),
                     "appointment_id": str(payment.appointment.uuid),
-                    "patient_id": str(payment.patient.uuid),
                 },
             )
 
             refund_record.status = RefundPaymentChoices.REQUIRES_ACTION
             refund_record.save(update_fields=["status"])
 
-            if not payment.appointment or not payment.time_slot:
-                return Response(
-                    {
-                        "error": "Payment does not have an associated appointment or time slot"
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-
-            payment.appointment.status = AppointmentStatus.CANCELLED
-            payment.appointment.save(update_fields=["status"])
-            payment.time_slot.is_booked = False
-            payment.time_slot.save(update_fields=["is_booked"])
-
             return Response(
                 {
-                    "message": "Refund processed successfully",
+                    "message": "Refund processed successfully. You will receive an email shortly.",
                     "refund_details": AppointmentRefundSerializer(refund_record).data,
                     "stripe_refund_id": stripe_refund.id,
                 },
@@ -289,18 +268,14 @@ class StripeWebhookView(APIView):
             payment.save(update_fields=["status", "payment_method_id"])
 
             if not payment.appointment:
-                time_slot = payment.time_slot
-                time_slot.is_booked = True
-                time_slot.save()
-                appointment = Appointment.objects.create(
-                    patient=payment.patient,
-                    time_slot=time_slot,
-                    status=AppointmentStatus.CONFIRMED,
-                )
-                payment.appointment = appointment
-                payment.save()
-                payment.appointment.status = AppointmentStatus.CONFIRMED
-                payment.appointment.save(update_fields=["status"])
+                logger.error(f"Payment {payment.uuid} has no associated appointment.")
+                return
+
+            payment.appointment.time_slot.is_booked = True
+            payment.appointment.time_slot.save(update_fields=["is_booked"])
+
+            payment.appointment.status = AppointmentStatus.CONFIRMED
+            payment.appointment.save(update_fields=["status"])
 
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.patient.user,
@@ -330,9 +305,12 @@ class StripeWebhookView(APIView):
             payment.status = PaymentStatusChoices.FAILED
             payment.save(update_fields=["status"])
 
-            if payment.appointment:
-                payment.appointment.status = AppointmentStatus.FAILED
-                payment.appointment.save(update_fields=["status"])
+            if not payment.appointment:
+                logger.error(f"Payment {payment.uuid} has no associated appointment.")
+                return
+
+            payment.appointment.status = AppointmentStatus.FAILED
+            payment.appointment.save(update_fields=["status"])
 
             EmailService.send_payment_failed_email(
                 user=payment.appointment.patient.user,
@@ -362,9 +340,12 @@ class StripeWebhookView(APIView):
             payment.status = PaymentStatusChoices.CANCELED
             payment.save(update_fields=["status"])
 
-            if payment.appointment:
-                payment.appointment.status = AppointmentStatus.CANCELED
-                payment.appointment.save(update_fields=["status"])
+            if not payment.appointment:
+                logger.error(f"Payment {payment.uuid} has no associated appointment.")
+                return
+
+            payment.appointment.status = AppointmentStatus.CANCELED
+            payment.appointment.save(update_fields=["status"])
 
             logger.info(f"Payment canceled: {payment_intent['id']}")
 
@@ -419,7 +400,13 @@ class StripeWebhookView(APIView):
 
                 if mapped_status == RefundPaymentChoices.SUCCEEDED:
                     payment.status = PaymentStatusChoices.REFUNDED
+                    payment.appointment.status = AppointmentStatus.REFUNDED
+                    payment.appointment.time_slot.is_booked = False
+
+                    payment.appointment.time_slot.save(update_fields=["is_booked"])
+                    payment.appointment.save(update_fields=["status"])
                     payment.save(update_fields=["status"])
+
                     logger.info(
                         f"Payment {payment.id} marked as refunded due to charge refund"
                     )

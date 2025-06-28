@@ -6,14 +6,12 @@ from decimal import Decimal
 from datetime import timedelta
 from django.utils import timezone
 from django.core.validators import EmailValidator
-
+from api.appointments.models import Appointment
 from api.payments.models import (
     AppointmentPayment,
     RefundPolicy,
     AppointmentPaymentRefund,
-    Appointment,
 )
-
 
 
 logger = logging.getLogger(__name__)
@@ -45,7 +43,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
     stripe_client_secret = serializers.CharField(read_only=True)
     payment_status = serializers.CharField(source="get_status_display", read_only=True)
 
-    time_slot_uuid = serializers.UUIDField(required=True, write_only=True)
+    appointment_uuid = serializers.UUIDField(required=True, write_only=True)
 
     currency = serializers.CharField(max_length=3, default="usd")
     amount = serializers.DecimalField(
@@ -65,7 +63,6 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppointmentPayment
         fields = [
-            "id",
             "uuid",
             "appointment_uuid",
             "stripe_payment_intent_id",
@@ -73,16 +70,13 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             "amount",
             "currency",
             "payment_status",
-            "time_slot_uuid",
             "payment_method_id",
             "receipt_email",
             "created_at",
             "updated_at",
         ]
         read_only_fields = [
-            "id",
             "uuid",
-            "appointment_uuid",
             "stripe_payment_intent_id",
             "stripe_client_secret",
             "payment_status",
@@ -90,9 +84,10 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    def validate_time_slot_uuid(self, value):
+    def validate_appointment_uuid(self, value):
         try:
-            time_slot = TimeSlot.objects.get(uuid=value)
+            appointment = Appointment.objects.get(uuid=value)
+            time_slot = appointment.time_slot
 
             validate_booked_slot(time_slot)
             validate_start_time_lt_end_time(time_slot.start_time, time_slot.end_time)
@@ -105,83 +100,30 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Timeslot not found.")
 
     def validate_currency(self, value):
-        """Validate currency code."""
         return validate_currency(value)
 
     def create(self, validated_data):
-        """Create AppointmentPayment with timeslot and patient"""
-        time_slot_uuid = validated_data.pop("time_slot_uuid")
-        time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
-
-        request = self.context.get("request")
-        if not request or not hasattr(request.user, "patient"):
-            raise serializers.ValidationError("User must have a patient profile.")
-
-        patient = request.user.patient
+        appointment_uuid = validated_data.pop("appointment_uuid")
+        appointment = Appointment.objects.get(uuid=appointment_uuid)
 
         appointment_payment = AppointmentPayment.objects.create(
-            time_slot=time_slot, patient=patient, **validated_data
+            appointment=appointment, **validated_data
         )
-
-        try:
-            appointment = Appointment.objects.get(time_slot=time_slot, patient=patient)
-            if hasattr(appointment, 'uuid'):
-                appointment_payment.appointment_uuid = appointment.uuid
-            else:
-                logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
-        except Appointment.DoesNotExist:
-            appointment = Appointment.objects.create(time_slot=time_slot, patient=patient, status=1)
-            if hasattr(appointment, 'uuid'):
-                appointment_payment.appointment_uuid = appointment.uuid
-            else:
-                logger.warning("Appointment object has no uuid attribute for new appointment_id: %s", appointment.id)
-        appointment_payment.appointment = appointment  
-        appointment_payment.save(update_fields=['appointment', 'appointment_uuid'])
-
         return appointment_payment
 
-    def update(self, instance, validated_data):
-        time_slot_uuid = validated_data.get("time_slot_uuid", instance.time_slot.uuid)
-        if time_slot_uuid != instance.time_slot.uuid:
-            time_slot = TimeSlot.objects.get(uuid=time_slot_uuid)
-            instance.time_slot = time_slot
-
-        request = self.context.get("request")
-        if request and hasattr(request.user, "patient"):
-            instance.patient = request.user.patient
-
-        from api.appointments.models import Appointment
-        try:
-            appointment = Appointment.objects.get(time_slot=instance.time_slot, patient=instance.patient)
-            if hasattr(appointment, 'uuid'):
-                instance.appointment_uuid = appointment.uuid
-            else:
-                logger.warning("Appointment object has no uuid attribute for appointment_id: %s", appointment.id)
-            instance.appointment = appointment
-        except Appointment.DoesNotExist:
-            logger.warning("Appointment not found for time_slot and patient")
-
-        instance.amount = validated_data.get('amount', instance.amount)
-        instance.currency = validated_data.get('currency', instance.currency)
-        instance.receipt_email = validated_data.get('receipt_email', instance.receipt_email)
-        instance.payment_method_id = validated_data.get('payment_method_id', instance.payment_method_id)
-        instance.save(update_fields=['appointment', 'appointment_uuid', 'time_slot', 'patient',
-                                     'amount', 'currency', 'receipt_email', 'payment_method_id'])
-        return instance
 
 class AppointmentRefundSerializer(serializers.ModelSerializer):
     """
     Serializer for AppointmentPaymentRefund with refund policy logic.
     """
 
-    appointment_payment_uuid = serializers.UUIDField(write_only=True)
+    appointment_uuid = serializers.UUIDField(write_only=True)
 
     class Meta:
         model = AppointmentPaymentRefund
         fields = [
-            "id",
             "uuid",
-            "appointment_payment_uuid",
+            "appointment_uuid",
             "amount",
             "status",
             "reason",
@@ -189,7 +131,6 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
         read_only_fields = [
-            "id",
             "uuid",
             "amount",
             "status",
@@ -197,17 +138,13 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
             "updated_at",
         ]
 
-    # def validate_appointment_payment_uuid(self, value):
-    #     pass
-    #     # 
-
     def _get_applicable_refund_policy(self, appointment_time):
         now = timezone.now()
         time_until_appointment = appointment_time - now
         hours_until = time_until_appointment.total_seconds() / 3600
 
         if hours_until < 4:
-            # No refund
+            # 0% refund
             return RefundPolicy.objects.filter(
                 is_active=True, hours_before_min=0, hours_before_max=4
             ).first()
@@ -219,14 +156,14 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
         else:
             # 100% refund
             return RefundPolicy.objects.filter(
-                is_active=True, hours_before_min=24, hours_before_max=99999 # is_null
+                is_active=True, hours_before_min=24, hours_before_max=99999
             ).first()
 
     def validate(self, attrs):
         """Validate refund eligibility and find applicable policy"""
-        appointment_payment_uuid = attrs["appointment_payment_uuid"]
-        validate_appointment_payment(appointment_payment_uuid)
-        payment = AppointmentPayment.objects.get(uuid=appointment_payment_uuid)
+        appointment_uuid = attrs["appointment_uuid"]
+        validate_appointment_payment(appointment_uuid)
+        payment = AppointmentPayment.objects.get(appointment__uuid=appointment_uuid)
 
         if not payment.appointment or not payment.appointment.time_slot:
             raise serializers.ValidationError("Invalid appointment or time slot")
@@ -240,7 +177,7 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
 
         refund_amount = payment.amount * (applicable_policy.refund_percentage / 100)
 
-        if refund_amount <= 0:
+        if refund_amount < 0:
             raise serializers.ValidationError("No refund available based on policy")
 
         attrs["_payment"] = payment
@@ -250,8 +187,6 @@ class AppointmentRefundSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        """Create refund record with applicable policy"""
-        appointment_payment_uuid = validated_data.pop("appointment_payment_uuid")
         payment = validated_data.pop("_payment")
         applicable_policy = validated_data.pop("_applicable_policy")
         refund_amount = validated_data.pop("_refund_amount")

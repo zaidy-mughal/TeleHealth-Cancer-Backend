@@ -5,8 +5,7 @@ from api.payments.choices import (
     RefundPolicyChoices,
     RefundPaymentChoices,
 )
-from django.core.exceptions import ObjectDoesNotExist
-from api.appointments.models import Appointment
+
 
 class AppointmentPayment(BaseModel):
     """
@@ -23,22 +22,6 @@ class AppointmentPayment(BaseModel):
         default=PaymentStatusChoices.REQUIRES_PAYMENT_METHOD,
     )
 
-    time_slot = models.ForeignKey(
-        "doctors.TimeSlot",
-        on_delete=models.CASCADE,
-        related_name="payment_reservations",
-        null=True,
-        blank=True,
-    )
-
-    patient = models.ForeignKey(
-        "patients.Patient",
-        on_delete=models.CASCADE,
-        related_name="payments",
-        null=True,
-        blank=True,
-    )
-
     appointment = models.ForeignKey(
         "appointments.Appointment",
         on_delete=models.SET_NULL,
@@ -47,19 +30,10 @@ class AppointmentPayment(BaseModel):
         related_name="payments",
     )
 
-    appointment_uuid = models.UUIDField(
-        null=True,
-        blank=True,
-        help_text="UUID of the related appointment",
-        db_index=True,
-    )    
-    
     payment_method_id = models.CharField(max_length=255, blank=True)
-    receipt_email = models.EmailField(blank=True)
 
     def __str__(self):
         return f"Payment for Appointment {self.appointment} - {self.status}"
-
 
 
 class RefundPolicy(BaseModel):
@@ -68,9 +42,7 @@ class RefundPolicy(BaseModel):
     """
 
     name = models.CharField(max_length=100)
-    refund_type = models.IntegerField(
-        choices=RefundPolicyChoices.choices
-    )
+    refund_type = models.IntegerField(choices=RefundPolicyChoices.choices)
     hours_before_min = models.PositiveIntegerField(
         help_text="Minimum hours before the appointment to apply this refund policy"
     )
