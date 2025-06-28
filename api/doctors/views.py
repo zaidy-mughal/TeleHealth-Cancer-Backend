@@ -23,7 +23,7 @@ from api.doctors.serializers import (
     LicenseInfoSerializer,
     BulkTimeSlotCreateSerializer,
 )
-from api.doctors.filters import DoctorFilter
+from api.doctors.filters import DoctorFilter, TimeSlotFilter
 from api.doctors.permissions import IsDoctorOrAdmin
 from api.patients.permissions import IsPatientOrAdmin
 from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
@@ -71,32 +71,45 @@ class DoctorViewSet(viewsets.ReadOnlyModelViewSet):
             raise DRFValidationError(detail=detail)
 
 
+@method_decorator(csrf_exempt, name="dispatch")
 class AvailableDoctorDatesAPIView(APIView):
     permission_classes = [IsPatientOrAdmin]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TimeSlotFilter
 
     def get(self, request, *args, **kwargs):
         try:
+            base_filter = {"is_booked": False, "start_time__gte": timezone.now()}
+            queryset = TimeSlot.objects.filter(**base_filter)
 
-            filter_kwargs = {"is_booked": False, "start_time__gte": timezone.now()}
+            filterset = self.filterset_class(request.query_params, queryset=queryset)
 
-            doctor_uuid = request.query_params.get("doctor_uuid", None)
-            if doctor_uuid:
-                filter_kwargs["doctor__uuid"] = doctor_uuid
+            if not filterset.is_valid():
+                return Response(
+                    {"error": "Invalid filter parameters", "details": filterset.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
+            # get queryset from filterset
+            filtered_queryset = filterset.qs
             available_slot_dates = (
-                TimeSlot.objects.filter(**filter_kwargs)
-                .values_list("start_time__date", flat=True)
+                filtered_queryset.values_list("start_time__date", flat=True)
                 .distinct()
                 .order_by("start_time__date")
             )
 
             return Response(
                 {
-                    "available_dates": available_slot_dates,
+                    "available_dates": list(available_slot_dates),
                 },
                 status=status.HTTP_200_OK,
             )
 
+        except DjangoValidationError as ve:
+            return Response(
+                {"error": str(ve)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as e:
             return Response(
                 {"error": f"Failed to retrieve available dates: {str(e)}"},
