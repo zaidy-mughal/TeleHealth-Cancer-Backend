@@ -43,12 +43,9 @@ class BaseMedicalRecordFieldUpdateView(APIView):
                 context=self.get_serializer_context(request),
             )
             serializer.is_valid(raise_exception=True)
+            serializer.update(None, serializer.validated_data)
+            return Response({f"Successfully Updated"}, status=status.HTTP_200_OK)
 
-            updated_record = serializer.update(None, serializer.validated_data)
-
-            return Response(
-                {f"Successfully Updated: {updated_record}"}, status=status.HTTP_200_OK
-            )
         except Exception as e:
             logger.error(f"Error updating medical record field: {str(e)}")
             return Response(
@@ -107,51 +104,3 @@ class PatientRetreiveView(RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         return self.partial_update(request, *args, **kwargs)
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class IodineAllergyAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = IodineAllergySerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class AllergyBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = AllergyListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class MedicationBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = MedicationListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class MedicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = MedicalHistoryListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class SurgicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = SurgicalHistoryListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class CareProviderBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = CareProviderListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class AddictionHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = AddictionHistoryListSerializer
-
-
-@method_decorator(csrf_exempt, name="dispatch")
-class CancerHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
-    serializer_class = CancerHistoryListSerializer

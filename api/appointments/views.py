@@ -11,12 +11,24 @@ from django.utils.decorators import method_decorator
 from api.appointments.serializers import (
     AppointmentSerializer,
     AppointmentDetailSerializer,
-    DoctorAppointmentSerializer
+    DoctorAppointmentSerializer,
 )
+from api.patients.serializers import (
+    IodineAllergySerializer,
+    AllergyListSerializer,
+    MedicationListSerializer,
+    MedicalHistoryListSerializer,
+    SurgicalHistoryListSerializer,
+    CareProviderListSerializer,
+    AddictionHistoryListSerializer,
+    CancerHistoryListSerializer,
+)
+
 from django.shortcuts import get_object_or_404
 from api.appointments.models import Appointment
 from api.doctors.permissions import IsDoctorOrAdmin
 from api.patients.permissions import IsPatientOrAdmin
+from api.patients.views import BaseMedicalRecordFieldUpdateView
 
 import logging
 from drf_spectacular.utils import extend_schema
@@ -24,11 +36,6 @@ from drf_spectacular.utils import extend_schema
 logger = logging.getLogger(__name__)
 
 
-@extend_schema(
-    tags=["Appointments"],
-    responses=AppointmentSerializer,
-    description="API for retrieving a single appointment by UUID.",
-)
 class PatientAppointmentListView(RetrieveAPIView):
     """
     API view to retrieve appointments for a specific patient.
@@ -52,11 +59,6 @@ class PatientAppointmentListView(RetrieveAPIView):
             )
 
 
-@extend_schema(
-    tags=["Appointments"],
-    responses=AppointmentDetailSerializer,
-    description="API for retrieving a single appointment by UUID.",
-)
 @method_decorator(csrf_exempt, name="dispatch")
 class AppointmentDetailView(RetrieveAPIView):
     """
@@ -75,11 +77,6 @@ class AppointmentDetailView(RetrieveAPIView):
         return appointment
 
 
-@extend_schema(
-    tags=["Appointments"],
-    responses=DoctorAppointmentSerializer,
-    description="API for retrieving a single appointment by UUID.",
-)
 class DoctorAppointmentListView(RetrieveAPIView):
     """
     API view to retrieve appointments for a specific doctor.
@@ -102,3 +99,60 @@ class DoctorAppointmentListView(RetrieveAPIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
+
+class AppointmentCreateView(CreateAPIView):
+    """
+    API view to create a new appointment.
+    This view allows patients to book appointments with doctors.
+    """
+
+    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    serializer_class = AppointmentSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class IodineAllergyAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = IodineAllergySerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class AllergyBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = AllergyListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MedicationBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = MedicationListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class MedicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = MedicalHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SurgicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = SurgicalHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CareProviderBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = CareProviderListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class AddictionHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = AddictionHistoryListSerializer
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class CancerHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
+    is_appointment_update = True
+    serializer_class = CancerHistoryListSerializer

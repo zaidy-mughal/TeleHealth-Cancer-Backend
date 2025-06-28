@@ -1,6 +1,6 @@
-from django.urls import path, include
+from django.urls import path
 
-from .views import (
+from api.patients.views import (
     IodineAllergyUpdateView,
     AllergyBulkUpdateView,
     CancerHistoryBulkUpdateView,
@@ -15,34 +15,40 @@ from .views import (
 
 urlpatterns = [
     path(
-        "iodine-allergy/update/",
+        "iodine-allergy/",
         IodineAllergyUpdateView.as_view(),
+        name="iodine-allergy-update",
+    ),
+    path("allergies/", AllergyBulkUpdateView.as_view(), name="allergies-update"),
+    path(
+        "medications/",
+        MedicationBulkUpdateView.as_view(),
+        name="medication-update",
     ),
     path(
-        "cancer-history/update/",
+        "medical-history/",
+        MedicalHistoryBulkUpdateView.as_view(),
+        name="medical-history-update",
+    ),
+    path(
+        "surgical-history/",
+        SurgicalHistoryBulkUpdateView.as_view(),
+        name="surgical-history-update",
+    ),
+    path(
+        "care-providers/",
+        CareProviderBulkUpdateView.as_view(),
+        name="care-provider-update",
+    ),
+    path(
+        "addiction-history/",
+        AddictionHistoryBulkUpdateView.as_view(),
+        name="addiction-history-update",
+    ),
+    path(
+        "cancer-history/",
         CancerHistoryBulkUpdateView.as_view(),
         name="cancer-history-update",
-    ),
-    path("allergies/update/", AllergyBulkUpdateView.as_view()),
-    path(
-        "medications/update/",
-        MedicationBulkUpdateView.as_view(),
-    ),
-    path(
-        "medical-history/update/",
-        MedicalHistoryBulkUpdateView.as_view(),
-    ),
-    path(
-        "surgical-history/update/",
-        SurgicalHistoryBulkUpdateView.as_view(),
-    ),
-    path(
-        "care-providers/update/",
-        CareProviderBulkUpdateView.as_view(),
-    ),
-    path(
-        "addiction-history/update/",
-        AddictionHistoryBulkUpdateView.as_view(),
     ),
     path("me/", PatientRetreiveView.as_view(), name="patient-retrieve"),
 ]

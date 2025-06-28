@@ -27,7 +27,7 @@ from api.patients.utils.update_handler import (
 
 class IodineAllergySerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
-    is_iodine_allergic = LabelChoiceField(choices=IsIodineAllergic.choices)
+    is_iodine_allergic = serializers.ChoiceField(choices=IsIodineAllergic.choices)
 
     def validate(self, attrs):
         validate_is_appointment_update(self, attrs)
@@ -161,7 +161,7 @@ class CareProviderSerializer(serializers.Serializer):
     contact_number = serializers.CharField(
         max_length=15,
     )
-    type = LabelChoiceField(choices=CareProviderType.choices)
+    type = serializers.ChoiceField(choices=CareProviderType.choices)
 
 
 class CareProviderListSerializer(serializers.Serializer):
@@ -187,7 +187,7 @@ class CareProviderListSerializer(serializers.Serializer):
 
 
 class TreatmentReceivedSerializer(serializers.Serializer):
-    name = LabelChoiceField(choices=TreatmentType.choices)
+    name = serializers.ChoiceField(choices=TreatmentType.choices)
 
 
 class CancerHistorySerializer(serializers.Serializer):
@@ -218,7 +218,7 @@ class CancerHistoryListSerializer(serializers.Serializer):
 
 
 class AddictionHistorySerializer(serializers.Serializer):
-    addiction_type = LabelChoiceField(choices=AddictionType.choices)
+    addiction_type = serializers.ChoiceField(choices=AddictionType.choices)
     total_years = serializers.IntegerField(
         min_value=0,
         help_text="Total years of addiction. Use 0 for no addiction.",
@@ -272,7 +272,6 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
         fields = [
             "uuid",
             "is_main_record",
-            "appointment_uuid",
             "iodine_allergy",
             "allergies",
             "medications",
@@ -287,7 +286,6 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "uuid",
             "is_main_record",
-            "appointment_uuid",
             "iodine_allergy",
             "allergies",
             "medications",

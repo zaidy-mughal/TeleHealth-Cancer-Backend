@@ -16,24 +16,23 @@ class Gender(models.IntegerChoices):
     OTHER = 2, "Other"
 
 
-class TreatmentType(models.IntegerChoices):
-    CHEMOTHERAPY = 0, "Chemotherapy"
-    RADIATION = 1, "Radiation Therapy"
-    SURGERY = 2, "Surgery"
-    OTHER = 3, "Other"
+class TreatmentType(models.TextChoices):
+    CHEMOTHERAPY = "chemotherapy", "Chemotherapy"
+    RADIATION = "radiation", "Radiation Therapy"
+    SURGERY = "surgery", "Surgery"
+    OTHER = "other", "Other"
 
 
-class AddictionType(models.IntegerChoices):
-    SMOKING = 0, "Smoking"
-    ALCOHOL = 1, "Alcohol"
+class AddictionType(models.TextChoices):
+    SMOKING = "smoking", "Smoking"
+    ALCOHOL = "alcohol", "Alcohol"
 
 
-class IsIodineAllergic(models.IntegerChoices):
-    NO = 0, "No"
-    YES = 1, "Yes"
-    UNKNOWN = 2, "Unknown"
+class IsIodineAllergic(models.TextChoices):
+    NO = "no", "No"
+    YES = "yes", "Yes"
+    UNKNOWN = "unknown", "Unknown"
 
-
-class CareProviderType(models.IntegerChoices):
-    PRIMARY_PHYSICIAN = 0, "Primary Physician"
-    PHARMACIST = 1, "Pharmacist"
+class CareProviderType(models.TextChoices):
+    PRIMARY_PHYSICIAN = "primary_physician", "Primary Physician"
+    PHARMACIST = "pharmacist", "Pharmacist"

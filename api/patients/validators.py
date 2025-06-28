@@ -43,9 +43,7 @@ def validate_addiction_types(self, data):
 
 def validate_care_providers_types(self, data):
     """
-    Validate that exactly two addiction history records are provided:
-    - One for smoking
-    - One for alcohol
+    Validate that exactly two care provider records are provided:
     """
 
     care_providers_data = data.get("care_providers", [])
@@ -53,7 +51,7 @@ def validate_care_providers_types(self, data):
     if len(care_providers_data) != 2:
         raise serializers.ValidationError(
             {
-                "care_providers": "Exactly two care_providers required (one for smoking and one for alcohol)."
+                "care_providers": "Exactly two care_providers required (one for primary_physician and one for pharmacist)."
             }
         )
 
