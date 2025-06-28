@@ -7,7 +7,7 @@ from api.doctors.choices import Services
 from api.doctors.serializers import TimeSlotSerializer
 from api.patients.utils.fields import LabelChoiceField
 from api.patients.models import Patient
-from api.patients.serializers import PatientSerializer
+from api.patients.serializers import PatientMedicalRecordSerializer
 from api.appointments.models import Appointment
 from api.appointments.choices import Status
 from api.appointments.validators import (
@@ -101,11 +101,13 @@ class AppointmentDetailSerializer(AppointmentSerializer):
     It includes the time slot and patient information.
     """
 
-    patient = PatientSerializer(read_only=True)
+    medical_record = PatientMedicalRecordSerializer(read_only=True)
 
     class Meta(AppointmentSerializer.Meta):
-        fields = AppointmentSerializer.Meta.fields + ["patient"]
-        read_only_fields = AppointmentSerializer.Meta.read_only_fields
+        fields = AppointmentSerializer.Meta.fields + ["medical_record"]
+        read_only_fields = AppointmentSerializer.Meta.read_only_fields + [
+            "medical_record"
+        ]
 
 
 class DoctorAppointmentSerializer(serializers.ModelSerializer):
@@ -119,6 +121,7 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
     patient = serializers.SerializerMethodField(read_only=True)
     doctor = serializers.SerializerMethodField(read_only=True)
     status = serializers.SerializerMethodField(read_only=True)
+    appointment_type = LabelChoiceField(choices=Services.choices, read_only=True)
 
     def get_status(self, obj):
         return obj.get_status_display()
@@ -131,14 +134,13 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
         return None
 
     def get_patient(self, obj):
-        if obj.patient:
+        if obj.medical_record.patient:
             return {
-                "first_name": obj.patient.user.first_name,
-                "middle_name": obj.patient.user.middle_name,
-                "last_name": obj.patient.user.last_name,
-                "visit_type": obj.patient.get_visit_type_display(),
-                "state": obj.patient.state,
-                "gender": obj.patient.get_gender_display(),
+                "first_name": obj.medical_record.patient.user.first_name,
+                "middle_name": obj.medical_record.patient.user.middle_name,
+                "last_name": obj.medical_record.patient.user.last_name,
+                "state": obj.medical_record.patient.state,
+                "gender": obj.medical_record.patient.get_gender_display(),
             }
         return None
 
@@ -150,6 +152,7 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
             "doctor",
             "patient",
             "status",
+            "appointment_type",
             "created_at",
             "updated_at",
         ]
@@ -158,6 +161,7 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
             "time_slot",
             "patient",
             "doctor",
+            "appointment_type",
             "status",
             "created_at",
             "updated_at",

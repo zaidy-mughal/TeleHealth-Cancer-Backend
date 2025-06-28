@@ -1,6 +1,7 @@
 import logging
 from rest_framework import serializers
 from api.patients.models import PatientMedicalRecord
+from api.appointments.models import Appointment
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ def update_json_field(patient, field_name, validated_data, is_appointment_update
                     {f"detail": f"{field_name} is required for appointment updates."}
                 )
 
-        appointment_uuid = validated_data.get("appointment_uuid", None)
+        appointment_uuid = validated_data.pop("appointment_uuid", None)
 
         if not isinstance(validated_data, dict):
             raise serializers.ValidationError(
@@ -54,7 +55,9 @@ def update_json_field(patient, field_name, validated_data, is_appointment_update
                 raise serializers.ValidationError(
                     {"detail": "appointment_uuid is required for appointment updates."}
                 )
-            appointment = patient.appointments.get(uuid=appointment_uuid)
+            appointment = Appointment.objects.get(
+                uuid=appointment_uuid, medical_record__patient=patient
+            )
             if not appointment:
                 raise serializers.ValidationError(
                     {"detail": "Appointment with the given UUID does not exist."}

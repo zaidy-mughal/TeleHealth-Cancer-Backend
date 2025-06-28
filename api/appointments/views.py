@@ -47,7 +47,9 @@ class PatientAppointmentListView(RetrieveAPIView):
     def get(self, request, *args, **kwargs):
         try:
             patient = request.user.patient
-            appointments = Appointment.objects.filter(patient=patient)
+            appointments = Appointment.objects.filter(
+                medical_record__patient=patient, status__in=[1, 2, 3]
+            )
             serializer = self.serializer_class(appointments, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
 
