@@ -18,7 +18,7 @@ class UserAdmin(BaseUserAdmin):
         "is_staff",
         "created_at",
     )
-    list_filter = ("role", "is_active", "is_staff", "created_at")
+    list_filter = ("role", "is_active", "is_staff", "is_email_verified", "created_at")
     search_fields = ("email", "first_name", "last_name", "uuid")
     ordering = ("-created_at",)
     readonly_fields = ("uuid", "created_at", "updated_at", "last_login", "date_joined")
@@ -36,6 +36,7 @@ class UserAdmin(BaseUserAdmin):
                     "is_superuser",
                     "groups",
                     "user_permissions",
+                    "is_email_verified",
                 ),
             },
         ),
