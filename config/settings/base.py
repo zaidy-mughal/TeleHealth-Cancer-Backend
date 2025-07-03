@@ -62,14 +62,16 @@ PROJECT_APPS = [
     "api.authentication",
     "api.doctors",
     "api.appointments",
-    "api.payments"
-    # 'api.medical_records',
+    "api.payments",
+    "api.audits"
+
 ]
 
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
+    
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -77,6 +79,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "api.audits.middleware.AuditLogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -186,7 +189,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Rest framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -207,6 +210,7 @@ ACCOUNT_SIGNUP_FIELDS = {
     "email": {"required": True},
     "password1": {"required": True},
     "password2": {"required": True},
+    # "username": {"required": False},
 }
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
@@ -228,12 +232,12 @@ SIMPLE_JWT = {
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": True,
+    "JWT_AUTH_HTTPONLY": False,
     "JWT_AUTH_SECURE": True,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
     "JWT_AUTH_SAMESITE": "None",  # or "Strict" for more security
-    "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
+    "JWT_AUTH_COOKIE_USE_CSRF": None,  # Set to True if you want CSRF protection
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
     "REGISTER_SERIALIZER": "api.authentication.serializers.TeleHealthRegisterSerializer",
@@ -258,6 +262,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5175",
     "http://localhost:8000",
+    "https://telehealth.aglivo.com",
 ]
 
 CSRF_COOKIE_NAME = "csrftoken"
@@ -265,7 +270,7 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "none"
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 # Disable CSRF for API endpoints
@@ -295,6 +300,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5174",
     "http://localhost:5175",
     "http://localhost:8000",
+    "https://telehealth.aglivo.com",
+
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = []
 CORS_ALLOW_METHODS = [
