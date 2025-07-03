@@ -63,7 +63,7 @@ PROJECT_APPS = [
     "api.doctors",
     "api.appointments",
     "api.payments",
-    "api.audits"
+    # "api.audits"
 
 ]
 
@@ -79,7 +79,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "api.audits.middleware.AuditLogMiddleware",
+    # "api.audits.middleware.AuditLogMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -189,7 +189,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Rest framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -232,12 +232,12 @@ SIMPLE_JWT = {
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_HTTPONLY": True, 
     "JWT_AUTH_SECURE": True,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
     "JWT_AUTH_SAMESITE": "None",  # or "Strict" for more security
-    "JWT_AUTH_COOKIE_USE_CSRF": None,  # Set to True if you want CSRF protection
+    "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
     "REGISTER_SERIALIZER": "api.authentication.serializers.TeleHealthRegisterSerializer",
@@ -270,7 +270,7 @@ CSRF_HEADER_NAME = "HTTP_X_CSRFTOKEN"
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
 CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SAMESITE = "none"
+CSRF_COOKIE_SAMESITE = "None"
 CSRF_FAILURE_VIEW = "django.views.csrf.csrf_failure"
 
 # Disable CSRF for API endpoints
