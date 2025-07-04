@@ -2,6 +2,8 @@ from datetime import datetime
 from rest_framework import serializers
 from django.utils import timezone
 
+from api.doctors.models import TimeSlot
+
 
 def validate_start_time_lt_end_time(start_time, end_time):
     """
@@ -36,37 +38,6 @@ def validate_booked_slot(value):
     """
     if value.is_booked:
         raise serializers.ValidationError("This time slot is already booked.")
-    return value
-
-
-def validate_bulk_time_slots(value):
-    if not value:
-        raise serializers.ValidationError("At least one time slot must be provided.")
-
-    for index, slot_data in enumerate(value):
-        slot_num = index + 1
-        has_to_delete = "to_delete" in slot_data
-
-        if has_to_delete and not isinstance(slot_data.get("to_delete"), bool):
-            raise serializers.ValidationError(
-                f"to_delete must be a boolean value in slot #{slot_num}."
-            )
-
-        if has_to_delete and not slot_data.get("uuid"):
-            raise serializers.ValidationError(
-                f"UUID is required for time slots with to_delete field in slot #{slot_num}."
-            )
-
-        if not has_to_delete and not slot_data.get("start_time"):
-            raise serializers.ValidationError(
-                f"start_time is required for time slots in slot #{slot_num}."
-            )
-
-        if not has_to_delete and not slot_data.get("end_time"):
-            raise serializers.ValidationError(
-                f"end_time is required for time slots in slot #{slot_num}."
-            )
-
     return value
 
 
@@ -136,3 +107,40 @@ def validate_custom_schedule(custom_schedule):
         )
 
     return custom_schedule
+
+
+def validate_invalid_uuids(self, value):
+    """
+    Validate that the provided UUIDs are valid and exist in the database.
+    """
+    doctor = self.context["request"].user.doctor
+    existing_uuids = set(
+        str(uuid)
+        for uuid in TimeSlot.objects.filter(doctor=doctor).values_list(
+            "uuid", flat=True
+        )
+    )
+    provided_uuids = set(str(uuid) for uuid in value)
+
+    invalid_uuid = provided_uuids - existing_uuids
+    if invalid_uuid:
+        raise serializers.ValidationError(
+            f"Some UUIDs are invalid or don't exist: {list(invalid_uuid)}"
+        )
+    return value
+
+
+def validate_booked_slots(self, value):
+
+    doctor = self.context["request"].user.doctor
+
+    booked_uuids = TimeSlot.objects.filter(
+        uuid__in=value, doctor=doctor, is_booked=True
+    ).values_list("uuid", flat=True)
+
+    if booked_uuids:
+        raise serializers.ValidationError(
+            f"The following timeslots are already booked: {list(booked_uuids)}"
+        )
+
+    return value

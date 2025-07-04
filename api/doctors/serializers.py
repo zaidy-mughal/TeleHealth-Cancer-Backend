@@ -16,12 +16,13 @@ from api.doctors.models import (
     DoctorService,
 )
 from api.doctors.validators import (
-    validate_bulk_time_slots,
     validate_user_role,
     validate_start_time_lt_end_time,
     future_start_time,
     validate_custom_schedule,
     validate_time_range,
+    validate_invalid_uuids,
+    validate_booked_slots,
 )
 from api.patients.utils.fields import LabelChoiceField
 
@@ -38,16 +39,12 @@ class SpecializationSerializer(serializers.ModelSerializer):
         fields = ["name"]
 
 
-# will add validations to timeslot in doctor
 class TimeSlotSerializer(serializers.ModelSerializer):
     """
     Serializer for the TimeSlot model.
     """
 
     def validate(self, attrs):
-        """
-        Validate timeslots for the doctor.
-        """
         validate_start_time_lt_end_time(attrs["start_time"], attrs["end_time"])
         future_start_time(attrs["start_time"])
 
@@ -63,48 +60,47 @@ class TimeSlotSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class TimeSlotBulkDeleteSerializer(serializers.Serializer):
+class TimeSlotCreateSerializer(serializers.Serializer):
     """
-    Serializer for bulk deleting timeslots.
+    Serializer for bulk creating time slots.
+    This serializer is used to create timeslots weekly.
+    """
+
+    time_slots = serializers.ListField(
+        child=TimeSlotSerializer(), write_only=True, allow_empty=False
+    )
+
+    @transaction.atomic
+    def create(self):
+        try:
+            slots_data = self.validated_data["time_slots"]
+            doctor = self.context["request"].user.doctor
+
+            slots = [TimeSlot(doctor=doctor, **slot) for slot in slots_data]
+
+            created_slots = TimeSlot.objects.bulk_create(slots, batch_size=10)
+            return created_slots
+
+        except Exception as e:
+            raise serializers.ValidationError(f"Error creating time slots: {str(e)}")
+
+
+class TimeSlotDeleteSerializer(serializers.Serializer):
+    """
+    Serializer for deleting timeslots weekly.
     """
 
     time_slot_uuids = serializers.ListField(
-        child=serializers.UUIDField(), write_only=True
+        child=serializers.UUIDField(), write_only=True, allow_empty=False
     )
 
     def validate_time_slot_uuids(self, value):
-        if not value:
-            raise serializers.ValidationError("At least one UUID must be provided.")
-
-        doctor = self.context["request"].user.doctor
-
-        # Get existing timeslots for this doctor
-        existing_timeslots = TimeSlot.objects.filter(uuid__in=value, doctor=doctor)
-
-        existing_uuids = set(
-            str(uuid) for uuid in existing_timeslots.values_list("uuid", flat=True)
-        )
-        provided_uuids = set(str(uuid) for uuid in value)
-        # Check for invalid UUIDs
-        invalid_uuids = provided_uuids - existing_uuids
-        if invalid_uuids:
-            raise serializers.ValidationError(
-                f"Some UUIDs are invalid or don't exist: {list(invalid_uuids)}"
-            )
-
-        booked_timeslots = existing_timeslots.filter(is_booked=True)
-        if booked_timeslots.exists():
-            raise serializers.ValidationError(
-                "Cannot delete timeslots that are already booked."
-                " Some of the provided timeslots are already booked."
-            )
-
+        validate_invalid_uuids(self, value)
+        validate_booked_slots(self, value)
         return value
 
+    @transaction.atomic
     def delete_timeslots(self):
-        """
-        Delete the validated timeslots.
-        """
         try:
             uuids = self.validated_data["time_slot_uuids"]
             doctor = self.context["request"].user.doctor

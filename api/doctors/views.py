@@ -18,8 +18,9 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from api.doctors.serializers import (
     SpecializationSerializer,
     DoctorSerializer,
-    TimeSlotBulkDeleteSerializer,
+    TimeSlotDeleteSerializer,
     TimeSlotSerializer,
+    TimeSlotCreateSerializer,
     LicenseInfoSerializer,
     BulkTimeSlotCreateSerializer,
 )
@@ -149,64 +150,24 @@ class TimeSlotListAPIView(APIView):
             )
 
 
-@transaction.atomic
-def build_time_slot_objects(serializer_class, data, request):
-    """
-    Validates input data and builds TimeSlot instances.
-    """
-    time_slot_objects = []
-
-    for item in data:
-        serializer = serializer_class(data=item, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-
-        validated_data = serializer.validated_data
-        time_slot = TimeSlot(
-            doctor=request.user.doctor,
-            start_time=validated_data["start_time"],
-            end_time=validated_data["end_time"],
-        )
-        time_slot_objects.append(time_slot)
-
-    return time_slot_objects
-
-
 @method_decorator(csrf_exempt, name="dispatch")
 class TimeSlotCreateAPIView(APIView):
     """
     Handles bulk creation of time slots using Django's bulk_create.
-    Expects a list of time slot data and minimum one object in list.
+    This View is used to create timeslots weekly
     """
 
-    serializer_class = TimeSlotSerializer
+    serializer_class = TimeSlotCreateSerializer
     permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
 
     def post(self, request, *args, **kwargs):
         data = request.data
 
-        if not isinstance(data, list):
-            return Response(
-                {"detail": "Expected a list of time slots."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if not data:
-            return Response(
-                {"detail": "At least one time slot must be provided."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         try:
-            time_slot_objects = build_time_slot_objects(
-                self.serializer_class, data, request
-            )
+            serializer = self.serializer_class(data=data, context={"request": request})
+            serializer.is_valid(raise_exception=True)
 
-            created_slots = TimeSlot.objects.bulk_create(
-                time_slot_objects, batch_size=15
-            )
-
-            response_serializer = self.serializer_class(created_slots, many=True)
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except serializers.ValidationError as e:
             return Response({"detail": e.detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -220,15 +181,16 @@ class TimeSlotCreateAPIView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TimeSlotBulkDeleteView(APIView):
+class TimeSlotDeleteAPIView(APIView):
     """
-    API View to bulk delete timeslots.
+    API View to delete timeslots weekly.
     """
-
+    
     permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    serializer_class = TimeSlotDeleteSerializer
 
     def delete(self, request):
-        serializer = TimeSlotBulkDeleteSerializer(
+        serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
 
