@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from calendar import monthrange
 import calendar
 
-from api.doctors.choices import Services, StateChoices
+from api.doctors.choices import Services, StateChoices, Months, DaysOfWeek
 from api.doctors.models import (
     Doctor,
     Specialization,
@@ -23,6 +23,8 @@ from api.doctors.validators import (
     validate_time_range,
     validate_invalid_uuids,
     validate_booked_slots,
+    start_month_in_future,
+    validate_month_range,
 )
 from api.patients.utils.fields import LabelChoiceField
 
@@ -383,3 +385,106 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
             return created_slots
 
         return []
+
+
+class BulkTimeSlotDeleteSerializer(serializers.Serializer):
+    """
+    Serializer for bulk deleting time slots within a date range for specific days of the week.
+    """
+
+    start_month = serializers.ChoiceField(
+        choices=Months.choices, validators=[start_month_in_future]
+    )
+    end_month = serializers.ChoiceField(choices=Months.choices)
+    days_of_week = serializers.ListField(
+        child=serializers.ChoiceField(choices=DaysOfWeek.choices), allow_empty=False
+    )
+    year = serializers.IntegerField(
+        default=timezone.now().year,
+        min_value=2000,
+        max_value=timezone.now().year + 10,
+        required=False,
+    )
+
+    def validate(self, attrs):
+        start_month = attrs["start_month"]
+        end_month = attrs["end_month"]
+
+        validate_month_range(start_month, end_month)
+
+        return attrs
+
+    def _get_django_weekday_numbers(self, days_of_week):
+        """
+        Convert DaysOfWeek choice values to Django week_day lookup values.
+        Django week_day: Sunday=1, Monday=2, Tuesday=3, ..., Saturday=7
+        DaysOfWeek choices: Monday=1, Tuesday=2, ..., Sunday=7
+        """
+        django_weekdays = []
+        for day in days_of_week:
+            if day == 7:
+                django_weekdays.append(1)
+            else:
+                django_weekdays.append(day + 1)
+        return django_weekdays
+
+    @transaction.atomic
+    def delete_timeslots(self):
+        try:
+            validated_data = self.validated_data
+            doctor = self.context["request"].user.doctor
+
+            year = validated_data.get("year")
+            start_month = validated_data["start_month"]
+            end_month = validated_data["end_month"]
+
+            start_date = timezone.make_aware(datetime(year, start_month, 1))
+
+            # Calculate last day of end month
+            if end_month == 12:
+                end_date = timezone.make_aware(
+                    datetime(year + 1, 1, 1) - timedelta(days=1)
+                )
+            else:
+                end_date = timezone.make_aware(
+                    datetime(year, end_month + 1, 1) - timedelta(days=1)
+                )
+
+            end_date = end_date.replace(
+                hour=23, minute=59, second=59, microsecond=999999
+            )
+
+            django_weekdays = self._get_django_weekday_numbers(
+                validated_data["days_of_week"]
+            )
+
+            all_matching_slots = TimeSlot.objects.filter(
+                doctor=doctor,
+                start_time__gte=start_date,
+                start_time__lte=end_date,
+                start_time__week_day__in=django_weekdays,
+            )
+
+            unbooked_slots = all_matching_slots.filter(is_booked=False)
+            booked_slots = all_matching_slots.filter(is_booked=True)
+
+            deleted_slots_data = unbooked_slots.values_list(
+                "uuid", "start_time", "end_time", "is_booked"
+            )
+
+            booked_slots_data = booked_slots.values_list(
+                "uuid", "start_time", "end_time", "is_booked"
+            )
+
+            deleted_count, _ = unbooked_slots.delete()
+
+            return {
+                "deleted_count": deleted_count,
+                "deleted_slots": deleted_slots_data,
+                "booked_slots_count": booked_slots.count(),
+                "booked_slots": booked_slots_data,
+                "message": f"Successfully deleted unbooked time slots. Booked slots cannot be deleted.",
+            }
+
+        except Exception as e:
+            raise serializers.ValidationError(f"Error deleting timeslots: {str(e)}")

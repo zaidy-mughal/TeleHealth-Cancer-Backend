@@ -23,6 +23,7 @@ from api.doctors.serializers import (
     TimeSlotCreateSerializer,
     LicenseInfoSerializer,
     BulkTimeSlotCreateSerializer,
+    BulkTimeSlotDeleteSerializer,
 )
 from api.doctors.filters import DoctorFilter, TimeSlotFilter
 from api.doctors.permissions import IsDoctorOrAdmin
@@ -185,7 +186,7 @@ class TimeSlotDeleteAPIView(APIView):
     """
     API View to delete timeslots weekly.
     """
-    
+
     permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
     serializer_class = TimeSlotDeleteSerializer
 
@@ -205,6 +206,38 @@ class TimeSlotDeleteAPIView(APIView):
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class BulkTimeSlotDeleteAPIView(APIView):
+    """
+    API view to handle bulk deletion of time slots.
+    """
+
+    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    serializer_class = BulkTimeSlotDeleteSerializer
+
+    def delete(self, request, *args, **kwargs):
+        try:
+            serializer = self.serializer_class(
+                data=request.data, context={"request": request}
+            )
+            serializer.is_valid(raise_exception=True)
+            response_data = serializer.delete_timeslots()
+
+            return Response(
+                response_data,
+                status=status.HTTP_200_OK,
+            )
+
+        except serializers.ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception as e:
+            logger.error(f"Error deleting time slots: {str(e)}")
+            return Response(
+                {"error": f"Failed to delete time slots: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")

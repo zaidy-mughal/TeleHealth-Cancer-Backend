@@ -210,7 +210,6 @@ ACCOUNT_SIGNUP_FIELDS = {
     "email": {"required": True},
     "password1": {"required": True},
     "password2": {"required": True},
-    # "username": {"required": False},
 }
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_EMAIL_VERIFICATION = "none"
@@ -245,14 +244,6 @@ REST_AUTH = {
 }
 
 SITE_ID = 1
-
-
-# # For development, set these to False
-# if DEBUG:
-#     SESSION_COOKIE_SECURE = False
-#     CSRF_COOKIE_SECURE = False
-#     REST_AUTH["JWT_AUTH_SECURE"] = False
-
 
 # CSRF settings
 CSRF_TRUSTED_ORIGINS = [

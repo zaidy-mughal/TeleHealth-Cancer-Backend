@@ -144,3 +144,26 @@ def validate_booked_slots(self, value):
         )
 
     return value
+
+
+def start_month_in_future(start_month):
+    """
+    Validate that the start month is not in the past.
+    """
+    current_month = timezone.now().month
+    if start_month < current_month:
+        raise serializers.ValidationError(
+            "Start month must be in the current or future month."
+        )
+    return start_month
+
+
+def validate_month_range(start_month, end_month):
+    """
+    Validate that the start month is less than or equal to the end month.
+    """
+    if start_month > end_month:
+        raise serializers.ValidationError(
+            "Start month must be less than or equal to end month."
+        )
+    return start_month, end_month
