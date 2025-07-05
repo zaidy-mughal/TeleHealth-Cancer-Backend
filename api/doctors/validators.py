@@ -68,47 +68,6 @@ def validate_time_range(time_range, field_name):
         )
 
 
-def validate_custom_schedule(custom_schedule):
-    """
-    Validate that the custom schedule is not empty and has valid time slots.
-    """
-    if not custom_schedule:
-        raise serializers.ValidationError(
-            "custom_schedule is required when is_custom_days is True"
-        )
-
-    valid_days = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday",
-    ]
-
-    for day_schedule in custom_schedule:
-        day_name = day_schedule.get("day_name", "").lower()
-        if day_name not in valid_days:
-            raise serializers.ValidationError(
-                f"Invalid day_name: {day_name}. Must be one of {valid_days}"
-            )
-
-        if "time_range" not in day_schedule:
-            raise serializers.ValidationError(f"time_range is required for {day_name}")
-        validate_time_range(day_schedule["time_range"], f"{day_name} time_range")
-
-        if "break_time_range" not in day_schedule:
-            raise serializers.ValidationError(
-                f"break_time_range is required for {day_name}"
-            )
-        validate_time_range(
-            day_schedule["break_time_range"], f"{day_name} break_time_range"
-        )
-
-    return custom_schedule
-
-
 def validate_invalid_uuids(self, value):
     """
     Validate that the provided UUIDs are valid and exist in the database.

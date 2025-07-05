@@ -228,34 +228,77 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
     Serializer for bulk creating time slots for multiple months.
     """
 
-    no_of_months = serializers.IntegerField(min_value=1, max_value=12)
-    is_custom_days = serializers.BooleanField(default=False)
+    start_month = serializers.ChoiceField(
+        choices=Months.choices, validators=[start_month_in_future]
+    )
+    end_month = serializers.ChoiceField(choices=Months.choices)
 
-    time_range = serializers.DictField(required=False, allow_empty=False)
-    break_time_range = serializers.DictField(required=False, allow_empty=False)
-
-    custom_schedule = serializers.ListField(
-        child=serializers.DictField(), required=False, allow_empty=False
+    days_of_week = serializers.ListField(
+        child=serializers.ChoiceField(choices=DaysOfWeek.choices), allow_empty=False
+    )
+    year = serializers.IntegerField(
+        default=timezone.now().year,
+        min_value=2000,
+        max_value=timezone.now().year + 10,
+        required=False,
     )
 
-    def validate(self, attrs):
-        is_custom_days = attrs.get("is_custom_days", False)
+    time_range = serializers.DictField(required=True, allow_empty=False)
+    break_time_range = serializers.DictField(required=True, allow_empty=False)
 
-        if is_custom_days:
-            validate_custom_schedule(attrs.get("custom_schedule"))
-        else:
-            if not attrs.get("time_range"):
-                raise serializers.ValidationError(
-                    "time_range is required when is_custom_days is False"
-                )
-            if not attrs.get("break_time_range"):
-                raise serializers.ValidationError(
-                    "break_time_range is required when is_custom_days is False"
-                )
-            validate_time_range(attrs["time_range"], "time_range")
-            validate_time_range(attrs["break_time_range"], "break_time_range")
+    def validate(self, attrs):
+        start_month = attrs["start_month"]
+        end_month = attrs["end_month"]
+
+        # Validate month range
+        validate_month_range(start_month, end_month)
+
+        # Validate time ranges
+        validate_time_range(attrs["time_range"], "time_range")
+        validate_time_range(attrs["break_time_range"], "break_time_range")
+
+        # Validate break time is within time range
+        self._validate_break_time_within_range(
+            attrs["time_range"], attrs["break_time_range"]
+        )
 
         return attrs
+
+    def _validate_break_time_within_range(self, time_range, break_time_range):
+        try:
+            work_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
+            work_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
+            break_start = datetime.strptime(
+                break_time_range["start_time"], "%H:%M"
+            ).time()
+            break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
+
+            if break_start < work_start or break_end > work_end:
+                raise serializers.ValidationError(
+                    "Break time must be within the working time range"
+                )
+
+            if break_start >= break_end:
+                raise serializers.ValidationError(
+                    "Break start time must be less than break end time"
+                )
+
+        except ValueError:
+            raise serializers.ValidationError("Invalid time format in time ranges")
+
+    def _get_python_weekday_numbers(self, days_of_week):
+        """
+        Convert DaysOfWeek choice values to Python weekday() values.
+        Python weekday(): Monday=0, Tuesday=1, ..., Sunday=6
+        DaysOfWeek choices: Monday=1, Tuesday=2, ..., Sunday=7
+        """
+        python_weekdays = []
+        for day in days_of_week:
+            if day == 7:  # Sunday
+                python_weekdays.append(6)
+            else:
+                python_weekdays.append(day - 1)
+        return python_weekdays
 
     def _generate_time_slots(self, date, time_range, break_time_range, doctor):
         """Generate 30-minute time slots for a given date"""
@@ -311,80 +354,83 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
 
         return slots
 
+    @transaction.atomic
     def create_time_slots(self):
         """Create time slots based on the validated data"""
-        request = self.context["request"]
-        doctor = request.user.doctor
+        try:
+            validated_data = self.validated_data
+            doctor = self.context["request"].user.doctor
 
-        validated_data = self.validated_data
-        no_of_months = validated_data["no_of_months"]
-        is_custom_days = validated_data["is_custom_days"]
+            year = validated_data.get("year")
+            start_month = validated_data["start_month"]
+            end_month = validated_data["end_month"]
+            days_of_week = validated_data["days_of_week"]
+            time_range = validated_data["time_range"]
+            break_time_range = validated_data["break_time_range"]
 
-        all_slots = []
-        current_date = timezone.now().date()
+            python_weekdays = self._get_python_weekday_numbers(days_of_week)
+            all_slots = []
 
-        # Generate slots for specified number of months
-        for month_offset in range(no_of_months):
-            # Calculate the target month and year
-            target_month = current_date.month + month_offset
-            target_year = current_date.year
+            # Generate slots for each month in the range
+            current_month = start_month
+            current_year = year
 
-            # Handle year overflow
-            while target_month > 12:
-                target_month -= 12
-                target_year += 1
+            while True:
+                # Get the number of days in the current month
+                days_in_month = monthrange(current_year, current_month)[1]
 
-            # Get the number of days in the target month
-            days_in_month = monthrange(target_year, target_month)[1]
+                # Generate slots for each day in the month
+                for day in range(1, days_in_month + 1):
+                    date = datetime(current_year, current_month, day).date()
 
-            # Generate slots for each weekday in the month
-            for day in range(1, days_in_month + 1):
-                date = datetime(target_year, target_month, day).date()
+                    # Skip if not in specified days of week
+                    if date.weekday() not in python_weekdays:
+                        continue
 
-                # Skip weekends (Monday=0, Sunday=6)
-                if date.weekday() >= 5:  # Saturday=5, Sunday=6
-                    continue
+                    # Skip past dates
+                    if date < timezone.now().date():
+                        continue
 
-                # Skip past dates
-                if date < current_date:
-                    continue
-
-                if is_custom_days:
-                    # Find schedule for this specific day
-                    day_name = calendar.day_name[date.weekday()].lower()
-                    day_schedule = next(
-                        (
-                            schedule
-                            for schedule in validated_data["custom_schedule"]
-                            if schedule["day_name"].lower() == day_name
-                        ),
-                        None,
-                    )
-
-                    if day_schedule:
-                        slots = self._generate_time_slots(
-                            date,
-                            day_schedule["time_range"],
-                            day_schedule["break_time_range"],
-                            doctor,
-                        )
-                        all_slots.extend(slots)
-                else:
-                    # Use same schedule for all weekdays
+                    # Generate time slots for this date
                     slots = self._generate_time_slots(
-                        date,
-                        validated_data["time_range"],
-                        validated_data["break_time_range"],
-                        doctor,
+                        date, time_range, break_time_range, doctor
                     )
                     all_slots.extend(slots)
 
-        # Bulk create all slots
-        if all_slots:
-            created_slots = TimeSlot.objects.bulk_create(all_slots, batch_size=100)
-            return created_slots
+                # Move to next month
+                if current_month == end_month:
+                    break
 
-        return []
+                current_month += 1
+                if current_month > 12:
+                    current_month = 1
+                    current_year += 1
+
+            # Bulk create all slots
+            if all_slots:
+                created_slots = TimeSlot.objects.bulk_create(all_slots, batch_size=100)
+                return {
+                    "created_count": len(created_slots),
+                    "created_slots": [
+                        {
+                            "uuid": str(slot.uuid),
+                            "start_time": slot.start_time,
+                            "end_time": slot.end_time,
+                            "is_booked": slot.is_booked,
+                        }
+                        for slot in created_slots
+                    ],
+                    "message": f"Successfully created {len(created_slots)} time slots.",
+                }
+
+            return {
+                "created_count": 0,
+                "created_slots": [],
+                "message": "No time slots were created (possibly all dates are in the past).",
+            }
+
+        except Exception as e:
+            raise serializers.ValidationError(f"Error creating time slots: {str(e)}")
 
 
 class BulkTimeSlotDeleteSerializer(serializers.Serializer):
@@ -414,7 +460,7 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
 
         return attrs
 
-    def _get_django_weekday_numbers(self, days_of_week):
+    def get_django_weekday_numbers(self, days_of_week):
         """
         Convert DaysOfWeek choice values to Django week_day lookup values.
         Django week_day: Sunday=1, Monday=2, Tuesday=3, ..., Saturday=7
