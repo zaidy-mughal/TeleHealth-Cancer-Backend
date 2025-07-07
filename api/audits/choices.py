@@ -19,5 +19,5 @@ class StatusChoices(models.IntegerChoices):
 class UserTypes(models.IntegerChoices):
     ADMIN = 0, "Admin"
     DOCTOR = 1, "Doctor"
-    Nurse = 2, "Nurse"
+    NURSE = 2, "Nurse"
     PATIENT = 3, "Patient"
