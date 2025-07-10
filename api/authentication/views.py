@@ -123,7 +123,7 @@ class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
     Custom logout view that clears JWT cookies
     """
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
 
     def logout(self, request):
 
