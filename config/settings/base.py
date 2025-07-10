@@ -64,14 +64,12 @@ PROJECT_APPS = [
     "api.appointments",
     "api.payments",
     # "api.audits"
-
 ]
 
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 MIDDLEWARE = [
-    
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
@@ -83,6 +81,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+    "api.middlewares.exception_middleware.GlobalExceptionMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -231,7 +230,7 @@ SIMPLE_JWT = {
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": True, 
+    "JWT_AUTH_HTTPONLY": True,
     "JWT_AUTH_SECURE": True,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
@@ -292,7 +291,6 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5175",
     "http://localhost:8000",
     "https://telehealth.aglivo.com",
-
 ]
 CORS_ALLOWED_ORIGIN_REGEXES = []
 CORS_ALLOW_METHODS = [

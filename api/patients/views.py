@@ -7,6 +7,8 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+
+from api.utils.exception_handler import HandleExceptionAPIView
 from api.patients.serializers import (
     PatientSerializer,
     IodineAllergySerializer,
@@ -25,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class BaseMedicalRecordFieldUpdateView(APIView):
+class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
     serializer_class = None
     is_appointment_update = False
@@ -37,21 +39,14 @@ class BaseMedicalRecordFieldUpdateView(APIView):
         }
 
     def patch(self, request):
-        try:
-            serializer = self.serializer_class(
-                data=request.data,
-                context=self.get_serializer_context(request),
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.update(None, serializer.validated_data)
-            return Response({f"Successfully Updated"}, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            logger.error(f"Error updating medical record field: {str(e)}")
-            return Response(
-                {"detail": f"Failed to update medical record field: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = self.serializer_class(
+            data=request.data,
+            context=self.get_serializer_context(request),
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.update(None, serializer.validated_data)
+        return Response({f"Successfully Updated"}, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -95,7 +90,7 @@ class CancerHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class PatientRetreiveView(RetrieveUpdateAPIView):
+class PatientRetreiveView(HandleExceptionAPIView, RetrieveUpdateAPIView):
     serializer_class = PatientSerializer
     permission_classes = [IsAuthenticated, IsPatientOrAdmin]
 

@@ -10,9 +10,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
-from api.doctors.models import TimeSlot
 from api.services.send_email import EmailService
 
 from api.payments.models import AppointmentPayment
@@ -21,8 +19,8 @@ from api.payments.serializers import (
     AppointmentRefundSerializer,
 )
 from api.payments.choices import PaymentStatusChoices, RefundPaymentChoices
-from api.appointments.models import Appointment
 from api.appointments.choices import Status as AppointmentStatus
+from api.utils.exception_handler import HandleExceptionAPIView
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -31,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CreatePaymentIntentView(APIView):
+class CreatePaymentIntentView(HandleExceptionAPIView, APIView):
     """
     Create a Stripe Payment Intent for appointment payment.
     """
@@ -48,8 +46,7 @@ class CreatePaymentIntentView(APIView):
             serializer = AppointmentPaymentSerializer(
                 data=request.data, context={"request": request}
             )
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
 
             validated_data = serializer.validated_data
             appointment_uuid = validated_data.get("appointment_uuid")
@@ -77,31 +74,11 @@ class CreatePaymentIntentView(APIView):
 
             return Response(AppointmentPaymentSerializer(payment).data)
 
-        except Appointment.DoesNotExist:
-            return Response(
-                {"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND
-            )
-
-        except serializers.ValidationError as e:
-            logger.error(f"Validation error in payment creation: {str(e)}")
-            stripe.PaymentIntent.cancel(payment_intent.id)
-            return Response(
-                {"error": "Validation error", "details": str(e)},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
             return Response(
                 {"error": "Payment processing error", "details": str(e)},
                 status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        except Exception as e:
-            logger.error(f"Unexpected error in payment creation: {str(e)}")
-            return Response(
-                {"error": "An unexpected error occurred"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
         finally:
@@ -117,7 +94,7 @@ class CreatePaymentIntentView(APIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AppointmentRefundView(APIView):
+class AppointmentRefundView(HandleExceptionAPIView, APIView):
     """
     Create refund for appointment payment with policy validation.
     """
@@ -129,8 +106,7 @@ class AppointmentRefundView(APIView):
     def post(self, request):
         try:
             serializer = AppointmentRefundSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.is_valid(raise_exception=True)
 
             appointment_uuid = serializer.validated_data["appointment_uuid"]
             payment = AppointmentPayment.objects.get(appointment__uuid=appointment_uuid)
@@ -161,10 +137,6 @@ class AppointmentRefundView(APIView):
                 status=status.HTTP_200_OK,
             )
 
-        except AppointmentPayment.DoesNotExist:
-            return Response(
-                {"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND
-            )
         except stripe.error.StripeError as e:
             if "refund_record" in locals():
                 refund_record.status = PaymentStatusChoices.CANCELED
@@ -174,16 +146,10 @@ class AppointmentRefundView(APIView):
                 {"error": f"Refund failed: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        except Exception as e:
-            logger.error(f"Unexpected error in refund processing: {str(e)}")
-            return Response(
-                {"error": "An unexpected error occurred"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class StripeWebhookView(APIView):
+class StripeWebhookView(HandleExceptionAPIView, APIView):
     """
     Handle Stripe webhooks for payment status updates.
     """

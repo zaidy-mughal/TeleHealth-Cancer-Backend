@@ -4,22 +4,19 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework import serializers
-from rest_framework_simplejwt.views import TokenRefreshView
-from django.conf import settings
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import logging
 
 from api.authentication.choices import Purpose
+from api.utils.exception_handler import HandleExceptionAPIView
 from api.authentication.serializers import (
     TeleHealthLoginSerializer,
     TeleHealthRegisterSerializer,
     RequestOTPSerializer,
     OTPVerificationSerializer,
     PasswordChangeSerializer,
-    TeleHealthLogoutSerializer,
 )
 
 
@@ -27,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TeleHealthRegisterView(RegisterView):
+class TeleHealthRegisterView(HandleExceptionAPIView, RegisterView):
     """
     Custom registration view for TeleHealth
     """
@@ -54,7 +51,7 @@ class TeleHealthRegisterView(RegisterView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TeleHealthLoginView(LoginView):
+class TeleHealthLoginView(HandleExceptionAPIView, LoginView):
     """
     Custom login view for TeleHealth
     """
@@ -79,7 +76,7 @@ class TeleHealthLoginView(LoginView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TeleHealthPasswordResetView(PasswordResetView):
+class TeleHealthPasswordResetView(HandleExceptionAPIView, PasswordResetView):
     """
     Custom password reset view that sends OTP instead of reset link
     """
@@ -88,26 +85,20 @@ class TeleHealthPasswordResetView(PasswordResetView):
     serializer_class = RequestOTPSerializer
 
     def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.get_serializer(data=request.data)
 
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+        serializer = self.get_serializer(data=request.data)
 
-            return Response(
-                {"detail": "Password reset OTP has been sent to your email."},
-                status=status.HTTP_200_OK,
-            )
-        except Exception as e:
-            logger.error(f"Password reset error: {str(e)}")
-            return Response(
-                {"detail": f"Error during password reset: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {"detail": "Password reset OTP has been sent to your email."},
+            status=status.HTTP_200_OK,
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class PasswordChangeView(APIView):
+class PasswordChangeView(HandleExceptionAPIView, APIView):
     """
     Custom password change view
     """
@@ -116,47 +107,18 @@ class PasswordChangeView(APIView):
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):
-        try:
-            serializer = self.serializer_class(data=request.data)
-            if serializer.is_valid():
-                serializer.save()
-                return Response(
-                    {"detail": "Password changed successfully"},
-                    status=status.HTTP_200_OK,
-                )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            logger.error(f"Password change error: {str(e)}")
-            return Response(
-                {"detail": f"Error during password change: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
 
-
-# @method_decorator(csrf_exempt, name="dispatch")
-# class TeleHealthLogoutView(LogoutView):
-#     permission_classes = [AllowAny]
-#     serializer_class = TeleHealthLogoutSerializer
-
-#     def post(self, request):
-#         try:
-#             serializer = self.serializer_class(data=request.data)
-#             serializer.is_valid(raise_exception=True)
-
-#             response = super().logout(request)
-#             return response
-
-#         except serializers.ValidationError as e:
-#             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-#         except Exception as e:
-#             return Response(
-#                 {"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"detail": "Password changed successfully"},
+            status=status.HTTP_200_OK,
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class TeleHealthLogoutView(LogoutView):
+class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
     """
     Custom logout view that clears JWT cookies
     """
@@ -164,49 +126,32 @@ class TeleHealthLogoutView(LogoutView):
     permission_classes = [AllowAny]
 
     def logout(self, request):
-        try:
-            response = super().logout(request)
 
-            response.delete_cookie("telehealth-access-token")
-            response.delete_cookie("telehealth-refresh-token")
+        response = super().logout(request)
 
-            response.data = {"detail": "Successfully logged out."}
-            return response
+        response.delete_cookie("telehealth-access-token")
+        response.delete_cookie("telehealth-refresh-token")
 
-        except Exception as e:
-            return Response(
-                {"detail": f"Logout error: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        response.data = {"detail": "Successfully logged out."}
+        return response
 
 
-class SendOTPView(APIView):
+class SendOTPView(HandleExceptionAPIView, APIView):
     permission_classes = [AllowAny]
     serializer_class = RequestOTPSerializer
 
     def post(self, request):
-        try:
-            serializer = self.serializer_class(data=request.data)
-            serializer.is_valid(raise_exception=True)
 
-            if serializer.is_valid():
-                result = serializer.save()
-                return Response(result, status=status.HTTP_200_OK)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
 
-        except serializers.ValidationError as e:
-            logger.error(f"Validation error in SendOTPView: {str(e)}")
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            logger.error(f"Unexpected error in SendOTPView: {str(e)}")
-            return Response(
-                {"detail": f"An unexpected error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        if serializer.is_valid():
+            result = serializer.save()
+            return Response(result, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class VerifyEmailOTPView(APIView):
+class VerifyEmailOTPView(HandleExceptionAPIView, APIView):
     """
     Verify email with OTP during registration
     """
@@ -215,42 +160,21 @@ class VerifyEmailOTPView(APIView):
     serializer_class = OTPVerificationSerializer
 
     def post(self, request):
-        try:
-            serializer = self.serializer_class(
-                data=request.data, context={"purpose": Purpose.EMAIL_VERIFICATION}
-            )
 
-            if serializer.is_valid():
-                result = serializer.save()
-                logger.info(
-                    f"Email verification successful for email: {request.data.get('email', 'unknown')}"
-                )
-                return Response(result, status=status.HTTP_200_OK)
+        serializer = self.serializer_class(
+            data=request.data, context={"purpose": Purpose.EMAIL_VERIFICATION}
+        )
 
-            logger.warning(
-                f"Email verification failed - validation errors: {serializer.errors}"
-            )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        except serializers.ValidationError as e:
-            logger.error(f"Validation error in VerifyEmailOTPView: {str(e)}")
-            return Response(
-                {"detail": "Invalid data provided for email verification"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        except Exception as e:
-            logger.error(f"Unexpected error in VerifyEmailOTPView: {str(e)}")
-            return Response(
-                {
-                    "detail": f"An unexpected error occurred during email verification: {str(e)}"
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        logger.info(
+            f"Email verification successful for email: {request.data.get('email', 'unknown')}"
+        )
+        return Response(result, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class VerifyPasswordResetOTPView(APIView):
+class VerifyPasswordResetOTPView(HandleExceptionAPIView, APIView):
     """
     Verify OTP for password reset
     """
@@ -259,57 +183,14 @@ class VerifyPasswordResetOTPView(APIView):
     serializer_class = OTPVerificationSerializer
 
     def post(self, request):
-        try:
-            serializer = self.serializer_class(
-                data=request.data, context={"purpose": Purpose.PASSWORD_RESET}
-            )
 
-            if serializer.is_valid():
-                result = serializer.save()
-                logger.info(
-                    f"Password reset OTP verification successful for email: {request.data.get('email', 'unknown')}"
-                )
-                return Response(result, status=status.HTTP_200_OK)
+        serializer = self.serializer_class(
+            data=request.data, context={"purpose": Purpose.PASSWORD_RESET}
+        )
 
-            logger.warning(
-                f"Password reset OTP verification failed - validation errors: {serializer.errors}"
-            )
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        except serializers.ValidationError as e:
-            logger.error(f"Validation error in VerifyPasswordResetOTPView: {str(e)}")
-            return Response(
-                {"detail": "Invalid data provided for password reset OTP verification"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        except Exception as e:
-            logger.error(f"Unexpected error in VerifyPasswordResetOTPView: {str(e)}")
-            return Response(
-                {
-                    "detail": f"An unexpected error occurred during password reset OTP verification: {str(e)}"
-                },
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
-
-
-# class CookieTokenRefreshView(TokenRefreshView):
-#     """
-#     Custom token refresh view that uses cookies
-#     """
-
-#     def post(self, request, *args, **kwargs):
-#         refresh_token = request.COOKIES.get(
-#             settings.REST_AUTH["JWT_AUTH_REFRESH_COOKIE"]
-#         )
-
-#         if refresh_token:
-#             request.data["refresh"] = refresh_token
-
-#         response = super().post(request, *args, **kwargs)
-
-#         if response.status_code == 200:
-#             # New access token is automatically set in cookie by dj-rest-auth
-#             response.data = {"detail": "Token refreshed successfully"}
-
-#         return response
+        serializer.is_valid(raise_exception=True)
+        result = serializer.save()
+        logger.info(
+            f"Password reset OTP verification successful for email: {request.data.get('email', 'unknown')}"
+        )
+        return Response(result, status=status.HTTP_200_OK)

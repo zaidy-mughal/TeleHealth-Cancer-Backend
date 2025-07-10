@@ -19,7 +19,6 @@ from api.doctors.validators import (
     validate_user_role,
     validate_start_time_lt_end_time,
     future_start_time,
-    validate_custom_schedule,
     validate_time_range,
     validate_invalid_uuids,
     validate_booked_slots,
