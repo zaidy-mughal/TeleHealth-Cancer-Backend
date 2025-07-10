@@ -1,36 +1,25 @@
 from rest_framework.permissions import BasePermission
 
-
-class IsPatientOrAdmin(BasePermission):
+class IsPatient(BasePermission):
     """
-    Custom permission to only allow patients to access their own data.
-    This permission checks:
-    1. If the user is authenticated and has a patient profile
-    2. For object-level permissions, checks that the object belongs to the patient
+    Custom permission to allow only authenticated patients to access data.
+    1. User must be authenticated and have a patient profile.
+    2. Object-level: only access objects owned by the same patient.
     """
 
     def has_permission(self, request, view):
-        # Allow if user is authenticated AND (has a patient profile OR is admin)
         user = request.user
-        return user.is_authenticated and (
-            hasattr(user, "patient") or user.is_staff or user.is_superuser
-        )
+        return user.is_authenticated and hasattr(user, "patient")
 
     def has_object_permission(self, request, view, obj):
-        # Allow admins full access
         user = request.user
-        if user.is_staff or user.is_superuser:
-            return True
 
-        if not request.user.is_authenticated:
-            return False
-
-        if not hasattr(request.user, "patient"):
+        if not user.is_authenticated or not hasattr(user, "patient"):
             return False
 
         if hasattr(obj, "patient"):
-            return obj.patient == request.user.patient
+            return obj.patient == user.patient
         elif hasattr(obj, "user"):
-            return obj == request.user.patient
+            return obj.user == user.patient.user
 
         return False

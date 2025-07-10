@@ -1,6 +1,6 @@
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
-from api.patients.permissions import IsPatientOrAdmin
+from api.patients.permissions import IsPatient
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 
 @method_decorator(csrf_exempt, name="dispatch")
 class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = None
     is_appointment_update = False
 
@@ -92,7 +92,7 @@ class CancerHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
 @method_decorator(csrf_exempt, name="dispatch")
 class PatientRetreiveView(HandleExceptionAPIView, RetrieveUpdateAPIView):
     serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatient]
 
     def get_object(self):
         return self.request.user.patient

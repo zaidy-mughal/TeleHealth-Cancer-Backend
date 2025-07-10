@@ -21,6 +21,7 @@ from api.payments.serializers import (
 from api.payments.choices import PaymentStatusChoices, RefundPaymentChoices
 from api.appointments.choices import Status as AppointmentStatus
 from api.utils.exception_handler import HandleExceptionAPIView
+from api.patients.permissions import IsPatient
 
 # Configure Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -34,7 +35,7 @@ class CreatePaymentIntentView(HandleExceptionAPIView, APIView):
     Create a Stripe Payment Intent for appointment payment.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = AppointmentPaymentSerializer
 
     @transaction.atomic
@@ -99,7 +100,7 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
     Create refund for appointment payment with policy validation.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = AppointmentRefundSerializer
 
     @transaction.atomic
@@ -452,6 +453,7 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
 
 
 class AppointmentPaymentUUIDView(APIView):
+    
     def get(self, request, appointment_uuid):
         try:
             payment = AppointmentPayment.objects.get(appointment_uuid=appointment_uuid)

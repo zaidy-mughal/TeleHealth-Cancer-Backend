@@ -2,28 +2,23 @@ from rest_framework.permissions import BasePermission
 from api.doctors.models import Doctor
 
 
-class IsDoctorOrAdmin(BasePermission):
+class IsDoctor(BasePermission):
     """
-    Custom permission to only allow doctors to access their own data.
-    This permission checks:
-    1. If the user is authenticated and has a doctor profile
-    2. For object-level permissions, checks that the object belongs to the doctor
+    Custom permission to allow only authenticated doctors to access data.
+
+    Global check: User must be authenticated and have a doctor profile.
+    Object-level check: only access objects owned by the same patient.
     """
 
     def has_permission(self, request, view):
         user = request.user
-        # Allow if user is authenticated AND (has a doctor profile OR is admin)
-        return user.is_authenticated and (
-            hasattr(user, "doctor") or user.is_staff or user.is_superuser
-        )
+        return user.is_authenticated and hasattr(user, "doctor")
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        # Allow admins full access
-        if user.is_staff or user.is_superuser:
-            return True
+
         try:
-            doctor = request.user.doctor
+            doctor = user.doctor
         except Doctor.DoesNotExist:
             return False
 
@@ -34,6 +29,6 @@ class IsDoctorOrAdmin(BasePermission):
             return obj == doctor
 
         if hasattr(obj, "user"):
-            return obj.user == request.user
+            return obj.user == user
 
         return False

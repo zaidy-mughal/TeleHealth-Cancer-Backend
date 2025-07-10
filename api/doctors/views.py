@@ -24,8 +24,8 @@ from api.doctors.serializers import (
     BulkTimeSlotDeleteSerializer,
 )
 from api.doctors.filters import DoctorFilter, TimeSlotFilter
-from api.doctors.permissions import IsDoctorOrAdmin
-from api.patients.permissions import IsPatientOrAdmin
+from api.doctors.permissions import IsDoctor
+from api.patients.permissions import IsPatient
 from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
 from api.utils.exception_handler import HandleExceptionAPIView, HandleExceptionViewset
 
@@ -40,7 +40,7 @@ class SpecializationListCreateView(HandleExceptionAPIView, ListCreateAPIView):
     API view to handle specialization creation and listing.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = SpecializationSerializer
     queryset = Specialization.objects.all()
 
@@ -73,7 +73,7 @@ class DoctorViewSet(HandleExceptionViewset, viewsets.ReadOnlyModelViewSet):
 
 @method_decorator(csrf_exempt, name="dispatch")
 class AvailableDoctorDatesAPIView(HandleExceptionAPIView, APIView):
-    permission_classes = [IsPatientOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatient]
     filter_backends = [DjangoFilterBackend]
     filterset_class = TimeSlotFilter
 
@@ -133,7 +133,7 @@ class TimeSlotCreateAPIView(HandleExceptionAPIView, APIView):
     """
 
     serializer_class = TimeSlotCreateSerializer
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
 
     def post(self, request, *args, **kwargs):
         data = request.data
@@ -150,7 +150,7 @@ class TimeSlotDeleteAPIView(HandleExceptionAPIView, APIView):
     API View to delete timeslots weekly.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = TimeSlotDeleteSerializer
 
     def delete(self, request):
@@ -174,7 +174,7 @@ class BulkTimeSlotDeleteAPIView(HandleExceptionAPIView, APIView):
     API view to handle bulk deletion of time slots.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = BulkTimeSlotDeleteSerializer
 
     def delete(self, request, *args, **kwargs):
@@ -196,7 +196,7 @@ class LicenseInfoListAPIView(HandleExceptionAPIView, APIView):
     API view to handle license information listing.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = LicenseInfoSerializer
 
     def get(self, request, *args, **kwargs):
@@ -214,7 +214,7 @@ class LicenseInfoCreateAPIView(HandleExceptionAPIView, APIView):
     API view to handle license information creation.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = LicenseInfoSerializer
 
     def post(self, request, *args, **kwargs):
@@ -233,7 +233,7 @@ class BulkTimeSlotCreateAPIView(HandleExceptionAPIView, APIView):
     API view to handle bulk time slot creation for multiple months.
     """
 
-    permission_classes = [IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = BulkTimeSlotCreateSerializer
 
     def post(self, request, *args, **kwargs):

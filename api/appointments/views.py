@@ -25,8 +25,8 @@ from api.patients.serializers import (
 
 from django.shortcuts import get_object_or_404
 from api.appointments.models import Appointment
-from api.doctors.permissions import IsDoctorOrAdmin
-from api.patients.permissions import IsPatientOrAdmin
+from api.doctors.permissions import IsDoctor
+from api.patients.permissions import IsPatient
 from api.patients.views import BaseMedicalRecordFieldUpdateView
 from api.utils.exception_handler import HandleExceptionAPIView
 
@@ -40,7 +40,7 @@ class PatientAppointmentListView(HandleExceptionAPIView, RetrieveAPIView):
     API view to retrieve appointments for a specific patient.
     """
 
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = AppointmentSerializer
 
     def get(self, request, *args, **kwargs):
@@ -76,7 +76,7 @@ class DoctorAppointmentListView(HandleExceptionAPIView, RetrieveAPIView):
     API view to retrieve appointments for a specific doctor.
     """
 
-    permission_classes = [IsAuthenticated, IsDoctorOrAdmin]
+    permission_classes = [IsAuthenticated, IsDoctor]
     serializer_class = DoctorAppointmentSerializer
 
     def get(self, request, *args, **kwargs):
@@ -93,7 +93,7 @@ class AppointmentCreateView(HandleExceptionAPIView, CreateAPIView):
     This view allows patients to book appointments with doctors.
     """
 
-    permission_classes = [IsAuthenticated, IsPatientOrAdmin]
+    permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = AppointmentSerializer
 
 
