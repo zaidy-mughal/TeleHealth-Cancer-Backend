@@ -55,6 +55,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Copy test .env
+        run: cp example.env .env
+
       - name: Run tests
         run: |
           python manage.py test
