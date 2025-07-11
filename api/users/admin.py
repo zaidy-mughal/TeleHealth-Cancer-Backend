@@ -1,35 +1,78 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
+from api.users.choices import Role
 
 User = get_user_model()
 
 
+@admin.register(User)
 class UserAdmin(BaseUserAdmin):
-    add_form = UserCreationForm
-    form = UserChangeForm
-
-    list_display = ('email', 'is_staff',  'is_superuser',
-                    'date_joined', 'last_login')
-    list_filter = ('is_superuser',)
+    list_display = (
+        "email",
+        "first_name",
+        "last_name",
+        "get_role_display",
+        "is_active",
+        "is_email_verified",
+        "is_staff",
+        "created_at",
+    )
+    list_filter = ("role", "is_active", "is_staff", "is_email_verified", "created_at")
+    search_fields = ("email", "first_name", "last_name", "uuid")
+    ordering = ("-created_at",)
+    readonly_fields = ("uuid", "created_at", "updated_at", "last_login", "date_joined")
 
     fieldsets = (
-        (('Credentials'), {'fields': (
-            'email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name',
-         'date_joined', 'last_login', 'is_staff', 'is_superuser')}),
-        ('Groups', {'fields': ('groups',)}),
-        ('Permissions', {'fields': ('user_permissions', 'is_active')}),
+        (None, {"fields": ("email", "password")}),
+        ("Personal info", {"fields": ("first_name", "last_name")}),
+        ("Role", {"fields": ("role",)}),
+        (
+            "Permissions",
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                    "is_email_verified",
+                ),
+            },
+        ),
+        (
+            "Metadata",
+            {
+                "fields": (
+                    "uuid",
+                    "created_at",
+                    "updated_at",
+                    "last_login",
+                    "date_joined",
+                )
+            },
+        ),
     )
+
     add_fieldsets = (
-        (('Credentials'), {'classes': ('wide',), 'fields': (
-            'email', 'password1', 'password2'), }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": (
+                    "email",
+                    "password1",
+                    "password2",
+                    "first_name",
+                    "last_name",
+                    "role",
+                ),
+            },
+        ),
     )
 
-    search_fields = ('email', 'name', 'phone')
-    ordering = ('email',)
-    filter_horizontal = ()
+    def get_role_display(self, obj):
+        """Return the human-readable role name"""
+        return Role(obj.role).label
 
-
-admin.site.register(User, UserAdmin)
+    get_role_display.short_description = "Role"

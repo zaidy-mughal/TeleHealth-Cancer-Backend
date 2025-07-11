@@ -1,0 +1,23 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Appointment Confirmation & Payment Successful{% endblock %}
+
+{% block content %}
+<h2>Appointment Confirmed</h2>
+<p>Dear {{ user.get_full_name }},</p>
+<p>Your telemedicine appointment has been successfully scheduled and your payment has been received.</p>
+
+<ul>
+    <li><strong>Date:</strong> {{ appointment_date }}</li>
+    <li><strong>Time:</strong> {{ appointment_time }}</li>
+    <li><strong>Doctor:</strong> {{ doctor_name }}</li>
+    <li><strong>Payment ID:</strong> {{ payment_id }}</li>
+    <li><strong>Amount Paid:</strong> {{ amount_paid }}</li>
+</ul>
+
+<p>Please join the consultation 5 minutes before your scheduled time:</p>
+<a href="#" class="button">Join Video Call</a>
+
+<p>If you need to reschedule or cancel, please contact us at least 24 hours in advance.</p>
+<p>We look forward to seeing you!</p>
+{% endblock %}
