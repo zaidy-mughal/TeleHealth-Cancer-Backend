@@ -40,13 +40,14 @@ class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
 
     def patch(self, request):
 
-        serializer = self.serializer_class(
+        serializer = self.get_serializer_class()(
             data=request.data,
             context=self.get_serializer_context(request),
         )
         serializer.is_valid(raise_exception=True)
         serializer.update(None, serializer.validated_data)
-        return Response({f"Successfully Updated"}, status=status.HTTP_200_OK)
+        return Response({"message": "Successfully Updated"},
+                        status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
