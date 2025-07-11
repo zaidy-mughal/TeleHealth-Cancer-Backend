@@ -26,10 +26,6 @@ environ.Env.read_env(BASE_DIR.__str__() + "/.env")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("DJANGO_SECRET_KEY")
 
-# Configure allowed hosts for Railway
-RAILWAY_STATIC_URL = env("RAILWAY_STATIC_URL", default=None)
-# Be careful with this in production
-
 
 # Application definition
 DJANGO_APPS = [

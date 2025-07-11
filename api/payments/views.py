@@ -290,7 +290,7 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                 amount=payment.amount,
             )
 
-            logger.info(f"Payment failed: {payment_intent['id']}")
+            logger.info("Payment failed: %s", payment_intent['id'])
 
         except AppointmentPayment.DoesNotExist:
             logger.error(
