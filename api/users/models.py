@@ -6,8 +6,8 @@ from django.core.validators import validate_email
 from django.utils import timezone
 from django.contrib.auth.models import UnicodeUsernameValidator
 
-from apps.base_models import TimeStampMixin
-from apps.users.managers import UserManager
+from api.base_models import TimeStampMixin
+from api.users.managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin):
