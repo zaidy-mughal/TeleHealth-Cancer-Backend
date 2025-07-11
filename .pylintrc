@@ -101,7 +101,7 @@ generated-members=REQUEST,acl_users,aq_parent
 [BASIC]
 
 # Functions that should not be used
-bad-functions=map,filter,input
+# bad-functions=map,filter,input
 
 # Good and bad variable names
 good-names=i,j,k,ex,Run,_
