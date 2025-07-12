@@ -3,15 +3,13 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView
+from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import viewsets
 from django_filters.rest_framework import DjangoFilterBackend
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
-
 
 from api.doctors.serializers import (
     SpecializationSerializer,
@@ -27,7 +25,7 @@ from api.doctors.filters import DoctorFilter, TimeSlotFilter
 from api.doctors.permissions import IsDoctor
 from api.patients.permissions import IsPatient
 from api.doctors.models import Specialization, TimeSlot, LicenseInfo, Doctor
-from api.utils.exception_handler import HandleExceptionAPIView, HandleExceptionViewset
+from api.utils.exception_handler import HandleExceptionAPIView
 
 import logging
 
@@ -46,11 +44,12 @@ class SpecializationListCreateView(HandleExceptionAPIView, ListCreateAPIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class DoctorViewSet(HandleExceptionViewset, viewsets.ReadOnlyModelViewSet):
+class DoctorListAPIView(HandleExceptionAPIView, ListAPIView):
     serializer_class = DoctorSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_class = DoctorFilter
     permission_classes = [IsAuthenticated]
+    http_method_names = ["get"]
 
     def get_queryset(self):
         available_slots = TimeSlot.objects.filter(
@@ -78,7 +77,6 @@ class AvailableDoctorDatesAPIView(HandleExceptionAPIView, APIView):
     filterset_class = TimeSlotFilter
 
     def get(self, request, *args, **kwargs):
-
         base_filter = {"is_booked": False, "start_time__gte": timezone.now()}
         queryset = TimeSlot.objects.filter(**base_filter)
 
@@ -140,8 +138,14 @@ class TimeSlotCreateAPIView(HandleExceptionAPIView, APIView):
 
         serializer = self.serializer_class(data=data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        created_count = serializer.save()
+        return Response(
+            {
+                "message": f"Successfully Created {created_count} timeslots",
+                "total_created": created_count
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -200,7 +204,6 @@ class LicenseInfoListAPIView(HandleExceptionAPIView, APIView):
     serializer_class = LicenseInfoSerializer
 
     def get(self, request, *args, **kwargs):
-
         doctor = request.user.doctor
         license_info = LicenseInfo.objects.filter(doctor=doctor)
         serializer = self.serializer_class(license_info, many=True)
@@ -218,7 +221,6 @@ class LicenseInfoCreateAPIView(HandleExceptionAPIView, APIView):
     serializer_class = LicenseInfoSerializer
 
     def post(self, request, *args, **kwargs):
-
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
@@ -237,21 +239,11 @@ class BulkTimeSlotCreateAPIView(HandleExceptionAPIView, APIView):
     serializer_class = BulkTimeSlotCreateSerializer
 
     def post(self, request, *args, **kwargs):
-
-        serializer = BulkTimeSlotCreateSerializer(
+        serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        response = serializer.create_time_slots()
 
-        created_slots = serializer.create_time_slots()
-
-        return Response(
-            {
-                "message": f"Successfully created {len(created_slots)} time slots",
-                "created_count": len(created_slots),
-                "months_generated": serializer.validated_data["no_of_months"],
-            },
-            status=status.HTTP_201_CREATED,
-        )
+        return Response(response, status=status.HTTP_201_CREATED)

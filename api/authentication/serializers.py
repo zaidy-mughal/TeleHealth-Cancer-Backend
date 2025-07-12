@@ -1,9 +1,10 @@
+import logging
+
 from django.db import transaction
 from dj_rest_auth.registration.serializers import RegisterSerializer
 from dj_rest_auth.serializers import LoginSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
-
 
 from api.users.models import User
 from api.users.choices import Role
@@ -30,6 +31,8 @@ from api.authentication.validators import (
     validate_patient_fields,
     validate_email_purpose_for_otp,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class TeleHealthRegisterSerializer(RegisterSerializer):
@@ -119,8 +122,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 self.profile_uuid = patient.uuid
 
             except Exception as e:
+                logger.exception("Unexpected error")
                 raise serializers.ValidationError(
-                    {"detail": f"Failed to create profile: {str(e)}"}
+                    {"detail": "Failed to create profile"}
                 )
 
         elif user.role == Role.DOCTOR:
@@ -145,8 +149,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 self.profile_uuid = doctor.uuid
 
             except Exception as e:
+                logger.exception("Unexpected error")
                 raise serializers.ValidationError(
-                    {"detail": f"Failed to create profile: {str(e)}"}
+                    {"detail": "Failed to create profile"}
                 )
         else:
             raise serializers.ValidationError(
@@ -158,8 +163,9 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
             EmailService.send_otp_email(user, otp_obj.otp)
         except Exception as e:
             user.delete()
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to send verification OTP: {str(e)}"}
+                {"detail": "Failed to send verification OTP"}
             )
 
 
@@ -174,7 +180,8 @@ class TeleHealthLoginSerializer(LoginSerializer):
         if not user.is_email_verified:
             raise serializers.ValidationError(
                 {
-                    "detail": "Please verify your email first. Check your inbox/spam for the verification OTP."
+                    "detail": "Please verify your email first. Check your inbox/spam "
+                              "for the verification OTP."
                 }
             )
 
@@ -254,8 +261,9 @@ class RequestOTPSerializer(serializers.Serializer):
             )
 
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to send OTP: {str(e)}"}
+                {"detail": "Failed to send OTP"}
             )
 
 
@@ -271,7 +279,7 @@ class OTPVerificationSerializer(serializers.Serializer):
         try:
             is_valid, otp_obj = validate_otp(email, otp, purpose)
             if not is_valid:
-                raise serializers.ValidationError("Invalid or expired OTP")
+                raise serializers.ValidationError({"detail": "Invalid or expired OTP"})
 
             otp_obj.is_used = True
             otp_obj.save()
@@ -285,16 +293,18 @@ class OTPVerificationSerializer(serializers.Serializer):
                     EmailService.send_welcome_email(user)
 
                 except Exception as e:
+                    logger.exception("Unexpected error")
                     raise serializers.ValidationError(
-                        {"detail": f"Failed to send welcome email: {str(e)}"}
+                        {"detail": "Failed to send welcome email"}
                     )
 
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid email address")
 
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to verify OTP: {str(e)}"}
+                {"detail": "Failed to verify OTP}"}
             )
 
         return attrs
@@ -328,8 +338,9 @@ class PasswordChangeSerializer(serializers.Serializer):
             self.user.save()
             return self.user
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to change password: {str(e)}"}
+                {"detail": "Failed to change password"}
             )
 
 

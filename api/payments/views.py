@@ -78,7 +78,7 @@ class CreatePaymentIntentView(HandleExceptionAPIView, APIView):
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
             return Response(
-                {"error": "Payment processing error", "details": str(e)},
+                {"error": "Payment processing error"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -144,7 +144,7 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
                 refund_record.save(update_fields=["status"])
             logger.error(f"Stripe refund error: {str(e)}")
             return Response(
-                {"error": f"Refund failed: {str(e)}"},
+                {"error": f"Refund failed!"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 

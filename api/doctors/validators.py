@@ -90,7 +90,6 @@ def validate_invalid_uuids(self, value):
 
 
 def validate_booked_slots(self, value):
-
     doctor = self.context["request"].user.doctor
 
     booked_uuids = TimeSlot.objects.filter(
@@ -126,3 +125,26 @@ def validate_month_range(start_month, end_month):
             "Start month must be less than or equal to end month."
         )
     return start_month, end_month
+
+
+def validate_break_time_within_range(time_range, break_time_range):
+    try:
+        work_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
+        work_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
+        break_start = datetime.strptime(
+            break_time_range["start_time"], "%H:%M"
+        ).time()
+        break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
+
+        if break_start < work_start or break_end > work_end:
+            raise serializers.ValidationError(
+                "Break time must be within the working time range"
+            )
+
+        if break_start >= break_end:
+            raise serializers.ValidationError(
+                "Break start time must be less than break end time"
+            )
+
+    except ValueError:
+        raise serializers.ValidationError("Invalid time format in time ranges")

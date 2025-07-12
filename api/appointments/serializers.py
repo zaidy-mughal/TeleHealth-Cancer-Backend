@@ -65,7 +65,7 @@ class AppointmentSerializer(serializers.ModelSerializer):
             "doctor",
             "time_slot",
             "status",
-            "visit_type",
+            "appointment_type",
             "created_at",
             "updated_at",
         ]
@@ -91,7 +91,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Patient profile not found for this user")
 
         except Exception as e:
-            raise serializers.ValidationError(f"Error creating appointment: {str(e)}")
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError("Error creating appointment")
 
 
 class AppointmentDetailSerializer(AppointmentSerializer):

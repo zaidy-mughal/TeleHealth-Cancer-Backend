@@ -1,5 +1,5 @@
 """
-WSGI config for django_boilerplate project.
+WSGI config for project.
 """
 
 import os

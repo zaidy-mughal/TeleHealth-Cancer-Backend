@@ -19,7 +19,6 @@ from api.authentication.serializers import (
     PasswordChangeSerializer,
 )
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -33,7 +32,6 @@ class TeleHealthRegisterView(HandleExceptionAPIView, RegisterView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = self.perform_create(serializer)
@@ -85,7 +83,6 @@ class TeleHealthPasswordResetView(HandleExceptionAPIView, PasswordResetView):
     serializer_class = RequestOTPSerializer
 
     def post(self, request, *args, **kwargs):
-
         serializer = self.get_serializer(data=request.data)
 
         serializer.is_valid(raise_exception=True)
@@ -107,7 +104,6 @@ class PasswordChangeView(HandleExceptionAPIView, APIView):
     serializer_class = PasswordChangeSerializer
 
     def post(self, request, *args, **kwargs):
-
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -122,11 +118,11 @@ class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
     """
     Custom logout view that clears JWT cookies
     """
-
+    serializer_class = None
     permission_classes = [IsAuthenticated]
+    http_method_names = ["post"]
 
     def logout(self, request):
-
         response = super().logout(request)
 
         response.delete_cookie("telehealth-access-token")
@@ -141,13 +137,10 @@ class SendOTPView(HandleExceptionAPIView, APIView):
     serializer_class = RequestOTPSerializer
 
     def post(self, request):
-
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        if serializer.is_valid():
-            result = serializer.save()
-            return Response(result, status=status.HTTP_200_OK)
+        result = serializer.save()
+        return Response(result, status=status.HTTP_200_OK)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -160,7 +153,6 @@ class VerifyEmailOTPView(HandleExceptionAPIView, APIView):
     serializer_class = OTPVerificationSerializer
 
     def post(self, request):
-
         serializer = self.serializer_class(
             data=request.data, context={"purpose": Purpose.EMAIL_VERIFICATION}
         )
@@ -168,7 +160,8 @@ class VerifyEmailOTPView(HandleExceptionAPIView, APIView):
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
         logger.info(
-            f"Email verification successful for email: {request.data.get('email', 'unknown')}"
+            f"Email verification successful for email: "
+            f"{request.data.get('email', 'unknown')}"
         )
         return Response(result, status=status.HTTP_200_OK)
 
@@ -183,7 +176,6 @@ class VerifyPasswordResetOTPView(HandleExceptionAPIView, APIView):
     serializer_class = OTPVerificationSerializer
 
     def post(self, request):
-
         serializer = self.serializer_class(
             data=request.data, context={"purpose": Purpose.PASSWORD_RESET}
         )
@@ -191,6 +183,7 @@ class VerifyPasswordResetOTPView(HandleExceptionAPIView, APIView):
         serializer.is_valid(raise_exception=True)
         result = serializer.save()
         logger.info(
-            f"Password reset OTP verification successful for email: {request.data.get('email', 'unknown')}"
+            f"Password reset OTP verification successful for email: "
+            f"{request.data.get('email', 'unknown')}"
         )
         return Response(result, status=status.HTTP_200_OK)

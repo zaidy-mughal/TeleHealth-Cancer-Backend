@@ -270,9 +270,6 @@ CSRF_EXEMPT_PATHS = [
 ]
 
 # Security settings
-# Cookie settings
-SESSION_COOKIE_SECURE = True  # Use HTTPS in production
-SESSION_COOKIE_HTTPONLY = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = False
 

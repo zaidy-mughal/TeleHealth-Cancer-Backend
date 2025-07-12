@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import serializers
 
 from api.patients.models import (
@@ -24,6 +26,8 @@ from api.patients.utils.update_handler import (
     update_json_field,
 )
 
+logger = logging.getLogger(__name__)
+
 
 class IodineAllergySerializer(serializers.Serializer):
     appointment_uuid = serializers.UUIDField(required=False, write_only=True)
@@ -41,8 +45,9 @@ class IodineAllergySerializer(serializers.Serializer):
                 patient, "iodine_allergy", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update iodine allergy: {str(e)}"}
+                {"detail": "Failed to update iodine allergy"}
             )
 
 
@@ -68,8 +73,9 @@ class AllergyListSerializer(serializers.Serializer):
                 patient, "allergies", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update allergies: {str(e)}"}
+                {"detail": "Failed to update allergies"}
             )
 
 
@@ -95,8 +101,9 @@ class MedicationListSerializer(serializers.Serializer):
                 patient, "medications", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update medications: {str(e)}"}
+                {"detail": "Failed to update medications"}
             )
 
 
@@ -122,8 +129,9 @@ class MedicalHistoryListSerializer(serializers.Serializer):
                 patient, "medical_histories", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update Medical Histories: {str(e)}"}
+                {"detail": "Failed to update Medical Histories"}
             )
 
 
@@ -149,8 +157,9 @@ class SurgicalHistoryListSerializer(serializers.Serializer):
                 patient, "surgical_histories", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update Surgical Histories: {str(e)}"}
+                {"detail": "Failed to update Surgical Histories"}
             )
 
 
@@ -181,8 +190,9 @@ class CareProviderListSerializer(serializers.Serializer):
                 patient, "care_providers", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update Care Providers: {str(e)}"}
+                {"detail": "Failed to update Care Providers"}
             )
 
 
@@ -212,8 +222,9 @@ class CancerHistoryListSerializer(serializers.Serializer):
                 patient, "cancer_history", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update Cancer History: {str(e)}"}
+                {"detail": f"Failed to update Cancer History"}
             )
 
 
@@ -245,8 +256,9 @@ class AddictionHistoryListSerializer(serializers.Serializer):
                 patient, "addiction_history", validated_data, is_appointment_update
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update addiction history: {str(e)}"}
+                {"detail": "Failed to update addiction history"}
             )
 
 
@@ -263,8 +275,9 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
                 patient=patient, **validated_data
             )
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to create medical record: {str(e)}"}
+                {"detail": "Failed to create medical record"}
             )
 
     class Meta:
@@ -359,6 +372,7 @@ class PatientSerializer(serializers.ModelSerializer):
 
             return super().update(instance, validated_data)
         except Exception as e:
+            logger.exception("Unexpected error")
             raise serializers.ValidationError(
-                {"detail": f"Failed to update patient: {str(e)}"}
+                {"detail": "Failed to update patient"}
             )

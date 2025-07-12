@@ -56,7 +56,7 @@ class _HandleExceptionMixin:
                 {"errors": {"non_field_errors": [str(exc)]}},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        
+
         elif isinstance(exc, ObjectDoesNotExist):
             logger.warning(f"Object not found: {exc}")
             return Response(

@@ -1,10 +1,11 @@
+import logging
+
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, timedelta
 from calendar import monthrange
-import calendar
 
 from api.doctors.choices import Services, StateChoices, Months, DaysOfWeek
 from api.doctors.models import (
@@ -24,8 +25,12 @@ from api.doctors.validators import (
     validate_booked_slots,
     start_month_in_future,
     validate_month_range,
+    validate_break_time_within_range
 )
 from api.patients.utils.fields import LabelChoiceField
+from api.doctors.utils.utils import get_django_weekday_numbers
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -72,7 +77,7 @@ class TimeSlotCreateSerializer(serializers.Serializer):
     )
 
     @transaction.atomic
-    def create(self):
+    def create(self, validated_data):
         try:
             slots_data = self.validated_data["time_slots"]
             doctor = self.context["request"].user.doctor
@@ -80,10 +85,13 @@ class TimeSlotCreateSerializer(serializers.Serializer):
             slots = [TimeSlot(doctor=doctor, **slot) for slot in slots_data]
 
             created_slots = TimeSlot.objects.bulk_create(slots, batch_size=10)
-            return created_slots
+            count = len(created_slots)
+
+            return count
 
         except Exception as e:
-            raise serializers.ValidationError(f"Error creating time slots: {str(e)}")
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError("Error creating time slots")
 
 
 class TimeSlotDeleteSerializer(serializers.Serializer):
@@ -112,7 +120,8 @@ class TimeSlotDeleteSerializer(serializers.Serializer):
 
             return deleted_count
         except Exception as e:
-            raise serializers.ValidationError(f"Error deleting timeslots: {str(e)}")
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError(f"Error deleting timeslots")
 
 
 class LicenseInfoSerializer(serializers.ModelSerializer):
@@ -249,73 +258,31 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
         start_month = attrs["start_month"]
         end_month = attrs["end_month"]
 
-        # Validate month range
         validate_month_range(start_month, end_month)
-
-        # Validate time ranges
         validate_time_range(attrs["time_range"], "time_range")
         validate_time_range(attrs["break_time_range"], "break_time_range")
-
-        # Validate break time is within time range
-        self._validate_break_time_within_range(
+        validate_break_time_within_range(
             attrs["time_range"], attrs["break_time_range"]
         )
 
         return attrs
 
-    def _validate_break_time_within_range(self, time_range, break_time_range):
-        try:
-            work_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
-            work_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
-            break_start = datetime.strptime(
-                break_time_range["start_time"], "%H:%M"
-            ).time()
-            break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
-
-            if break_start < work_start or break_end > work_end:
-                raise serializers.ValidationError(
-                    "Break time must be within the working time range"
-                )
-
-            if break_start >= break_end:
-                raise serializers.ValidationError(
-                    "Break start time must be less than break end time"
-                )
-
-        except ValueError:
-            raise serializers.ValidationError("Invalid time format in time ranges")
-
-    def _get_python_weekday_numbers(self, days_of_week):
-        """
-        Convert DaysOfWeek choice values to Python weekday() values.
-        Python weekday(): Monday=0, Tuesday=1, ..., Sunday=6
-        DaysOfWeek choices: Monday=1, Tuesday=2, ..., Sunday=7
-        """
-        python_weekdays = []
-        for day in days_of_week:
-            if day == 7:  # Sunday
-                python_weekdays.append(6)
-            else:
-                python_weekdays.append(day - 1)
-        return python_weekdays
-
-    def _generate_time_slots(self, date, time_range, break_time_range, doctor):
+    def _generate_time_slots_for_one_day(self, date, time_range, break_time_range,
+                                         doctor):
         """Generate 30-minute time slots for a given date"""
         slots = []
 
-        # Parse time strings
+        # get formatted times, create datetime and attach timezone with all
         start_time = datetime.strptime(time_range["start_time"], "%H:%M").time()
         end_time = datetime.strptime(time_range["end_time"], "%H:%M").time()
         break_start = datetime.strptime(break_time_range["start_time"], "%H:%M").time()
         break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
 
-        # Create datetime objects for the specific date
         current_time = datetime.combine(date, start_time)
         end_datetime = datetime.combine(date, end_time)
         break_start_datetime = datetime.combine(date, break_start)
         break_end_datetime = datetime.combine(date, break_end)
 
-        # Make timezone aware
         current_time = timezone.make_aware(current_time)
         end_datetime = timezone.make_aware(end_datetime)
         break_start_datetime = timezone.make_aware(break_start_datetime)
@@ -324,21 +291,18 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
         while current_time < end_datetime:
             slot_end = current_time + timedelta(minutes=30)
 
-            # Skip if slot overlaps with break time
-            if not (
-                slot_end <= break_start_datetime or current_time >= break_end_datetime
-            ):
+            is_during_break = not (
+                    slot_end <= break_start_datetime or current_time >=
+                    break_end_datetime)
+            is_in_past = current_time <= timezone.now()
+            is_last_slot = slot_end > end_datetime
+
+            if is_during_break or is_in_past:
                 current_time = slot_end
                 continue
 
-            # Skip if slot would exceed end time
-            if slot_end > end_datetime:
+            if is_last_slot:
                 break
-
-            # Skip if slot is in the past
-            if current_time <= timezone.now():
-                current_time = slot_end
-                continue
 
             slots.append(
                 TimeSlot(
@@ -348,14 +312,12 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
                     is_booked=False,
                 )
             )
-
             current_time = slot_end
 
         return slots
 
     @transaction.atomic
     def create_time_slots(self):
-        """Create time slots based on the validated data"""
         try:
             validated_data = self.validated_data
             doctor = self.context["request"].user.doctor
@@ -367,74 +329,61 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
             time_range = validated_data["time_range"]
             break_time_range = validated_data["break_time_range"]
 
-            python_weekdays = self._get_python_weekday_numbers(days_of_week)
+            python_weekdays = get_django_weekday_numbers(days_of_week)
             all_slots = []
 
-            # Generate slots for each month in the range
+
             current_month = start_month
             current_year = year
 
             while True:
-                # Get the number of days in the current month
                 days_in_month = monthrange(current_year, current_month)[1]
 
                 # Generate slots for each day in the month
                 for day in range(1, days_in_month + 1):
                     date = datetime(current_year, current_month, day).date()
 
-                    # Skip if not in specified days of week
-                    if date.weekday() not in python_weekdays:
+                    is_unwanted_weekday = date.weekday() not in python_weekdays
+                    is_past_date = date < timezone.now().date()
+
+                    if is_unwanted_weekday or is_past_date:
                         continue
 
-                    # Skip past dates
-                    if date < timezone.now().date():
-                        continue
-
-                    # Generate time slots for this date
-                    slots = self._generate_time_slots(
+                    slots = self._generate_time_slots_for_one_day(
                         date, time_range, break_time_range, doctor
                     )
                     all_slots.extend(slots)
 
-                # Move to next month
                 if current_month == end_month:
                     break
 
                 current_month += 1
-                if current_month > 12:
-                    current_month = 1
-                    current_year += 1
 
-            # Bulk create all slots
             if all_slots:
                 created_slots = TimeSlot.objects.bulk_create(all_slots, batch_size=100)
                 return {
                     "created_count": len(created_slots),
-                    "created_slots": [
-                        {
-                            "uuid": str(slot.uuid),
-                            "start_time": slot.start_time,
-                            "end_time": slot.end_time,
-                            "is_booked": slot.is_booked,
-                        }
-                        for slot in created_slots
-                    ],
-                    "message": f"Successfully created {len(created_slots)} time slots.",
+                    "total_months": end_month - start_month,
+                    "message": f"Successfully created {len(created_slots)} time "
+                               f"slots.",
                 }
 
             return {
                 "created_count": 0,
-                "created_slots": [],
-                "message": "No time slots were created (possibly all dates are in the past).",
+                "total_months": end_month - start_month,
+                "message": "No time slots were created (possibly all dates are in "
+                           "the past).",
             }
 
         except Exception as e:
-            raise serializers.ValidationError(f"Error creating time slots: {str(e)}")
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError("Error creating time slots")
 
 
 class BulkTimeSlotDeleteSerializer(serializers.Serializer):
     """
-    Serializer for bulk deleting time slots within a date range for specific days of the week.
+    Serializer for bulk deleting time slots within a date range for specific days of
+    the week.
     """
 
     start_month = serializers.ChoiceField(
@@ -458,20 +407,6 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
         validate_month_range(start_month, end_month)
 
         return attrs
-
-    def get_django_weekday_numbers(self, days_of_week):
-        """
-        Convert DaysOfWeek choice values to Django week_day lookup values.
-        Django week_day: Sunday=1, Monday=2, Tuesday=3, ..., Saturday=7
-        DaysOfWeek choices: Monday=1, Tuesday=2, ..., Sunday=7
-        """
-        django_weekdays = []
-        for day in days_of_week:
-            if day == 7:
-                django_weekdays.append(1)
-            else:
-                django_weekdays.append(day + 1)
-        return django_weekdays
 
     @transaction.atomic
     def delete_timeslots(self):
@@ -499,7 +434,7 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
                 hour=23, minute=59, second=59, microsecond=999999
             )
 
-            django_weekdays = self._get_django_weekday_numbers(
+            django_weekdays = get_django_weekday_numbers(
                 validated_data["days_of_week"]
             )
 
@@ -513,9 +448,7 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
             unbooked_slots = all_matching_slots.filter(is_booked=False)
             booked_slots = all_matching_slots.filter(is_booked=True)
 
-            deleted_slots_data = unbooked_slots.values_list(
-                "uuid", "start_time", "end_time", "is_booked"
-            )
+            deleted_slots_data = unbooked_slots.values_list("uuid", flat=True)
 
             booked_slots_data = booked_slots.values_list(
                 "uuid", "start_time", "end_time", "is_booked"
@@ -528,8 +461,10 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
                 "deleted_slots": deleted_slots_data,
                 "booked_slots_count": booked_slots.count(),
                 "booked_slots": booked_slots_data,
-                "message": f"Successfully deleted unbooked time slots. Booked slots cannot be deleted.",
+                "message": f"Successfully deleted unbooked time slots. Booked slots "
+                           f"cannot be deleted.",
             }
 
         except Exception as e:
-            raise serializers.ValidationError(f"Error deleting timeslots: {str(e)}")
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError("Error deleting timeslots")
