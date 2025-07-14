@@ -67,8 +67,8 @@ class TeleHealthLoginView(HandleExceptionAPIView, LoginView):
             if isinstance(response.data, dict):
                 response.data["profile_uuid"] = profile_uuid
 
-        response.data.pop("access", None)
-        response.data.pop("refresh", None)
+        # response.data.pop("access", None)
+        # response.data.pop("refresh", None)
 
         return response
 

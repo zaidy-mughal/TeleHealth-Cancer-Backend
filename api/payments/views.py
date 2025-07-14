@@ -107,7 +107,8 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
             serializer.is_valid(raise_exception=True)
 
             appointment_uuid = serializer.validated_data["appointment_uuid"]
-            payment = AppointmentPayment.objects.get(appointment__uuid=appointment_uuid)
+            payment = AppointmentPayment.objects.get(
+                appointment__uuid=appointment_uuid)
 
             refund_record = serializer.save()
 
@@ -128,7 +129,8 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
 
             return Response(
                 {
-                    "message": "Refund processed successfully. You will receive an email shortly.",
+                    "message": "Refund processed successfully. You will receive an "
+                               "email shortly.",
                     "refund_details": AppointmentRefundSerializer(refund_record).data,
                     "stripe_refund_id": stripe_refund.id,
                 },
@@ -161,7 +163,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
         endpoint_secret = settings.STRIPE_WEBHOOK_SECRET
 
         try:
-            event = stripe.Webhook.construct_event(payload, sig_header, endpoint_secret)
+            event = stripe.Webhook.construct_event(payload, sig_header,
+                                                   endpoint_secret)
         except ValueError:
             logger.error("Invalid payload in Stripe webhook")
             return Response({"error": "Value error in construct_event"}, status=400)
@@ -241,7 +244,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
             EmailService.send_appointment_confirmation_email(
                 user=payment.appointment.medical_record.patient.user,
                 appointment_details={
-                    "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                    "doctor_name":
+                        payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
                     "time": payment.appointment.time_slot.start_time,
                 },
@@ -276,7 +280,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
             EmailService.send_payment_failed_email(
                 user=payment.appointment.medical_record.patient.user,
                 appointment_details={
-                    "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                    "doctor_name":
+                        payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
                     "time": payment.appointment.time_slot.start_time,
                 },
@@ -332,7 +337,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
 
             refunds = charge_obj.get("refunds", {}).get("data", [])
             if not refunds:
-                logger.warning(f"No refunds found in charge object: {charge_obj['id']}")
+                logger.warning(
+                    f"No refunds found in charge object: {charge_obj['id']}")
                 return
 
             refund_data = refunds[0]
@@ -356,7 +362,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                 refund_record.save(update_fields=["status"])
 
                 logger.info(
-                    f"Updated refund record {refund_record.id} to status: {mapped_status}"
+                    f"Updated refund record {refund_record.id} to status: "
+                    f"{mapped_status}"
                 )
 
                 if mapped_status == RefundPaymentChoices.SUCCEEDED:
@@ -375,7 +382,8 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                     EmailService.send_refund_success_email(
                         user=payment.appointment.medical_record.patient.user,
                         appointment_details={
-                            "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                            "doctor_name":
+                                payment.appointment.time_slot.doctor.user.get_full_name(),
                             "date": payment.appointment.time_slot.start_time.date(),
                             "time": payment.appointment.time_slot.start_time,
                         },
@@ -424,13 +432,15 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                     EmailService.send_refund_failed_email(
                         user=payment.appointment.medical_record.patient.user,
                         appointment_details={
-                            "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
+                            "doctor_name":
+                                payment.appointment.time_slot.doctor.user.get_full_name(),
                             "date": payment.appointment.time_slot.start_time.date(),
                             "time": payment.appointment.time_slot.start_time,
                         },
                         refund_amount=refund_record.amount,
                         failure_reason=refund_obj.get(
-                            "failure_reason", "Unknown error in while refunding payment"
+                            "failure_reason",
+                            "Unknown error in while refunding payment"
                         ),
                     )
             else:
@@ -444,15 +454,3 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
             )
         except Exception as e:
             logger.error(f"Error in _handle_refund_failed: {str(e)}")
-
-
-class AppointmentPaymentUUIDView(APIView):
-    
-    def get(self, request, appointment_uuid):
-        try:
-            payment = AppointmentPayment.objects.get(appointment_uuid=appointment_uuid)
-            return Response({"appointment_payment_uuid": str(payment.uuid)})
-        except AppointmentPayment.DoesNotExist:
-            return Response(
-                {"error": "Payment not found"}, status=status.HTTP_404_NOT_FOUND
-            )

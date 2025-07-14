@@ -184,7 +184,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Rest framework settings
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        # "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
@@ -226,11 +226,11 @@ SIMPLE_JWT = {
 # Rest Auth Settings
 REST_AUTH = {
     "USE_JWT": True,
-    "JWT_AUTH_HTTPONLY": True,
-    "JWT_AUTH_SECURE": True,  # Use secure cookies in production
+    "JWT_AUTH_HTTPONLY": False,
+    "JWT_AUTH_SECURE": False,  # Use secure cookies in production
     "JWT_AUTH_COOKIE": "telehealth-access-token",
     "JWT_AUTH_REFRESH_COOKIE": "telehealth-refresh-token",
-    "JWT_AUTH_SAMESITE": "None",  # or "Strict" for more security
+    "JWT_AUTH_SAMESITE": "Lax",  # or "Strict" for more security
     "JWT_AUTH_COOKIE_USE_CSRF": False,  # Set to True if you want CSRF protection
     "USER_DETAILS_SERIALIZER": "api.users.serializers.UserDetailsSerializer",
     "LOGIN_SERIALIZER": "api.authentication.serializers.TeleHealthLoginSerializer",
