@@ -158,15 +158,15 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                 {"role": "Role must be 2 (Patient) OR 1 (Doctor)."}
             )
 
-        try:
-            otp_obj = create_otp_for_user(user, purpose=Purpose.EMAIL_VERIFICATION)
-            EmailService.send_otp_email(user, otp_obj.otp)
-        except Exception as e:
-            user.delete()
-            logger.exception("Unexpected error")
-            raise serializers.ValidationError(
-                {"detail": "Failed to send verification OTP"}
-            )
+        # try:
+            # otp_obj = create_otp_for_user(user, purpose=Purpose.EMAIL_VERIFICATION)
+            # EmailService.send_otp_email(user, otp_obj.otp)
+        # except Exception as e:
+        #     user.delete()
+        #     logger.exception("Unexpected error")
+        #     raise serializers.ValidationError(
+        #         {"detail": "Failed to send verification OTP"}
+        #     )
 
 
 class TeleHealthLoginSerializer(LoginSerializer):
@@ -177,13 +177,13 @@ class TeleHealthLoginSerializer(LoginSerializer):
         data = super().validate(attrs)
         user = data.get("user")
 
-        if not user.is_email_verified:
-            raise serializers.ValidationError(
-                {
-                    "detail": "Please verify your email first. Check your inbox/spam "
-                              "for the verification OTP."
-                }
-            )
+        # if not user.is_email_verified:
+            # raise serializers.ValidationError(
+            #     {
+            #         "detail": "Please verify your email first. Check your inbox/spam "
+            #                   "for the verification OTP."
+            #     }
+            # )
 
         data["role"] = user.role
         profile_uuid = None
