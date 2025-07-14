@@ -140,7 +140,7 @@ class TeleHealthRegisterSerializer(RegisterSerializer):
                     date_of_birth=self.validated_data.get("date_of_birth"),
                 )
                 service = self.validated_data.get("service")
-                if service not in (0, 1, 2, 3):
+                if service not in (0, 1, 2, 3, 4, 5):
                     raise serializers.ValidationError(
                         {"service": "Invalid service ID."}
                     )
