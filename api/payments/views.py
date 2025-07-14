@@ -41,9 +41,6 @@ class CreatePaymentIntentView(HandleExceptionAPIView, APIView):
     @transaction.atomic
     def post(self, request):
         try:
-            if not hasattr(request.user, "patient"):
-                return Response({"error": "User has no patient profile"}, status=400)
-
             serializer = AppointmentPaymentSerializer(
                 data=request.data, context={"request": request}
             )
@@ -68,12 +65,12 @@ class CreatePaymentIntentView(HandleExceptionAPIView, APIView):
                 },
             )
 
-            payment = serializer.save(
+            serializer.save(
                 stripe_payment_intent_id=payment_intent.id,
                 stripe_client_secret=payment_intent.client_secret,
             )
 
-            return Response(AppointmentPaymentSerializer(payment).data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         except stripe.error.StripeError as e:
             logger.error(f"Stripe error: {str(e)}")
@@ -238,14 +235,11 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                 logger.error(f"Payment {payment.uuid} has no associated appointment.")
                 return
 
-            payment.appointment.time_slot.is_booked = True
-            payment.appointment.time_slot.save(update_fields=["is_booked"])
-
             payment.appointment.status = AppointmentStatus.CONFIRMED
             payment.appointment.save(update_fields=["status"])
 
             EmailService.send_appointment_confirmation_email(
-                user=payment.appointment.patient.user,
+                user=payment.appointment.medical_record.patient.user,
                 appointment_details={
                     "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
@@ -280,7 +274,7 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
             payment.appointment.save(update_fields=["status"])
 
             EmailService.send_payment_failed_email(
-                user=payment.appointment.patient.user,
+                user=payment.appointment.medical_record.patient.user,
                 appointment_details={
                     "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                     "date": payment.appointment.time_slot.start_time.date(),
@@ -379,7 +373,7 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
                     )
 
                     EmailService.send_refund_success_email(
-                        user=payment.appointment.patient.user,
+                        user=payment.appointment.medical_record.patient.user,
                         appointment_details={
                             "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                             "date": payment.appointment.time_slot.start_time.date(),
@@ -428,7 +422,7 @@ class StripeWebhookView(HandleExceptionAPIView, APIView):
 
                 if payment.appointment:
                     EmailService.send_refund_failed_email(
-                        user=payment.appointment.patient.user,
+                        user=payment.appointment.medical_record.patient.user,
                         appointment_details={
                             "doctor_name": payment.appointment.time_slot.doctor.user.get_full_name(),
                             "date": payment.appointment.time_slot.start_time.date(),

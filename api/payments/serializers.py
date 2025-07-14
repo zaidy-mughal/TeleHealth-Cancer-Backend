@@ -54,7 +54,7 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
     )
 
     receipt_email = serializers.EmailField(
-        required=False, allow_blank=True, validators=[EmailValidator()]
+        required=False, allow_blank=True
     )
     payment_method_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True
