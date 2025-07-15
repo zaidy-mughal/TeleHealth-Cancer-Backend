@@ -89,10 +89,9 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             appointment = Appointment.objects.get(uuid=value)
             time_slot = appointment.time_slot
 
-            validate_booked_slot(time_slot)
             validate_start_time_lt_end_time(time_slot.start_time, time_slot.end_time)
             future_start_time(time_slot.start_time)
-            validate_pending_payments(time_slot)
+            validate_pending_payments(appointment)
 
             return value
 

@@ -32,11 +32,11 @@ def validate_appointment(appointment_uuid):
         raise serializers.ValidationError("Appointment does not exist.")
 
 
-def validate_pending_payments(timeslot):
+def validate_pending_payments(appointment):
     """Check if there are pending payments for the timeslot."""
 
     pending_payments = AppointmentPayment.objects.filter(
-        time_slot=timeslot,
+        appointment=appointment,
         status__in=[
             PaymentStatusChoices.REQUIRES_PAYMENT_METHOD,
             PaymentStatusChoices.REQUIRES_CONFIRMATION,
@@ -48,7 +48,7 @@ def validate_pending_payments(timeslot):
         raise serializers.ValidationError(
             "There's already a pending payment for this timeslot."
         )
-    return timeslot
+    return appointment
 
 
 def validate_appointment_payment(appointment_uuid):
