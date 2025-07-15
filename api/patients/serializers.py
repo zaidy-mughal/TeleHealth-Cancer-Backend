@@ -313,7 +313,7 @@ class PatientMedicalRecordSerializer(serializers.ModelSerializer):
 
 
 class PatientSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField(source="user.email")
+    email = serializers.EmailField(source="user.email", read_only=True)
     first_name = serializers.CharField(source="user.first_name")
     middle_name = serializers.CharField(source="user.middle_name", allow_blank=True)
     last_name = serializers.CharField(source="user.last_name")
