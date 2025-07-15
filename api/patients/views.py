@@ -40,7 +40,7 @@ class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
 
     def patch(self, request):
 
-        serializer = self.get_serializer_class()(
+        serializer = self.serializer_class(
             data=request.data,
             context=self.get_serializer_context(request),
         )
