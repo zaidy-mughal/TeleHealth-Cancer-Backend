@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -113,23 +114,46 @@ class PasswordChangeView(HandleExceptionAPIView, APIView):
         )
 
 
-@method_decorator(csrf_exempt, name="dispatch")
-class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
+class TeleHealthLogoutView(APIView):
     """
-    Custom logout view that clears JWT cookies
+    Logs out user by blacklisting the provided refresh token.
+    Expects Authorization: Bearer <refresh_token>
     """
-    serializer_class = None
     permission_classes = [AllowAny]
-    http_method_names = ["post"]
 
-    def logout(self, request):
-        response = super().logout(request)
+    def post(self, request):
+        refresh_token = request.data.get("refresh")
 
-        # response.delete_cookie("telehealth-access-token")
-        # response.delete_cookie("telehealth-refresh-token")
+        if not refresh_token:
+            return Response({"detail": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
 
-        response.data = {"detail": "Successfully logged out."}
-        return response
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()  # blacklist the token if blacklist app is enabled
+        except TokenError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
+
+# @method_decorator(csrf_exempt, name="dispatch")
+# class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
+#     """
+#     Custom logout view that clears JWT cookies
+#     """
+#     serializer_class = None
+#     permission_classes = [AllowAny]
+#     authentication_classes = []
+#     http_method_names = ["post"]
+#
+#     def logout(self, request):
+#         response = super().logout(request)
+#
+#         # response.delete_cookie("telehealth-access-token")
+#         # response.delete_cookie("telehealth-refresh-token")
+#
+#         response.data = {"detail": "Successfully logged out."}
+#         print(response.status_code)
+#         return response
 
 
 class SendOTPView(HandleExceptionAPIView, APIView):
