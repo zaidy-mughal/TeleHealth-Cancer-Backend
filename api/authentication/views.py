@@ -119,14 +119,14 @@ class TeleHealthLogoutView(HandleExceptionAPIView, LogoutView):
     Custom logout view that clears JWT cookies
     """
     serializer_class = None
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
     http_method_names = ["post"]
 
     def logout(self, request):
         response = super().logout(request)
 
-        response.delete_cookie("telehealth-access-token")
-        response.delete_cookie("telehealth-refresh-token")
+        # response.delete_cookie("telehealth-access-token")
+        # response.delete_cookie("telehealth-refresh-token")
 
         response.data = {"detail": "Successfully logged out."}
         return response
