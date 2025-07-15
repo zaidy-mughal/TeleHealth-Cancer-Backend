@@ -1,5 +1,5 @@
 
-def get_django_weekday_numbers(self, days_of_week):
+def get_django_weekday_numbers(days_of_week):
     """
     Convert DaysOfWeek choice values to Django week_day lookup values.
     Django week_day: Sunday=1, Monday=2, Tuesday=3, ..., Saturday=7
