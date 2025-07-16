@@ -2,6 +2,7 @@ from datetime import datetime
 from rest_framework import serializers
 from django.utils import timezone
 
+from api.doctors.choices import Months, DaysOfWeek
 from api.doctors.models import TimeSlot
 
 
@@ -39,33 +40,6 @@ def validate_booked_slot(value):
     if value.is_booked:
         raise serializers.ValidationError("This time slot is already booked.")
     return value
-
-
-def validate_time_range(time_range, field_name):
-    """Validate time range format"""
-    if not isinstance(time_range, dict):
-        raise serializers.ValidationError(f"{field_name} must be a dictionary")
-
-    start_time = time_range.get("start_time")
-    end_time = time_range.get("end_time")
-
-    if not start_time or not end_time:
-        raise serializers.ValidationError(
-            f"{field_name} must contain start_time and end_time"
-        )
-
-    try:
-        start_parsed = datetime.strptime(start_time, "%H:%M").time()
-        end_parsed = datetime.strptime(end_time, "%H:%M").time()
-
-        if start_parsed >= end_parsed:
-            raise serializers.ValidationError(
-                f"{field_name}: start_time must be less than end_time"
-            )
-    except ValueError:
-        raise serializers.ValidationError(
-            f"{field_name}: Invalid time format. Use HH:MM format"
-        )
 
 
 def validate_invalid_uuids(self, value):
@@ -122,32 +96,9 @@ def validate_month_range(start_month, end_month):
     """
     if start_month > end_month:
         raise serializers.ValidationError(
-            "Start month must be less than or equal to end month."
+            "Start month must be less than to end month."
         )
     return start_month, end_month
-
-
-def validate_break_time_within_range(time_range, break_time_range):
-    try:
-        work_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
-        work_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
-        break_start = datetime.strptime(
-            break_time_range["start_time"], "%H:%M"
-        ).time()
-        break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
-
-        if break_start < work_start or break_end > work_end:
-            raise serializers.ValidationError(
-                "Break time must be within the working time range"
-            )
-
-        if break_start >= break_end:
-            raise serializers.ValidationError(
-                "Break start time must be less than break end time"
-            )
-
-    except ValueError:
-        raise serializers.ValidationError("Invalid time format in time ranges")
 
 
 def validate_request_slot_duplicates(slots_data):
@@ -230,3 +181,167 @@ def validate_database_overlaps(slots_data, doctor):
                 f"with"
                 f"{overlapping_slot.start_time} - {overlapping_slot.end_time}"
             )
+
+
+# BULK TIME SLOT VALIDATIONS
+
+def validate_day(value):
+    for choice in DaysOfWeek.choices:
+        if value.lower() == choice[1].lower():
+            return choice[0]
+    raise serializers.ValidationError({"detail": "Invalid day of the week"})
+
+
+def validate_month(value):
+    if not isinstance(value, str):
+        raise serializers.ValidationError({"detail": "Month must be a string (e.g., "
+                                                     "'January')."})
+    for choice in Months.choices:
+        if value.lower() == choice[1].lower():
+            return choice[0]
+    raise serializers.ValidationError({"detail": "Invalid Month"})
+
+
+def validate_start_month_in_future(start_month, year):
+    """Validates start month in future"""
+
+    current_date = timezone.now()
+    current_month_start = current_date.replace(day=1, hour=0, minute=0, second=0,
+                                               microsecond=0)
+
+    try:
+        input_date = timezone.make_aware(datetime(year, start_month, 1))
+    except ValueError:
+        raise serializers.ValidationError("Invalid year or month.")
+
+    print(input_date)
+    print(current_month_start)
+    if input_date < current_month_start:
+        raise serializers.ValidationError("Start month must be in the future.")
+
+
+def validate_time_range(time_range, field_name):
+    """Validate time range format"""
+    if not isinstance(time_range, dict):
+        raise serializers.ValidationError(f"{field_name} must be a dictionary")
+
+    start_time = time_range.get("start_time")
+    end_time = time_range.get("end_time")
+
+    if not start_time or not end_time:
+        raise serializers.ValidationError(
+            f"{field_name} must contain start_time and end_time"
+        )
+
+    try:
+        start_parsed = datetime.strptime(start_time, "%H:%M").time()
+        end_parsed = datetime.strptime(end_time, "%H:%M").time()
+
+        if start_parsed >= end_parsed:
+            raise serializers.ValidationError(
+                f"{field_name}: start_time must be less than end_time"
+            )
+
+        if start_parsed < datetime.strptime("08:00", "%H:%M").time():
+            raise serializers.ValidationError(
+                f"Start time must be greater than 08:00"
+            )
+
+        if end_parsed > datetime.strptime("20:00", "%H:%M").time():
+            raise serializers.ValidationError(
+                f"End time must be less than 20:00"
+            )
+
+    except ValueError:
+        raise serializers.ValidationError(
+            f"{field_name}: Invalid time format. Use HH:MM format"
+        )
+
+
+def validate_break_times(break_time_ranges, time_range):
+    """Validate break times within time range"""
+
+    time_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
+    time_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
+
+    for break_time in break_time_ranges:
+        if not isinstance(break_time, dict):
+            raise serializers.ValidationError(
+                {"detail": "Break time must be a dictionary"})
+
+        start_time = break_time.get("start_time")
+        end_time = break_time.get("end_time")
+
+        if not start_time or not end_time:
+            raise serializers.ValidationError(
+                f"Breaks must contain start_time and end_time"
+            )
+
+        break_start = datetime.strptime(break_time["start_time"], "%H:%M").time()
+        break_end = datetime.strptime(break_time["end_time"], "%H:%M").time()
+
+        if break_start < time_start or break_end > time_end:
+            raise serializers.ValidationError(
+                "Break time must be within the working time range"
+            )
+
+        if break_start >= break_end:
+            raise serializers.ValidationError(
+                "Break start time must be less than break end time"
+            )
+
+
+def validate_break_times_overlapp(break_time_ranges):
+    """Validate break times overlap"""
+
+    sorted_break_time_ranges = sorted(break_time_ranges, key=lambda x: x['start_time'])
+
+    for i in range(len(sorted_break_time_ranges) - 1):
+        current_break_time = sorted_break_time_ranges[i]
+        next_break_time = sorted_break_time_ranges[i + 1]
+
+        if current_break_time['end_time'] > next_break_time['start_time']:
+            raise serializers.ValidationError(
+                f"Overlapping timeslot: "
+                f"{current_break_time['start_time']} - "
+                f"{current_break_time['end_time']} "
+            )
+
+
+def validate_break_times_duplicate(break_time_ranges):
+    """Validate break times duplicate"""
+    seen_break_time_ranges = set()
+    for break_time_range in break_time_ranges:
+        break_key = (
+            break_time_range['start_time'],
+            break_time_range['end_time']
+        )
+        if break_key in seen_break_time_ranges:
+            raise serializers.ValidationError(
+                f"Duplicate timeslot: {break_time_range['start_time']} - "
+                f"{break_time_range['end_time']}"
+            )
+
+
+def validate_break_times_within_range(break_time_ranges):
+    try:
+        for time_range in break_time_ranges:
+            work_start = datetime.strptime(time_range["start_time"], "%H:%M").time()
+            work_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
+            break_start = datetime.strptime(
+                time_range["start_time"], "%H:%M"
+            ).time()
+            break_end = datetime.strptime(time_range["end_time"], "%H:%M").time()
+
+            if break_start < work_start or break_end > work_end:
+                raise serializers.ValidationError(
+                    "Break time must be within the working time range"
+                )
+
+            if break_start >= break_end:
+                raise serializers.ValidationError(
+                    "Break start time must be less than break end time"
+                )
+
+    except ValueError:
+        raise serializers.ValidationError("Invalid time format in time ranges")

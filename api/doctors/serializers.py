@@ -24,12 +24,17 @@ from api.doctors.validators import (
     validate_invalid_uuids,
     validate_booked_slots,
     start_month_in_future,
+    validate_day,
+    validate_month,
     validate_month_range,
-    validate_break_time_within_range,
     validate_request_slot_duplicates,
     validate_request_slot_overlaps,
     validate_database_duplicates,
     validate_database_overlaps,
+    validate_break_times,
+    validate_break_times_overlapp,
+    validate_break_times_duplicate,
+    validate_start_month_in_future
 )
 from api.patients.utils.fields import LabelChoiceField
 from api.doctors.utils.utils import get_django_weekday_numbers
@@ -246,19 +251,36 @@ class DoctorSerializer(serializers.ModelSerializer):
         ]
 
 
+class DayScheduleSerializer(serializers.Serializer):
+    day = serializers.CharField(max_length=10, required=True, allow_blank=False)
+    break_times = serializers.ListField(
+        child=serializers.DictField(), required=True, max_length=3
+    )
+    time_range = serializers.DictField(required=True, allow_empty=False)
+
+    def validate(self, attrs):
+        validate_time_range(attrs["time_range"], 'time_range')
+        validate_break_times(attrs["break_times"], attrs["time_range"])
+        validate_break_times_overlapp(attrs["break_times"])
+        validate_break_times_duplicate(attrs["break_times"])
+        attrs["day"] = validate_day(attrs["day"])
+        return attrs
+
+
 class BulkTimeSlotCreateSerializer(serializers.Serializer):
     """
     Serializer for bulk creating time slots for multiple months.
     """
 
-    start_month = serializers.ChoiceField(
-        choices=Months.choices, validators=[start_month_in_future]
-    )
-    end_month = serializers.ChoiceField(choices=Months.choices)
+    start_month = serializers.CharField(max_length=10, required=True,
+                                        allow_blank=False)
+    end_month = serializers.CharField(max_length=10, required=True,
+                                      allow_blank=False)
 
     days_of_week = serializers.ListField(
-        child=serializers.ChoiceField(choices=DaysOfWeek.choices), allow_empty=False
+        child=DayScheduleSerializer(), allow_empty=False, required=True, max_length=7
     )
+
     year = serializers.IntegerField(
         default=timezone.now().year,
         min_value=2000,
@@ -266,115 +288,93 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
         required=False,
     )
 
-    time_range = serializers.DictField(required=True, allow_empty=False)
-    break_time_range = serializers.DictField(required=True, allow_empty=False)
-
     def validate(self, attrs):
-        start_month = attrs["start_month"]
-        end_month = attrs["end_month"]
+        start_month = validate_month(attrs['start_month'])
+        end_month = validate_month(attrs["end_month"])
+        year = attrs['year']
 
+        validate_start_month_in_future(start_month, year)
         validate_month_range(start_month, end_month)
-        validate_time_range(attrs["time_range"], "time_range")
-        validate_time_range(attrs["break_time_range"], "break_time_range")
-        validate_break_time_within_range(
-            attrs["time_range"], attrs["break_time_range"]
-        )
+
+        attrs['start_month'] = start_month
+        attrs['end_month'] = end_month
 
         return attrs
 
-    def _generate_time_slots_for_one_day(self, date, time_range, break_time_range,
-                                         doctor):
-        """Generate 30-minute time slots for a given date"""
-        slots = []
-
-        # get formatted times, create datetime and attach timezone with all
-        start_time = datetime.strptime(time_range["start_time"], "%H:%M").time()
-        end_time = datetime.strptime(time_range["end_time"], "%H:%M").time()
-        break_start = datetime.strptime(break_time_range["start_time"], "%H:%M").time()
-        break_end = datetime.strptime(break_time_range["end_time"], "%H:%M").time()
-
-        current_time = datetime.combine(date, start_time)
-        end_datetime = datetime.combine(date, end_time)
-        break_start_datetime = datetime.combine(date, break_start)
-        break_end_datetime = datetime.combine(date, break_end)
-
-        current_time = timezone.make_aware(current_time)
-        end_datetime = timezone.make_aware(end_datetime)
-        break_start_datetime = timezone.make_aware(break_start_datetime)
-        break_end_datetime = timezone.make_aware(break_end_datetime)
-
-        while current_time < end_datetime:
-            slot_end = current_time + timedelta(minutes=30)
-
-            is_during_break = not (
-                    slot_end <= break_start_datetime or current_time >=
-                    break_end_datetime)
-            is_in_past = current_time <= timezone.now()
-            is_last_slot = slot_end > end_datetime
-
-            if is_during_break or is_in_past:
-                current_time = slot_end
-                continue
-
-            if is_last_slot:
-                break
-
-            slots.append(
-                TimeSlot(
-                    doctor=doctor,
-                    start_time=current_time,
-                    end_time=slot_end,
-                    is_booked=False,
-                )
-            )
-            current_time = slot_end
-
-        return slots
+    @staticmethod
+    def _parse_time(time_str):
+        return datetime.strptime(time_str, "%H:%M").time()
 
     @transaction.atomic
-    def create_time_slots(self):
+    def save(self):
         try:
+            doctor = self.context['request'].user.doctor
             validated_data = self.validated_data
-            doctor = self.context["request"].user.doctor
+            year = validated_data.get("year", timezone.now().year)
+            start_month = validated_data.get("start_month")
+            end_month = validated_data.get("end_month")
 
-            year = validated_data.get("year")
-            start_month = validated_data["start_month"]
-            end_month = validated_data["end_month"]
-            days_of_week = validated_data["days_of_week"]
-            time_range = validated_data["time_range"]
-            break_time_range = validated_data["break_time_range"]
+            today = timezone.now().date()
+            timeslot_objects = []
 
-            python_weekdays = get_django_weekday_numbers(days_of_week)
-            all_slots = []
+            # Map Django weekday int 0 to the corresponding schedule of the day
+            weekday_schedules = {
+                schedule["day"]: schedule for schedule in
+                validated_data["days_of_week"]
+            }
 
-            current_month = start_month
-            current_year = year
+            for month in range(start_month, end_month + 1):
+                _, num_days_in_month = monthrange(year, month)
 
-            while True:
-                days_in_month = monthrange(current_year, current_month)[1]
+                for day in range(1, num_days_in_month + 1):
+                    date_obj = datetime(year, month, day).date()
 
-                # Generate slots for each day in the month
-                for day in range(1, days_in_month + 1):
-                    date = datetime(current_year, current_month, day).date()
-
-                    is_unwanted_weekday = date.weekday() not in python_weekdays
-                    is_past_date = date < timezone.now().date()
-
-                    if is_unwanted_weekday or is_past_date:
+                    if date_obj < today:
                         continue
 
-                    slots = self._generate_time_slots_for_one_day(
-                        date, time_range, break_time_range, doctor
-                    )
-                    all_slots.extend(slots)
+                    weekday_index = date_obj.weekday()
+                    if weekday_index not in weekday_schedules:
+                        continue
 
-                if current_month == end_month:
-                    break
+                    schedule = weekday_schedules[weekday_index]
 
-                current_month += 1
+                    day_start_time = self._parse_time(
+                        schedule["time_range"]["start_time"])
+                    day_end_time = self._parse_time(schedule["time_range"]["end_time"])
 
-            if all_slots:
-                created_slots = TimeSlot.objects.bulk_create(all_slots, batch_size=100)
+                    break_periods = [
+                        (self._parse_time(break_time["start_time"]),
+                         self._parse_time(break_time["end_time"]))
+                        for break_time in schedule["break_times"]
+                    ]
+
+                    current_slot_start = datetime.combine(date_obj, day_start_time)
+                    day_end_datetime = datetime.combine(date_obj, day_end_time)
+
+                    while current_slot_start + timedelta(
+                            minutes=30) <= day_end_datetime:
+                        current_slot_end = current_slot_start + timedelta(minutes=30)
+
+                        # check current slot overlaps with any break period
+                        overlaps_with_break = any(
+                            current_slot_start.time() < break_end and
+                            current_slot_end.time() > break_start
+                            for break_start, break_end in break_periods
+                        )
+
+                        if not overlaps_with_break:
+                            timeslot_objects.append(TimeSlot(
+                                doctor=doctor,
+                                start_time=timezone.make_aware(current_slot_start),
+                                end_time=timezone.make_aware(current_slot_end),
+                                is_booked=False
+                            ))
+
+                        current_slot_start = current_slot_end
+
+            if timeslot_objects:
+                created_slots = TimeSlot.objects.bulk_create(timeslot_objects,
+                                                             batch_size=200)
                 return {
                     "created_count": len(created_slots),
                     "total_months": end_month - start_month,
@@ -401,9 +401,9 @@ class BulkTimeSlotDeleteSerializer(serializers.Serializer):
     """
 
     start_month = serializers.ChoiceField(
-        choices=Months.choices, validators=[start_month_in_future]
+        choices=Months.choices, validators=[start_month_in_future], required=True
     )
-    end_month = serializers.ChoiceField(choices=Months.choices)
+    end_month = serializers.ChoiceField(choices=Months.choices, required=True)
     days_of_week = serializers.ListField(
         child=serializers.ChoiceField(choices=DaysOfWeek.choices), allow_empty=False
     )
