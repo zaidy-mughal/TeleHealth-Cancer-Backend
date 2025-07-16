@@ -78,11 +78,12 @@ class Months(models.IntegerChoices):
     DECEMBER = 12, "December"
 
 
+# ensure the number are same as in python this is the correct mapping
 class DaysOfWeek(models.IntegerChoices):
-    MONDAY = 1, "Monday"
-    TUESDAY = 2, "Tuesday"
-    WEDNESDAY = 3, "Wednesday"
-    THURSDAY = 4, "Thursday"
-    FRIDAY = 5, "Friday"
-    SATURDAY = 6, "Saturday"
-    SUNDAY = 7, "Sunday"
+    MONDAY = 0, "Monday"
+    TUESDAY = 1, "Tuesday"
+    WEDNESDAY = 2, "Wednesday"
+    THURSDAY = 3, "Thursday"
+    FRIDAY = 4, "Friday"
+    SATURDAY = 5, "Saturday"
+    SUNDAY = 6, "Sunday"

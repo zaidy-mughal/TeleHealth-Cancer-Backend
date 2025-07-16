@@ -244,6 +244,6 @@ class BulkTimeSlotCreateAPIView(HandleExceptionAPIView, APIView):
         )
 
         serializer.is_valid(raise_exception=True)
-        response = serializer.create_time_slots()
+        response = serializer.save()
 
         return Response(response, status=status.HTTP_201_CREATED)
