@@ -53,9 +53,6 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
         max_value=Decimal("999999.99"),
     )
 
-    receipt_email = serializers.EmailField(
-        required=False, allow_blank=True
-    )
     payment_method_id = serializers.CharField(
         max_length=255, required=False, allow_blank=True
     )
@@ -71,7 +68,6 @@ class AppointmentPaymentSerializer(serializers.ModelSerializer):
             "currency",
             "payment_status",
             "payment_method_id",
-            "receipt_email",
             "created_at",
             "updated_at",
         ]
