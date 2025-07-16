@@ -148,3 +148,85 @@ def validate_break_time_within_range(time_range, break_time_range):
 
     except ValueError:
         raise serializers.ValidationError("Invalid time format in time ranges")
+
+
+def validate_request_slot_duplicates(slots_data):
+    """
+    Check for duplicate time slots within the current request.
+    """
+    seen_slots = set()
+    for slot_data in slots_data:
+        slot_key = (
+            slot_data['start_time'].replace(microsecond=0),
+            slot_data['end_time'].replace(microsecond=0)
+        )
+        if slot_key in seen_slots:
+            raise serializers.ValidationError(
+                f"Duplicate timeslot: {slot_data['start_time']} - "
+                f"{slot_data['end_time']}"
+            )
+        seen_slots.add(slot_key)
+
+
+def validate_request_slot_overlaps(slots_data):
+    """
+    Check for overlapping time slots within the current request.
+    """
+    sorted_slots = sorted(slots_data, key=lambda x: x['start_time'])
+
+    for i in range(len(sorted_slots) - 1):
+        current_slot = sorted_slots[i]
+        next_slot = sorted_slots[i + 1]
+
+        if current_slot['end_time'] > next_slot['start_time']:
+            raise serializers.ValidationError(
+                f"Overlapping timeslot: "
+                f"{current_slot['start_time']} - {current_slot['end_time']} "
+                f"Overlaps with {next_slot['start_time']} - "
+                f"{next_slot['end_time']}"
+            )
+
+
+def validate_database_duplicates(slots_data, doctor):
+    """
+    Check for duplicate time slots that already exist in the database.
+    """
+    for slot_data in slots_data:
+        start_time = slot_data['start_time']
+        end_time = slot_data['end_time']
+
+        existing_slot = TimeSlot.objects.filter(
+            doctor=doctor,
+            start_time=start_time,
+            end_time=end_time
+        ).first()
+
+        if existing_slot:
+            raise serializers.ValidationError(
+                f"Time slot already exists: {start_time} - "
+                f"{end_time}"
+            )
+
+
+def validate_database_overlaps(slots_data, doctor):
+    """
+    Check for overlapping time slots with existing slots in the database.
+    """
+
+    for slot_data in slots_data:
+        start_time = slot_data['start_time']
+        end_time = slot_data['end_time']
+
+        overlapping_slots = TimeSlot.objects.filter(
+            doctor=doctor,
+            start_time__lt=end_time,
+            end_time__gt=start_time
+        )
+
+        if overlapping_slots.exists():
+            overlapping_slot = overlapping_slots.first()
+            raise serializers.ValidationError(
+                f"Overlaps timeslot {start_time} - {end_time}"
+                f"with"
+                f"{overlapping_slot.start_time} - {overlapping_slot.end_time}"
+            )

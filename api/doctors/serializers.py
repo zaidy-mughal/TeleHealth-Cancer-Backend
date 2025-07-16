@@ -25,7 +25,11 @@ from api.doctors.validators import (
     validate_booked_slots,
     start_month_in_future,
     validate_month_range,
-    validate_break_time_within_range
+    validate_break_time_within_range,
+    validate_request_slot_duplicates,
+    validate_request_slot_overlaps,
+    validate_database_duplicates,
+    validate_database_overlaps,
 )
 from api.patients.utils.fields import LabelChoiceField
 from api.doctors.utils.utils import get_django_weekday_numbers
@@ -75,6 +79,17 @@ class TimeSlotCreateSerializer(serializers.Serializer):
     time_slots = serializers.ListField(
         child=TimeSlotSerializer(), write_only=True, allow_empty=False
     )
+
+    def validate(self, attrs):
+        doctor = self.context["request"].user.doctor
+        slots_data = attrs["time_slots"]
+
+        validate_request_slot_duplicates(slots_data)
+        validate_request_slot_overlaps(slots_data)
+        validate_database_duplicates(slots_data, doctor)
+        validate_database_overlaps(slots_data, doctor)
+
+        return super().validate(self, attrs)
 
     @transaction.atomic
     def create(self, validated_data):
@@ -331,7 +346,6 @@ class BulkTimeSlotCreateSerializer(serializers.Serializer):
 
             python_weekdays = get_django_weekday_numbers(days_of_week)
             all_slots = []
-
 
             current_month = start_month
             current_year = year
