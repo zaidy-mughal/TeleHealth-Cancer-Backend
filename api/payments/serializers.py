@@ -27,7 +27,6 @@ from api.payments.choices import (
 )
 from api.doctors.models import TimeSlot
 from api.doctors.validators import (
-    validate_booked_slot,
     validate_start_time_lt_end_time,
     future_start_time,
 )
