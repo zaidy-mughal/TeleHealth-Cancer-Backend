@@ -1,16 +1,25 @@
 """
-WSGI config for django_boilerplate project.
-
-It exposes the WSGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/3.2/howto/deployment/wsgi/
+WSGI config for project.
 """
 
+import os
+import sys
 from django.core.wsgi import get_wsgi_application
-
 from config.setup_environment import setup_environment
 
-setup_environment()
+print("Starting WSGI application...")
+print(f"Python version: {sys.version}")
+print(f"Current directory: {os.getcwd()}")
 
-application = get_wsgi_application()
+try:
+    setup_environment()
+    print("Environment setup complete")
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+    print(f"Using settings module: {os.environ.get('DJANGO_SETTINGS_MODULE')}")
+
+    application = get_wsgi_application()
+    print("WSGI application initialized successfully")
+except Exception as e:
+    print(f"Error initializing WSGI application: {str(e)}")
+    raise

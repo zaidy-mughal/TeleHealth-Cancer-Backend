@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """Django's command-line utility for administrative tasks."""
+import os
 import sys
-
 from config.setup_environment import setup_environment
 
 
 def main():
     """Run administrative tasks."""
     setup_environment()
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     try:
         # pylint: disable=import-outside-toplevel
         from django.core.management import execute_from_command_line
@@ -20,5 +21,5 @@ def main():
     execute_from_command_line(sys.argv)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

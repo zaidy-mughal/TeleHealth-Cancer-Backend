@@ -1,0 +1,29 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Refund Failed - TeleHealth{% endblock %}
+
+{% block content %}
+<h2>Refund Processing Failed</h2>
+<p>Dear {{ user.get_full_name }},</p>
+<p>We encountered an issue while processing your refund for the following appointment:</p>
+
+<ul>
+    <li><strong>Date:</strong> {{ appointment_date }}</li>
+    <li><strong>Time:</strong> {{ appointment_time }}</li>
+    <li><strong>Doctor:</strong> {{ doctor_name }}</li>
+    <li><strong>Refund Amount:</strong> ${{ refund_amount }}</li>
+</ul>
+
+<div style="background: #f8d7da; padding: 15px; border: 1px solid #f5c6cb; border-radius: 4px; margin: 20px 0; color: #721c24;">
+    <strong>Status:</strong> Refund Failed<br>
+    <strong>Reason:</strong> {{ failure_reason }}
+</div>
+
+<p>Your appointment cancellation is still being processed, but we were unable to complete the refund automatically.</p>
+
+<p>Our support team has been notified and will contact you within 24 hours to resolve this issue manually.</p>
+
+<a href="#" class="button">Contact Support</a>
+
+<p>We apologize for any inconvenience caused and appreciate your patience while we resolve this matter.</p>
+{% endblock %}

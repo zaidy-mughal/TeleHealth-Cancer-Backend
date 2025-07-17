@@ -1,0 +1,22 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Welcome to TeleHealth{% endblock %}
+
+{% block content %}
+<h2>Welcome to TeleHealth!</h2>
+<p>Dear {{ user.get_full_name }},</p>
+<p>
+  Welcome to TeleHealth! We're excited to have you as part of our healthcare
+  community.
+</p>
+<p>With TeleHealth, you can:</p>
+<ul>
+  <li>Schedule virtual consultations with certified doctors</li>
+  <li>Access your medical records anytime, anywhere</li>
+  <li>Get prescription refills delivered to your door</li>
+  <li>Receive health reminders and tips</li>
+</ul>
+<p>Your account is now active and ready to use.</p>
+<a href="#" class="button">Get Started</a>
+<p>If you have any questions, our support team is here to help 24/7.</p>
+{% endblock %}
