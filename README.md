@@ -3,7 +3,6 @@
 A scalable and secure backend for a telehealth platform, built with **Django REST Framework**. This service provides
 user authentication, doctor-patient scheduling, appointment management, payments, and more.
 
----
 
 ## Features
 
