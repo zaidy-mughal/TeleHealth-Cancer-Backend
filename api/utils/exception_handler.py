@@ -3,15 +3,17 @@ import logging
 from rest_framework.views import APIView
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.response import Response
+from rest_framework_simplejwt.exceptions import InvalidToken
 from rest_framework import status
 from rest_framework.exceptions import (
     ValidationError as DRFValidationError,
-    NotAuthenticated,
     PermissionDenied as DRFPermissionDenied,
+    NotAuthenticated,
     NotFound,
     ParseError,
     Throttled,
     UnsupportedMediaType,
+    AuthenticationFailed,
 )
 from django.core.exceptions import (
     ValidationError as DjangoValidationError,
@@ -50,8 +52,8 @@ class _HandleExceptionMixin:
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        elif isinstance(exc, NotAuthenticated):
-            logger.warning(f"Authentication required: {exc}")
+        elif isinstance(exc, (NotAuthenticated, AuthenticationFailed, InvalidToken)):
+            logger.warning(f"Authentication required or invalid: {exc}")
             return Response(
                 {"errors": {"non_field_errors": [str(exc)]}},
                 status=status.HTTP_401_UNAUTHORIZED,
@@ -90,7 +92,13 @@ class HandleExceptionAPIView(_HandleExceptionMixin, APIView):
     Base class for DRF APIViews with standardized exception handling.
     Use in place of APIView or GenericAPIView.
     """
-    pass
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Exception as exc:
+            logger.debug(f"Exception caught in dispatch: {exc}")
+            return self.handle_exception(exc)
 
 
 class HandleExceptionViewset(_HandleExceptionMixin, GenericViewSet):
@@ -98,4 +106,10 @@ class HandleExceptionViewset(_HandleExceptionMixin, GenericViewSet):
     Base class for DRF ViewSets with standardized exception handling.
     Use in place of ViewSet, GenericViewSet, ModelViewSet.
     """
-    pass
+
+    def dispatch(self, request, *args, **kwargs):
+        try:
+            return super().dispatch(request, *args, **kwargs)
+        except Exception as exc:
+            logger.debug(f"Exception caught in dispatch: {exc}")
+            return self.handle_exception(exc)

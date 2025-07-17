@@ -242,14 +242,14 @@ def validate_time_range(time_range, field_name):
                 f"{field_name}: start_time must be less than end_time"
             )
 
-        if start_parsed < datetime.strptime("08:00", "%H:%M").time():
+        if start_parsed < datetime.strptime("03:00", "%H:%M").time():
             raise serializers.ValidationError(
-                f"Start time must be greater than 08:00"
+                f"Start time must be greater than 03:00 UTC (8 AM)"
             )
 
-        if end_parsed > datetime.strptime("20:00", "%H:%M").time():
+        if end_parsed > datetime.strptime("15:00", "%H:%M").time():
             raise serializers.ValidationError(
-                f"End time must be less than 20:00"
+                f"End time must be less than 15:00 UTC (8 PM)"
             )
 
     except ValueError:
