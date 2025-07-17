@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 from api.services.send_email import EmailService
 
 from api.payments.models import AppointmentPayment
@@ -103,6 +104,10 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
     @transaction.atomic
     def post(self, request):
         try:
+            type = request.query_params.get("type")
+            if type and type not in ('cancel', 'reschedule'):
+                raise ValidationError({"detail": "Invalid refund reason"})
+
             serializer = AppointmentRefundSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
 
@@ -123,6 +128,14 @@ class AppointmentRefundView(HandleExceptionAPIView, APIView):
                     "appointment_id": str(payment.appointment.uuid),
                 },
             )
+
+            if type.lower() == "cancel":
+                payment.appointment.status = AppointmentStatus.REFUND_PENDING
+            elif type.lower() == "reschedule":
+                payment.appointment.status = AppointmentStatus.RESCHEDULED
+
+            if type:
+                payment.appointment.save(update_fields=["status"])
 
             refund_record.status = RefundPaymentChoices.REQUIRES_ACTION
             refund_record.save(update_fields=["status"])
