@@ -5,7 +5,7 @@ user authentication, doctor-patient scheduling, appointment management, payments
 
 ---
 
-## 🚀 Features
+## Features
 
 - 🔐 JWT Authentication via secure HTTP-only cookies
 - 📅 Doctor time slot and appointment management
