@@ -14,6 +14,27 @@ def validate_fields(self, attrs):
         )
 
 
+def validate_medical_record_field(field_name):
+    field_names = [
+        "iodine_allergy",
+        "allergies",
+        "medications",
+        "medical_histories",
+        "surgical_histories",
+        "cancer_history",
+        "addiction_history",
+        "care_providers",
+    ]
+
+    if field_name not in field_names:
+        raise serializers.ValidationError(
+            {
+                "detail": f"Invalid field name: {field_name}. Must be one of "
+                          f"{field_names}."
+            }
+        )
+
+
 def validate_addiction_types(self, data):
     """
     Validate that exactly two addiction history records are provided:

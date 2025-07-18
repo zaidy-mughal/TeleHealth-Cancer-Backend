@@ -55,7 +55,8 @@ class _HandleExceptionMixin:
         elif isinstance(exc, (NotAuthenticated, AuthenticationFailed, InvalidToken)):
             logger.warning(f"Authentication required or invalid: {exc}")
             return Response(
-                {"errors": {"non_field_errors": [str(exc)]}},
+                {"errors": {
+                    "non_field_errors": "Authentication required or invalid token."}},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
@@ -69,7 +70,7 @@ class _HandleExceptionMixin:
         elif isinstance(exc, NotFound):
             logger.warning(f"Resource not found: {exc}")
             return Response(
-                {"errors": {"non_field_errors": [str(exc)]}},
+                {"errors": {"non_field_errors": ["Resource not found."]}},
                 status=status.HTTP_404_NOT_FOUND,
             )
 

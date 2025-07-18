@@ -2,6 +2,7 @@ import logging
 
 from rest_framework import serializers
 
+from api.appointments.models import Appointment
 from api.patients.models import (
     Patient,
     PatientMedicalRecord,
@@ -14,11 +15,11 @@ from api.patients.choices import (
     AddictionType,
     MaritalStatus,
 )
+from api.patients.utils.get_handler import get_medical_record_data
 from api.patients.validators import (
     validate_fields,
     validate_addiction_types,
     validate_care_providers_types,
-    validate_is_appointment_update,
     validate_only_one_main_record,
 )
 from api.patients.utils.fields import LabelChoiceField
@@ -30,19 +31,33 @@ logger = logging.getLogger(__name__)
 
 
 class IodineAllergySerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     is_iodine_allergic = serializers.ChoiceField(choices=IsIodineAllergic.choices)
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    def to_representation(self, instance):
+        request = self.context.get("request")
+        appointment_uuid = self.context.get("appointment_uuid")
+        patient = request.user.patient
+
+        try:
+            if appointment_uuid:
+                appointment = Appointment.objects.get(uuid=appointment_uuid)
+                data = getattr(appointment.medical_record, "iodine_allergy", [])
+            else:
+                main_record = patient.medical_records.get(is_main_record=True)
+                data = getattr(main_record, "iodine_allergy", [])
+
+            return {"iodine_allergy": data}
+
+        except Exception as e:
+            logger.exception("Unexpected error")
+            raise serializers.ValidationError(
+                {"detail": "Failed to get iodine allergy"}
+            )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "iodine_allergy", validated_data, is_appointment_update
+                self.context, "iodine_allergy", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -58,19 +73,19 @@ class AllergySerializer(serializers.Serializer):
 
 
 class AllergyListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     allergies = AllergySerializer(many=True, allow_empty=True)
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    item_serializer_class = AllergySerializer
+
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "allergies", self.item_serializer_class
+        )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "allergies", validated_data, is_appointment_update
+                self.context, "allergies", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -86,19 +101,18 @@ class MedicationSerializer(serializers.Serializer):
 
 
 class MedicationListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medications = MedicationSerializer(many=True, allow_empty=True)
+    item_serializer_class = MedicationSerializer
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "medications", self.item_serializer_class
+        )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "medications", validated_data, is_appointment_update
+                self.context, "medications", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -114,19 +128,18 @@ class MedicalHistorySerializer(serializers.Serializer):
 
 
 class MedicalHistoryListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     medical_histories = MedicalHistorySerializer(many=True, allow_empty=True)
+    item_serializer_class = MedicalHistorySerializer
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "medical_histories", self.item_serializer_class
+        )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "medical_histories", validated_data, is_appointment_update
+                self.context, "medical_histories", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -142,19 +155,18 @@ class SurgicalHistorySerializer(serializers.Serializer):
 
 
 class SurgicalHistoryListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     surgical_histories = SurgicalHistorySerializer(many=True, allow_empty=True)
+    item_serializer_class = SurgicalHistorySerializer
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "surgical_histories", self.item_serializer_class
+        )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "surgical_histories", validated_data, is_appointment_update
+                self.context, "surgical_histories", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -171,23 +183,29 @@ class CareProviderSerializer(serializers.Serializer):
         max_length=15,
     )
     type = serializers.ChoiceField(choices=CareProviderType.choices)
+    type_display = serializers.SerializerMethodField(read_only=True)
+
+    def get_type_display(self, obj):
+        return obj.get_type_display()
 
 
 class CareProviderListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     care_providers = CareProviderSerializer(many=True, allow_empty=True)
+    item_serializer_class = CareProviderSerializer
+
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "care_providers", self.item_serializer_class
+        )
 
     def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
         validate_care_providers_types(self, attrs)
         return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "care_providers", validated_data, is_appointment_update
+                self.context, "care_providers", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -207,19 +225,18 @@ class CancerHistorySerializer(serializers.Serializer):
 
 
 class CancerHistoryListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
     cancer_history = CancerHistorySerializer(many=True, allow_empty=True)
+    item_serializer_class = CancerHistorySerializer
 
-    def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
-        return super().validate(attrs)
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "cancer_history", self.item_serializer_class
+        )
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "cancer_history", validated_data, is_appointment_update
+                self.context, "cancer_history", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")
@@ -237,23 +254,22 @@ class AddictionHistorySerializer(serializers.Serializer):
 
 
 class AddictionHistoryListSerializer(serializers.Serializer):
-    appointment_uuid = serializers.UUIDField(required=False, write_only=True)
-    addiction_history = AddictionHistorySerializer(
-        many=True,
-        required=True,
-    )
+    addiction_history = AddictionHistorySerializer(many=True)
+    item_serializer_class = AddictionHistorySerializer
+
+    def to_representation(self, instance):
+        return get_medical_record_data(
+            self.context, "addiction_history", self.item_serializer_class
+        )
 
     def validate(self, attrs):
-        validate_is_appointment_update(self, attrs)
         validate_addiction_types(self, attrs)
         return super().validate(attrs)
 
     def update(self, instance, validated_data):
         try:
-            patient = self.context["request"].user.patient
-            is_appointment_update = self.context.get("is_appointment_update", False)
             return update_json_field(
-                patient, "addiction_history", validated_data, is_appointment_update
+                self.context, "addiction_history", validated_data
             )
         except Exception as e:
             logger.exception("Unexpected error")

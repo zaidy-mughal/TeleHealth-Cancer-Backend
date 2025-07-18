@@ -1,7 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
 
-
 from api.doctors.models import TimeSlot
 from api.doctors.choices import Services
 from api.doctors.serializers import TimeSlotSerializer
@@ -88,7 +87,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
             return super().create(validated_data)
 
         except Patient.DoesNotExist:
-            raise serializers.ValidationError("Patient profile not found for this user")
+            raise serializers.ValidationError(
+                "Patient profile not found for this user")
 
         except Exception as e:
             logger.exception("Unexpected error")
@@ -167,6 +167,3 @@ class DoctorAppointmentSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
-
-
-# checking deployment comment

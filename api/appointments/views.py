@@ -27,7 +27,7 @@ from django.shortcuts import get_object_or_404
 from api.appointments.models import Appointment
 from api.doctors.permissions import IsDoctor
 from api.patients.permissions import IsPatient
-from api.patients.views import BaseMedicalRecordFieldUpdateView
+from api.patients.views import BaseMedicalRecordFieldUpdateRetrieveView
 from api.utils.exception_handler import HandleExceptionAPIView
 
 import logging
@@ -98,48 +98,40 @@ class AppointmentCreateView(HandleExceptionAPIView, CreateAPIView):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class IodineAllergyAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class IodineAllergyAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = IodineAllergySerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AllergyBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class AllergyBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = AllergyListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class MedicationBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class MedicationBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = MedicationListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class MedicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class MedicalHistoryBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = MedicalHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class SurgicalHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class SurgicalHistoryBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = SurgicalHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CareProviderBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class CareProviderBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = CareProviderListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AddictionHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class AddictionHistoryBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = AddictionHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CancerHistoryBulkAppointmentUpdateView(BaseMedicalRecordFieldUpdateView):
-    is_appointment_update = True
+class CancerHistoryBulkAppointmentUpdateRetrieveView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = CancerHistoryListSerializer

@@ -7,7 +7,6 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-
 from api.utils.exception_handler import HandleExceptionAPIView
 from api.patients.serializers import (
     PatientSerializer,
@@ -27,19 +26,20 @@ logger = logging.getLogger(__name__)
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
+class BaseMedicalRecordFieldUpdateRetrieveView(HandleExceptionAPIView, APIView):
     permission_classes = [IsAuthenticated, IsPatient]
     serializer_class = None
-    is_appointment_update = False
 
     def get_serializer_context(self, request):
-        return {
-            "request": request,
-            "is_appointment_update": self.is_appointment_update,
-        }
+        appointment_uuid = self.kwargs.get("uuid")
+        if appointment_uuid:
+            return {
+                "request": request,
+                "appointment_uuid": appointment_uuid,
+            }
+        return {"request": request}
 
-    def patch(self, request):
-
+    def patch(self, request, *args, **kwargs):
         serializer = self.serializer_class(
             data=request.data,
             context=self.get_serializer_context(request),
@@ -49,44 +49,52 @@ class BaseMedicalRecordFieldUpdateView(HandleExceptionAPIView, APIView):
         return Response({"message": "Successfully Updated"},
                         status=status.HTTP_200_OK)
 
+    def get(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            {}, context=self.get_serializer_context(request)
+        )
+        return Response(
+            serializer.data, status=status.HTTP_200_OK
+        )
+
 
 @method_decorator(csrf_exempt, name="dispatch")
-class IodineAllergyUpdateView(BaseMedicalRecordFieldUpdateView):
+class IodineAllergyUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = IodineAllergySerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AllergyBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class AllergyBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = AllergyListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class MedicationBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class MedicationBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = MedicationListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class MedicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class MedicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = MedicalHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class SurgicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class SurgicalHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = SurgicalHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CareProviderBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class CareProviderBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = CareProviderListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class AddictionHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class AddictionHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = AddictionHistoryListSerializer
 
 
 @method_decorator(csrf_exempt, name="dispatch")
-class CancerHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateView):
+class CancerHistoryBulkUpdateView(BaseMedicalRecordFieldUpdateRetrieveView):
     serializer_class = CancerHistoryListSerializer
 
 
